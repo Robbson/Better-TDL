@@ -167,6 +167,12 @@ const int COMMENTSFORMAT_WIDTH = GraphicsMisc::ScaleByDPIFactor(160);
 const int COMMENTSFORMAT_HEIGHT = GraphicsMisc::ScaleByDPIFactor(200);
 const int COMMENTSFORMAT_VOFFSET = GraphicsMisc::ScaleByDPIFactor(1);
 
+static CString GetAppCopyright()
+{
+	CString sProduct = FileMisc::GetAppProductName();
+	return sProduct;
+}
+
 /////////////////////////////////////////////////////////////////////////////
 
 #ifdef _DEBUG
@@ -1607,7 +1613,7 @@ void CToDoListWnd::UpdateTimeTrackerPreferences()
 
 BOOL CToDoListWnd::InitTrayIcon()
 {
-	if (!m_trayIcon.Create(this, IDC_TRAYICON, IDR_MAINFRAME_STD, CEnString(IDS_COPYRIGHT)))
+	if (!m_trayIcon.Create(this, IDC_TRAYICON, IDR_MAINFRAME_STD, GetAppCopyright()))
 		return FALSE;
 
 	UpdateTrayIcon();
@@ -4084,7 +4090,7 @@ void CToDoListWnd::UpdateCaption()
 	CString sProjectName = m_mgrToDoCtrls.UpdateTabItemText(nSel);
 	const CFilteredToDoCtrl& tdc = GetToDoCtrl();
 	
-	CString sCaption, sCopyright(MAKEINTRESOURCE(IDS_COPYRIGHT));
+	CString sCaption, sCopyright = GetAppCopyright();
 	CString sStatus = m_mgrToDoCtrls.GetTabItemTooltip(nSel);
 	
 	// add current focus text as required
@@ -15033,7 +15039,7 @@ int CToDoListWnd::FindToDoListWnds(TDCFINDWND& find)
 
 BOOL CALLBACK CToDoListWnd::FindOtherInstance(HWND hWnd, LPARAM lParam)
 {
-	static CString COPYRIGHT(MAKEINTRESOURCE(IDS_COPYRIGHT));
+	static CString COPYRIGHT(GetAppCopyright());
 
 	CString sCaption;
 	CWnd::FromHandle(hWnd)->GetWindowText(sCaption);

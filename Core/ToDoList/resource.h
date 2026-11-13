@@ -1054,6 +1054,16 @@
 #define ID_WINDOW14                     33019
 #define ID_WINDOW15                     33020
 #define ID_WINDOW16                     33021
+#define ID_WINDOW17                     34800
+#define ID_WINDOW18                     34801
+#define ID_WINDOW19                     34802
+#define ID_WINDOW20                     34803
+#define ID_WINDOW21                     34804
+#define ID_WINDOW22                     34805
+#define ID_WINDOW23                     34806
+#define ID_WINDOW24                     34807
+#define ID_WINDOW25                     34808
+#define ID_WINDOW_MOREWINDOWS           34809
 #define ID_TOOLS_TRANSFORM              33024
 #define ID_MOVE_SORTTASKLISTTABS        33025
 #define ID_EDIT_DECTASKPRIORITY         33026

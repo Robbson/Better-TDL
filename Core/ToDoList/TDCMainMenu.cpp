@@ -182,6 +182,7 @@ void CTDCMainMenu::TranslateDynamicMenuItems()
 {
 	CEnMenu::TranslateDynamicMenuItems(ID_FILE_MRU1, ID_FILE_MRU16, _T("Recent Tasklist %d"));
 	CEnMenu::TranslateDynamicMenuItems(ID_WINDOW1, ID_WINDOW16, _T("Window %d"));
+	CEnMenu::TranslateDynamicMenuItems(ID_WINDOW17, ID_WINDOW25, _T("Window %d"));
 	CEnMenu::TranslateDynamicMenuItems(ID_TOOLS_USERTOOL1, ID_TOOLS_USERTOOL50, _T("User Defined Tool %d"));
 	CEnMenu::TranslateDynamicMenuItems(ID_FILE_OPEN_USERSTORAGE1, ID_FILE_OPEN_USERSTORAGE16, _T("3rd Party Storage %d"));
 	CEnMenu::TranslateDynamicMenuItems(ID_FILE_SAVE_USERSTORAGE1, ID_FILE_SAVE_USERSTORAGE16, _T("3rd Party Storage %d"));
@@ -213,6 +214,7 @@ BOOL CTDCMainMenu::IsDynamicItem(UINT nMenuID)
 	// Same as above
 	CHECKINRANGE(nMenuID, ID_FILE_MRU1, ID_FILE_MRU16);
 	CHECKINRANGE(nMenuID, ID_WINDOW1, ID_WINDOW16);
+	CHECKINRANGE(nMenuID, ID_WINDOW17, ID_WINDOW25);
 	CHECKINRANGE(nMenuID, ID_TOOLS_USERTOOL1, ID_TOOLS_USERTOOL50);
 	CHECKINRANGE(nMenuID, ID_FILE_OPEN_USERSTORAGE1, ID_FILE_OPEN_USERSTORAGE16);
 	CHECKINRANGE(nMenuID, ID_FILE_SAVE_USERSTORAGE1, ID_FILE_SAVE_USERSTORAGE16);
@@ -245,6 +247,13 @@ CString CTDCMainMenu::GetDynamicItemTooltip(UINT nMenuID,
 	else if (IsInRange(nMenuID, ID_WINDOW1, ID_WINDOW16))
 	{
 		int nTDC = (nMenuID - ID_WINDOW1);
+
+		if (nTDC < mgrToDoCtrl.GetCount())
+			sTipText = mgrToDoCtrl.GetFriendlyProjectName(nTDC);
+	}
+	else if (IsInRange(nMenuID, ID_WINDOW17, ID_WINDOW25))
+	{
+		int nTDC = (ID_WINDOW16 - ID_WINDOW1 + 1) + (nMenuID - ID_WINDOW17);
 
 		if (nTDC < mgrToDoCtrl.GetCount())
 			sTipText = mgrToDoCtrl.GetFriendlyProjectName(nTDC);

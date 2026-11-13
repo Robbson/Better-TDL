@@ -164,6 +164,7 @@ protected:
 
 	int m_nLastSelItem; // just for flicker-free todoctrl switching
 	int m_nToolbarEndSepWidth;
+	int m_nWindowMenuCount;
 	UINT m_nContextMenuID;
 	TDC_COLUMN m_nContextColumnID;
 	TDC_MAXSTATE m_nMaxState;
@@ -783,6 +784,7 @@ protected:
 	void UpdateFindDialogCustomAttributes(const CFilteredToDoCtrl* pCtrl);
 	void UpdateTrayTooltip(); // Idle task via UpdateCaption
 	void UpdateCaption(); // Idle task
+	void UpdateWindowMenuTitle(); // Idle task via UpdateCaption
 	void UpdateStatusBar(const CTDCAttributeMap& mapAttrib); // Idle task
 	void UpdateMenuIconMgrSourceControlStatus(); // Idle task
 	void UpdateTimeTrackerPreferences();

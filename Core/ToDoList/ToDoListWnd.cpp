@@ -114,6 +114,48 @@ static char THIS_FILE[] = __FILE__;
 const int BEVEL = 3; // DON'T SCALE
 const int MRU_MAX_ITEM_LEN = 128;
 
+const UINT WINDOW_MENU_IDS[] =
+{
+	ID_WINDOW1,
+	ID_WINDOW2,
+	ID_WINDOW3,
+	ID_WINDOW4,
+	ID_WINDOW5,
+	ID_WINDOW6,
+	ID_WINDOW7,
+	ID_WINDOW8,
+	ID_WINDOW9,
+	ID_WINDOW10,
+	ID_WINDOW11,
+	ID_WINDOW12,
+	ID_WINDOW13,
+	ID_WINDOW14,
+	ID_WINDOW15,
+	ID_WINDOW16,
+	ID_WINDOW17,
+	ID_WINDOW18,
+	ID_WINDOW19,
+	ID_WINDOW20,
+	ID_WINDOW21,
+	ID_WINDOW22,
+	ID_WINDOW23,
+	ID_WINDOW24,
+	ID_WINDOW25,
+};
+
+const int MAX_WINDOW_MENU_ITEMS = _countof(WINDOW_MENU_IDS);
+
+static int GetWindowMenuIndex(UINT nCmdID)
+{
+	for (int nWnd = 0; nWnd < MAX_WINDOW_MENU_ITEMS; nWnd++)
+	{
+		if (WINDOW_MENU_IDS[nWnd] == nCmdID)
+			return nWnd;
+	}
+
+	return -1;
+}
+
 const int BORDER = GraphicsMisc::ScaleByDPIFactor(3);
 const int SPLITTER_WIDTH = GraphicsMisc::ScaleByDPIFactor(6);
 
@@ -352,6 +394,7 @@ CToDoListWnd::CToDoListWnd()
 	m_mruList(0, _T("MRU"), _T("TaskList%d"), 16, MRU_MAX_ITEM_LEN, CEnString(IDS_RECENTFILES)),
 	m_nLastSelItem(-1), 
 	m_nMaxState(TDCMS_NORMAL), 
+	m_nWindowMenuCount(-1),
 	m_bShowFilterBar(TRUE),
 	m_bShowStatusBar(TRUE),
 	m_bInNewTask(FALSE),
@@ -628,6 +671,7 @@ BEGIN_MESSAGE_MAP(CToDoListWnd, CFrameWnd)
 	ON_COMMAND_RANGE(ID_VIEW_TOGGLEALLTASKEXPANDED, ID_VIEW_TOGGLEALLTASKEXPANDED, OnViewExpandTasks)
 	ON_COMMAND_RANGE(ID_VIEW_TOGGLETASKEXPANDED, ID_VIEW_TOGGLETASKEXPANDED, OnViewExpandTasks)
 	ON_COMMAND_RANGE(ID_WINDOW1, ID_WINDOW16, OnWindow)
+	ON_COMMAND_RANGE(ID_WINDOW17, ID_WINDOW25, OnWindow)
 
 	ON_MESSAGE(WM_APPRESTOREFOCUS, OnAppRestoreFocus)
 	ON_MESSAGE(WM_CLOSE, OnClose)
@@ -4078,6 +4122,8 @@ void CToDoListWnd::UpdateCaption()
 	CLocalizer::IgnoreString(sCaption);
 	SetWindowText(sCaption);
 
+	UpdateWindowMenuTitle();
+
 	// set tray tip too
 	UpdateTrayTooltip();
 }
@@ -5698,8 +5744,11 @@ BOOL CToDoListWnd::InitMenubar()
 
 	SetMenu(&m_menubar);
 	m_hMenuDefault = m_menubar;
+	m_nWindowMenuCount = -1;
 
 	m_idleTasks.UpdateMenubarTabCloseBtnVisibility();
+
+	UpdateWindowMenuTitle();
 
 	return TRUE;
 }
@@ -9597,6 +9646,8 @@ void CToDoListWnd::OnCloseall()
 		Resize();
 
 	m_filterBar.Invalidate();
+
+	UpdateWindowMenuTitle();
 }
 
 void CToDoListWnd::OnUpdateCloseall(CCmdUI* pCmdUI) 
@@ -12254,38 +12305,82 @@ void  CToDoListWnd::OnUpdateViewExpandTasks(CCmdUI* pCmdUI)
 
 void CToDoListWnd::OnWindow(UINT nCmdID) 
 {
-	int nTDC = (int)(nCmdID - ID_WINDOW1);
-	
-	if (nTDC < GetTDCCount())
+	int nTDC = GetWindowMenuIndex(nCmdID);
+
+	if ((nTDC >= 0) && (nTDC < GetTDCCount()))
 		SelectToDoCtrl(nTDC, (nTDC != GetSelToDoCtrl()), Prefs().GetNotifyDueByOnSwitch());
+}
+
+void CToDoListWnd::UpdateWindowMenuTitle()
+{
+	int nCount = GetTDCCount();
+
+	if ((nCount == m_nWindowMenuCount) || !m_menubar.GetSafeHmenu())
+		return;
+
+	CString sTitle = m_menubar.GetMenuString(AM_WINDOW, MF_BYPOSITION);
+
+	if (sTitle.IsEmpty())
+		return;
+
+	int nOpen = sTitle.ReverseFind(_T('('));
+
+	if ((nOpen > 0) && (sTitle[sTitle.GetLength() - 1] == _T(')')))
+	{
+		CString sCount = sTitle.Mid(nOpen + 1, sTitle.GetLength() - nOpen - 2);
+		BOOL bNumeric = !sCount.IsEmpty();
+
+		for (int nChar = 0; bNumeric && (nChar < sCount.GetLength()); nChar++)
+			bNumeric = (_istdigit(sCount[nChar]) != 0);
+
+		if (bNumeric)
+			sTitle = sTitle.Left(nOpen).TrimRight();
+	}
+
+	sTitle.AppendFormat(_T(" (%d)"), nCount);
+
+	if (m_menubar.SetMenuString(AM_WINDOW, sTitle, MF_BYPOSITION))
+	{
+		m_nWindowMenuCount = nCount;
+		DrawMenuBar();
+	}
 }
 
 void CToDoListWnd::OnUpdateWindow(CCmdUI* pCmdUI) 
 {
+	UpdateWindowMenuTitle();
+
 	if (pCmdUI->m_pMenu)
 	{
 		ASSERT (ID_WINDOW1 == pCmdUI->m_nID);
-		const UINT MAXWINDOWS = 16;
 		
-		// delete existing tool entries first
-		for (int nWnd = 0; nWnd < MAXWINDOWS; nWnd++)
-			pCmdUI->m_pMenu->DeleteMenu(ID_WINDOW1 + nWnd, MF_BYCOMMAND);
+		// delete existing entries first
+		for (int nWnd = 0; nWnd < MAX_WINDOW_MENU_ITEMS; nWnd++)
+			pCmdUI->m_pMenu->DeleteMenu(WINDOW_MENU_IDS[nWnd], MF_BYCOMMAND);
+
+		pCmdUI->m_pMenu->DeleteMenu(ID_WINDOW_MOREWINDOWS, MF_BYCOMMAND);
 		
 		int nSel = GetSelToDoCtrl();
 		int nPos = 0, nTDCCount = GetTDCCount();
 		ASSERT (nTDCCount);
 
-		nTDCCount = min(nTDCCount, MAXWINDOWS);
+		int nNumItems = min(nTDCCount, MAX_WINDOW_MENU_ITEMS);
 		
-		for (int nTDC = 0; nTDC < nTDCCount; nTDC++)
+		for (int nTDC = 0; nTDC < nNumItems; nTDC++)
 		{
 			CString sMenuItem, sName = m_mgrToDoCtrls.FormatProjectNameWithFileName(nTDC);
 			sMenuItem.Format(_T("&%d %s"), (nPos + 1) % 10, sName);
 			
 			UINT nFlags = (MF_BYPOSITION | MF_STRING | (nSel == nTDC ? MF_CHECKED : MF_UNCHECKED));
-			pCmdUI->m_pMenu->InsertMenu(pCmdUI->m_nIndex++, nFlags, (ID_WINDOW1 + nTDC), sMenuItem);
+			pCmdUI->m_pMenu->InsertMenu(pCmdUI->m_nIndex++, nFlags, WINDOW_MENU_IDS[nTDC], sMenuItem);
 			
 			nPos++;
+		}
+
+		if (nTDCCount > MAX_WINDOW_MENU_ITEMS)
+		{
+			UINT nFlags = (MF_BYPOSITION | MF_STRING | MF_GRAYED);
+			pCmdUI->m_pMenu->InsertMenu(pCmdUI->m_nIndex++, nFlags, ID_WINDOW_MOREWINDOWS, _T("..."));
 		}
 		
 		// update end menu count
@@ -13746,6 +13841,8 @@ void CToDoListWnd::OnCloseallbutthis()
 	}
 
 	Resize();
+
+	UpdateWindowMenuTitle();
 }
 
 void CToDoListWnd::OnUpdateCloseallbutthis(CCmdUI* pCmdUI) 

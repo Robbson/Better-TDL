@@ -3032,6 +3032,15 @@ BEGIN
         MENUITEM "Window 14",                   ID_WINDOW14, GRAYED
         MENUITEM "Window 15",                   ID_WINDOW15, GRAYED
         MENUITEM "Window 16",                   ID_WINDOW16, GRAYED
+        MENUITEM "Window 17",                   ID_WINDOW17, GRAYED
+        MENUITEM "Window 18",                   ID_WINDOW18, GRAYED
+        MENUITEM "Window 19",                   ID_WINDOW19, GRAYED
+        MENUITEM "Window 20",                   ID_WINDOW20, GRAYED
+        MENUITEM "Window 21",                   ID_WINDOW21, GRAYED
+        MENUITEM "Window 22",                   ID_WINDOW22, GRAYED
+        MENUITEM "Window 23",                   ID_WINDOW23, GRAYED
+        MENUITEM "Window 24",                   ID_WINDOW24, GRAYED
+        MENUITEM "Window 25",                   ID_WINDOW25, GRAYED
     END
     POPUP "&Help"
     BEGIN

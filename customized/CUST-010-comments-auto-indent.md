@@ -30,7 +30,7 @@ Files: `Core/ToDoList/TDLSimpleTextContentCtrl.cpp` and
 1. A file-local `GetAutoIndentPrefix()` helper finds the start of the paragraph
    containing the caret by scanning backwards for the previous `\r`/`\n` in chunks. It
    returns the paragraph's leading spaces/tabs plus any recognised bullet marker. The
-   markers are listed in `BULLET_PREFIXES` and currently include `- `, `* `, `+ `, `-> `
+   markers are listed in `BULLET_PREFIXES` and currently include `- `, `-> `
    and `=> `; add or remove entries there to change the set. Scanning the paragraph
    rather than using `LineFromChar()`/`LineIndex()` avoids treating word-wrapped display
    lines as paragraphs.
@@ -42,16 +42,28 @@ Files: `Core/ToDoList/TDLSimpleTextContentCtrl.cpp` and
    an empty bullet adds no bullet prefix.
 3. `ApplyAutoIndent()` walks each paragraph and sets the RichEdit hanging indent
    (`PARAFORMAT2.dxOffset` / `PFM_OFFSET`) to the measured width of the paragraph's
-   leading spaces/tabs plus any bullet marker. Wrapped lines therefore start where the
+   leading spaces plus any bullet marker. Wrapped lines therefore start where the
    paragraph's text starts. The width is measured with `PointFromChar()` and converted
-   from pixels to twips, so spaces, tabs, proportional fonts, bullet markers and the
-   control's custom tab stops are handled by RichEdit itself.
+   from pixels to twips, so spaces, proportional fonts, bullet markers and the control's
+   custom tab stops are handled by RichEdit itself.
 4. Formatting runs from a short `TIMER_AUTOINDENT` (50 ms) timer after `EN_CHANGE`,
    `WM_SETTEXT` and `WM_SETFONT`, so it is coalesced while typing and re-applied after a
    font or content change. `EM_SETPARAFORMAT` is sent directly rather than through
    `CRichEditBaseCtrl::SetParaFormat()` to avoid that helper's synthetic `EN_CHANGE`.
    The operation is wrapped in `CRePauseUndo` so the visual formatting does not create
    undo entries, and the selection/first visible line are restored.
+5. Wrapped-line alignment is skipped for paragraphs whose prefix contains a tab. This
+   build creates `RichEdit50W` (RichEdit 4.1, `RichEditBaseCtrl.cpp:145`), which advances
+   a first-line tab from `dxStartIndent + dxOffset` but draws the line from
+   `dxStartIndent`. A hanging indent on a tab-indented prefix therefore pushes the leading
+   tab one whole tab stop further right (a 2-space tab renders like 3-4 tabs), and the
+   measurement then folds the offset back in on every pass. Since no tab-stop layout can
+   compensate for the ahead-of-line reference position, such paragraphs keep an offset of
+   zero and their literal tabs.
+6. While the paragraph pass runs, the caret is hidden if the control has focus, and the
+   control is invalidated afterwards even when no format changed. Moving the selection to
+   every paragraph with redraw disabled otherwise left non-blinking caret artefacts on
+   screen (several dead `|` cursors after typing and clicking around).
 
 ## Risks
 
@@ -79,12 +91,25 @@ Files: `Core/ToDoList/TDLSimpleTextContentCtrl.cpp` and
 - The Return continuation replaces each marker character with one space and each tab with
   two spaces. This aligns exactly with monospaced/coder fonts; proportional fonts may be
   off by a fraction of a character.
+- Wrapped lines of tab-indented paragraphs are not aligned under the text; RichEdit 4.1
+  cannot combine a hanging indent with a tabbed first line. Space-indented paragraphs
+  are aligned.
 
 ## Verification
 
 - `Core/ToDoListLib/ToDoListLib.vcxproj` builds successfully in `Unicode Debug`.
+- Reproduced outside the app with a `RichEdit50W` control using the same tab stops and
+  start indent: with `dxOffset = 570` (38 px) the character after a leading tab moved
+  from x=29 px to x=47 px, i.e. the tab advanced from the tab stop after
+  `dxStartIndent + dxOffset` instead of `dxStartIndent`. Re-applying this measured value
+  each pass grew the offset by 270 twips per pass (570 → 840 → 1110 → 1380).
+- With tab-containing prefixes left at offset zero, the leading tab stays at the normal
+  2-character width and repeated formatting passes no longer change any paragraph.
+- The caret is hidden during the paragraph pass and the control is invalidated afterwards,
+  so editing and then moving the caret no longer leaves non-blinking caret artefacts.
 - Manual verification pending: type an indented line in the comments editor and press
-  Enter; the caret should stay at the same indent and wrapped lines should align with the
-  text after the indent. Check bullet lines (`- item`, `* item`, `-> item`, `=> item`,
-  including indented variants) for both Return continuation and wrapped-line alignment,
-  plus an empty bullet followed by Return, font changes, paste, undo/redo and Shift+Enter.
+  Enter; the caret should stay at the same indent and wrapped lines of space-indented
+  paragraphs should align with the text after the indent. Check bullet lines (`- item`,
+  `* item`, `-> item`, `=> item`, including indented variants) for both Return
+  continuation and wrapped-line alignment, plus an empty bullet followed by Return, font
+  changes, paste, undo/redo and Shift+Enter.

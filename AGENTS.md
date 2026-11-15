@@ -101,6 +101,37 @@ Core\ToDoList\Unicode_Debug\ToDoList.exe
   diagnosis, not production.
 - Release builds ignore the variable.
 
+## Windows tooling
+
+The shell tool runs **PowerShell 7 (`pwsh`)** on Windows, not a POSIX shell.
+
+- Unix text tools are **not** available as real binaries: `grep`, `head`, `tail`, `sed`,
+  `awk`, `find`, `xargs`, `wc`. Some names exist only as PowerShell aliases (`ls`, `cat`,
+  `rm`), so prefer real cmdlets and `rg` (bundled ripgrep): `Select-String`, `Get-Content`,
+  `Get-ChildItem`, `Measure-Object`, or the dedicated Read/Grep/Glob tools.
+- `msbuild` and `cl` are **not on `PATH`**. Invoke MSBuild through the VS2022 path,
+  discovered with `vswhere.exe`:
+  `C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe`.
+  For `cl`, run a `.bat` that calls `VC\Auxiliary\Build\vcvars64.bat` first; quoting the
+  vcvars path inline from PowerShell usually fails.
+- Quote Windows paths containing spaces with `& "..."`. `cmd /c` is available when a
+  batch file is genuinely required.
+- Use the background-process tool for long-running servers/watchers rather than shell
+  backgrounding operators.
+
+## Running processes on this machine
+
+- The user normally keeps an **older ToDoList 6.8.10** instance running for notes and
+  comparisons. It allows multiple instances and is unrelated to this repository.
+- **Never terminate a ToDoList process you did not start.** Do not use
+  `Get-Process ToDoList | Stop-Process` or kill by image name; that would close the
+  user's notes instance.
+- When launching the app for testing, keep the returned process `Id` and stop only that
+  process. If a build fails because `ToDoList.exe` is locked, only the instance this
+  agent launched may be stopped.
+- Launch test runs against a copy of the tasklist in a temp folder, not the sample or the
+  user's live files.
+
 ## Code conventions
 
 - `.editorconfig`: **tabs**, tab width 4, trim trailing whitespace. Match surrounding

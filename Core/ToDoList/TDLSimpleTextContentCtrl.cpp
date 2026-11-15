@@ -684,6 +684,10 @@ void CTDLSimpleTextContentCtrl::ApplyAutoIndent()
 
 	const int nFirstLine = GetFirstVisibleLine();
 	const BOOL bVisible = IsWindowVisible();
+	const BOOL bCaret = (GetFocus() == this);
+
+	if (bCaret)
+		HideCaret();
 
 	CRePauseUndo rep(*this);
 	DWORD dwEventMask = SetEventMask(0);
@@ -718,9 +722,14 @@ void CTDLSimpleTextContentCtrl::ApplyAutoIndent()
 	{
 		SetRedraw(TRUE);
 
-		if (bChanged)
+		// The per-paragraph selection moves can leave non-blinking caret
+		// artefacts behind even when no paragraph format changed
+		if (bChanged || bCaret)
 			Invalidate(FALSE);
 	}
+
+	if (bCaret)
+		ShowCaret();
 }
 
 bool CTDLSimpleTextContentCtrl::ApplyAutoIndentToParagraph(int nParaStart, int nParaEnd, int nDpiX)
@@ -757,7 +766,21 @@ bool CTDLSimpleTextContentCtrl::ApplyAutoIndentToParagraph(int nParaStart, int n
 
 	int nOffset = 0;
 
-	if ((nTextStart > 0) && (nTextStart < sPara.GetLength()))
+	SetSel(nParaStart, nParaStart);
+
+	PARAFORMAT2 pf;
+	ZeroMemory(&pf, sizeof(pf));
+	pf.cbSize = sizeof(pf);
+
+	GetParaFormat(pf);
+
+	// RichEdit 4.1 advances a first-line tab from dxStartIndent + dxOffset
+	// but draws the line from dxStartIndent. Applying a hanging indent to a
+	// tab-indented prefix therefore pushes the leading tab one tab stop
+	// further right, and measuring it would fold the offset back into the
+	// next pass. Only align prefixes that use spaces.
+	if ((nTextStart > 0) && (nTextStart < sPara.GetLength()) &&
+		(sPara.Left(nTextStart).Find(_T('\t')) < 0))
 	{
 		CPoint ptPara, ptText;
 		PointFromChar(nParaStart, ptPara);
@@ -767,14 +790,6 @@ bool CTDLSimpleTextContentCtrl::ApplyAutoIndentToParagraph(int nParaStart, int n
 		if ((ptText.y == ptPara.y) && (ptText.x > ptPara.x))
 			nOffset = MulDiv((ptText.x - ptPara.x), 1440, nDpiX);
 	}
-
-	SetSel(nParaStart, nParaStart);
-
-	PARAFORMAT2 pf;
-	ZeroMemory(&pf, sizeof(pf));
-	pf.cbSize = sizeof(pf);
-
-	GetParaFormat(pf);
 
 	if ((pf.dwMask & PFM_OFFSET) && (pf.dxOffset == nOffset))
 		return false;

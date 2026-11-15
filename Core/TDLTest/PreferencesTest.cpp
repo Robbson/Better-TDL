@@ -37,10 +37,72 @@ TESTRESULT CPreferencesTest::Run()
 {
 	ClearTotals();
 
+	TestQuotedStrings();
 	TestArrayPerformance();
 	TestSectionPerformance();
 
 	return GetTotals();
+}
+
+void CPreferencesTest::TestQuotedStrings()
+{
+	CTDCScopedTest test(*this, _T("CPreferencesTest::QuotedStrings"));
+
+	CString sIniPath = FileMisc::GetTempFilePath(_T("TestQuotedStrings"), _T(".ini"));
+	FileMisc::DeleteFile(sIniPath);
+
+	CStringArray aValues;
+	aValues.Add(_T("\"Jardy Glaube\""));
+	aValues.Add(_T("say \"hello\" now"));
+	aValues.Add(_T("\""));
+	aValues.Add(_T("no quotes"));
+
+	// Write and save
+	{
+		CPreferences::Initialise(sIniPath, TRUE);
+
+		// scoped so that preferences goes out of scope before release
+		{
+			CPreferences prefs;
+
+			for (int nItem = 0; nItem < aValues.GetSize(); nItem++)
+			{
+				CString sKey = Misc::MakeKey(_T("Item%d"), nItem);
+				prefs.WriteProfileString(_T("QuotedStrings"), sKey, aValues[nItem]);
+			}
+
+			prefs.WriteProfileArray(_T("QuotedArray"), aValues);
+			prefs.Save();
+		}
+
+		CPreferences::Release();
+	}
+
+	// Read back
+	{
+		CPreferences::Initialise(sIniPath, TRUE);
+
+		{
+			CPreferences prefs;
+
+			for (int nItem = 0; nItem < aValues.GetSize(); nItem++)
+			{
+				CString sKey = Misc::MakeKey(_T("Item%d"), nItem);
+				CString sValue = prefs.GetProfileString(_T("QuotedStrings"), sKey);
+
+				ExpectEQ(sValue, aValues[nItem]);
+			}
+
+			CStringArray aReloaded;
+			prefs.GetProfileArray(_T("QuotedArray"), aReloaded, TRUE);
+
+			ExpectEQ(aReloaded, aValues, TRUE);
+		}
+
+		CPreferences::Release();
+	}
+
+	FileMisc::DeleteFile(sIniPath);
 }
 
 void CPreferencesTest::TestSectionPerformance()

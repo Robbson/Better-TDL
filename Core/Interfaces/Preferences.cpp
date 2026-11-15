@@ -34,14 +34,17 @@ INIENTRY::INIENTRY(LPCTSTR szName, LPCTSTR szValue, BOOL bQuote)
 
 CString INIENTRY::Format() const
 {
-	ASSERT(sValue.Find('\"') == -1);
+	// escape any embedded quotes so they are not mistaken for the
+	// optional surrounding quotes when the file is parsed again
+	CString sSafeValue = SafeQuote(sValue);
+	ASSERT(sSafeValue.Find('\"') == -1);
 
 	CString sEntry;
 
 	if (bQuoted)
-		sEntry.Format(_T("%s=\"%s\""), sName, sValue);
+		sEntry.Format(_T("%s=\"%s\""), sName, sSafeValue);
 	else
-		sEntry.Format(_T("%s=%s"), sName, sValue);
+		sEntry.Format(_T("%s=%s"), sName, sSafeValue);
 
 	return sEntry;
 }
@@ -53,9 +56,12 @@ BOOL INIENTRY::Parse(const CString& sEntry)
 	if (!Misc::Split(sName, sValue, '='))
 		return FALSE;
 
-	// remove quotes
+	// remove surrounding quotes
 	bQuoted = sValue.Remove('\"');
 	ASSERT((bQuoted == 0) || (bQuoted == 2));
+
+	// restore any embedded quotes escaped by Format()
+	sValue = UnSafeQuote(sValue);
 
 	return !sName.IsEmpty();
 }

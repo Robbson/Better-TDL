@@ -56,3 +56,4 @@ customized/
 | CUST-011 | IntelliJ-style MRU tasklist switcher for Ctrl+Tab | In progress (implemented/built; manual test pending) | [CUST-011-mru-tasklist-switcher.md](CUST-011-mru-tasklist-switcher.md) |
 | CUST-012 | Product name and release label from version resource; About layout | Done (built; manual About check pending) | [CUST-012-branding-and-about.md](CUST-012-branding-and-about.md) |
 | CUST-013 | Window menu lists up to 25 tasklists and shows the open count | In progress (implemented/built; manual check pending) | [CUST-013-window-menu-list.md](CUST-013-window-menu-list.md) |
+| CUST-014 | Quote-safe values in ToDoList.ini (Quick Find history) | Done | [CUST-014-quoted-ini-values.md](CUST-014-quoted-ini-values.md) |

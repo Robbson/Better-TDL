@@ -26,6 +26,7 @@ public:
 	TESTRESULT Run();
 
 protected:
+	void TestQuotedStrings();
 	void TestArrayPerformance();
 	void TestSectionPerformance();
 

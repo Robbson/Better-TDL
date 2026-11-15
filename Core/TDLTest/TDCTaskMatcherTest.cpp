@@ -42,6 +42,8 @@ const COleDateTime BASE_DUE(45002.0);
 //const COleDateTime BASE_DONE(45003.0);
 const COleDateTime BASE_LASTMOD(45004.0);
 
+const CString LISTSEP = Misc::GetListSeparator();
+
 //////////////////////////////////////////////////////////////////////
 
 // Mocks
@@ -268,7 +270,7 @@ void CTDCTaskMatcherTest::TestTextArrayAttributeRules(const CToDoCtrlData& data,
 		rule.SetOperator(FOP_EQUALS);
 
 		{
-			rule.SetValue(Misc::Format(_T("%s2.0, %s2.1, %s2.2"), sPrefix, sPrefix, sPrefix));
+			rule.SetValue(Misc::Format(_T("%s2.0%s %s2.1%s %s2.2"), sPrefix, LISTSEP, sPrefix, LISTSEP, sPrefix));
 
 			ExpectEQ(1, matcher.FindTasks(rule, FALSE, aTaskIDs));
 			ExpectTrue(ContainsOneTaskID(aTaskIDs, 2));
@@ -276,7 +278,7 @@ void CTDCTaskMatcherTest::TestTextArrayAttributeRules(const CToDoCtrlData& data,
 
 		// Not order-sensitive
 		{
-			rule.SetValue(Misc::Format(_T("%s3.1, %s3.2, %s3.0"), sPrefix, sPrefix, sPrefix));
+			rule.SetValue(Misc::Format(_T("%s3.1%s %s3.2%s %s3.0"), sPrefix, LISTSEP, sPrefix, LISTSEP, sPrefix));
 
 			ExpectEQ(1, matcher.FindTasks(rule, FALSE, aTaskIDs));
 			ExpectTrue(ContainsOneTaskID(aTaskIDs, 3));
@@ -295,14 +297,14 @@ void CTDCTaskMatcherTest::TestTextArrayAttributeRules(const CToDoCtrlData& data,
 		}
 
 		{
-			rule.SetValue(Misc::Format(_T("%s2.0, %s2.1, %s2.2"), sPrefix, sPrefix, sPrefix));
+			rule.SetValue(Misc::Format(_T("%s2.0%s %s2.1%s %s2.2"), sPrefix, LISTSEP, sPrefix, LISTSEP, sPrefix));
 
 			ExpectEQ(5, matcher.FindTasks(rule, FALSE, aTaskIDs));
 			ExpectTrue(ContainsAllTaskIDsButOne(aTaskIDs, 2));
 		}
 
 		{
-			rule.SetValue(_T("Cat3.0, Cat3.1, Cat3.2"));
+			rule.SetValue(Misc::Format(_T("Cat3.0%s Cat3.1%s Cat3.2"), LISTSEP, LISTSEP));
 
 			int nNumMatches = matcher.FindTasks(rule, FALSE, aTaskIDs);
 

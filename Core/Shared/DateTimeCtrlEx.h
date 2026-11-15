@@ -62,10 +62,12 @@ public:
 	BOOL IsCalendarVisible() const;
 	BOOL IsDateSet() const;
 	DTC_HITTEST HitTest(CPoint point, BOOL bScreen = FALSE) const;
+	void NotifyDateChange();
 
 // Attributes
 protected:
 	BOOL m_bLButtonDown, m_bDropped, m_bWasSet, m_bNotifyingParent;
+	BOOL m_bSkipLButtonUp;
 	NMDATETIMECHANGE m_nmdtcFirst, m_nmdtcLast;
 	DWORD m_dwMonthCalStyle;
 	BOOL m_bEnableInlineEditing;
@@ -90,6 +92,7 @@ public:
 protected:
 	//{{AFX_MSG(CDateTimeCtrlEx)
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
+	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg BOOL OnDateTimeChange(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg BOOL OnCloseUp(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg BOOL OnDropDown(NMHDR* pNMHDR, LRESULT* pResult);

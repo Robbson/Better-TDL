@@ -421,6 +421,66 @@ Phase 3 implemented:
 - The file-link control only expands across the remaining row when there are no custom
   fields after it.
 
+### Bug fixes after Phase 3
+
+Date checkboxes:
+
+- `CDateTimeCtrlEx`'s `ShowCalendarOnCompleting()` defaults to `TRUE`, which makes a
+  checkbox click open the calendar instead of toggling the date. The legacy bar now
+  calls `ShowCalendarOnCompleting(FALSE)` for the start/due/done pickers, so the checkbox
+  sets today's date (the control's stored value) when ticked and clears the date when
+  unticked. The calendar is still available from the drop button.
+- Custom date attributes get the same setting when their controls are created in
+  `TDCCustomEditAttributeUIHelper`.
+- With `ShowCalendarOnCompleting(FALSE)`, `CDateTimeCtrlEx` now handles the checkbox
+  toggle itself in `OnLButtonDown()`: it calls `DTM_SETSYSTEMTIME` with `GDT_NONE` to
+  clear, or sets today's date to set. The matching `WM_LBUTTONUP` is eaten so the common
+  control cannot toggle a second time.
+- `DTM_SETSYSTEMTIME` and `SetTime()` do **not** notify the parent, so the control
+  synthesizes the equivalent `DTN_DATETIMECHANGE` via `NotifyDateChange()`. Without this
+  the checkbox visual changed but the task data never updated.
+- The notification is posted on to `CToDoCtrl` (not sent synchronously) so the date
+  picker has finished its mouse handling before the task is updated and the bar is
+  refreshed. This also avoids the temporary `30.12.1899` (OLE zero-date) state.
+- `CTDLTaskAttributeBarCtrl` keeps a cached date per date field, updated from the
+  notification flags (`GDT_VALID`/`GDT_NONE`) and from `RefreshAllValues()`. The
+  `GetStartDate()`/`GetDueDate()`/`GetDoneDate()` accessors use this cache so an uncheck
+  reliably clears the task field.
+- Unset dates must be represented with `CDateHelper::NullDate()`, **not**
+  `COleDateTime()`: the default `COleDateTime` constructor is a *valid* `30.12.1899`
+  (OLE zero date). That was the source of the bogus `30.12.1899` values and of the date
+  pickers appearing checked for tasks without a date. Time-only dates (`m_dt < 1.0`)
+  are also treated as unset by the bar.
+
+Colour picker:
+
+- `CTDLTaskAttributeBarCtrl::OnCommand()` now calls the base class first. MFC performs
+  control notification reflection inside `CWnd::OnCommand()`, so the previous early
+  `return TRUE` prevented `CColourPickerEx` from receiving its reflected `BN_CLICKED`
+  and opening the colour popup. The same change restores the reflected `CBN_*`
+  handling of `CAutoComboBox` while preserving the parent notifications.
+
+Notification routing:
+
+- `OnNotify()` likewise lets the base class reflect notifications first. This gives
+  `CDateTimeCtrlEx` control over its calendar interaction (intermediate
+  `DTN_DATETIMECHANGE` notifications are eaten while the calendar is open) and only
+  forwards completed date changes to `CToDoCtrl`.
+
+Locked tasks:
+
+- `EnableDisableControls()` now queries `CTDCMultiTasker::CanEditAnyTask()` per
+  attribute (with an `AnyTaskIsUnlocked()` fallback for unhandled IDs) so controls whose
+  attributes cannot be edited on any selected task are visibly disabled. This covers
+  read-only tasklists, locked tasks and per-attribute restrictions such as percent
+  completion on parent tasks or time fields without a date. Custom controls use the same
+  test.
+
+Verification: `ToDoListLib` and `TDLTest` build in `Unicode Debug|Win32`; `TDLTest`
+reports 310240/310264 passing, with the same 24 pre-existing
+`CTDCTaskMatcherTest::IndividualRules` failures. `ToDoList.exe` relinking was blocked by
+the two running app instances holding the output file.
+
 Remaining limitations:
 
 - Custom-attribute visibility is currently “all enabled definitions”; there is no
@@ -430,8 +490,8 @@ Remaining limitations:
 - File-link thumbnails in custom attributes are forced off.
 - The date-picker checkbox painting issue remains postponed.
 - No per-mode persistence of legacy-bar ordering/state yet.
-- Read-only/auto-list-read-only and locked-task UI states are not visually enforced; the
-  data layer still rejects edits.
+- Auto-list read-only state is not reflected in the legacy bar’s controls yet (task lock,
+  read-only tasklists and per-attribute edit restrictions are now enforced).
 - Layout is a responsive grid, not a pixel-identical port of the v8.2 auto-reposition
   algorithm.
 

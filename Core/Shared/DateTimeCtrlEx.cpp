@@ -44,6 +44,7 @@ CDateTimeCtrlEx::CDateTimeCtrlEx(DWORD dwMonthCalStyle)
 	: 
 	m_dwMonthCalStyle(dwMonthCalStyle), 
 	m_bNotifyingParent(FALSE), 
+	m_bSkipLButtonUp(FALSE),
 	m_bEnableInlineEditing(TRUE),
 	m_bShowCalendarOnCompleting(TRUE),
 	m_bISOFormat(FALSE),
@@ -68,6 +69,7 @@ void CDateTimeCtrlEx::ResetCalendarHandling()
 BEGIN_MESSAGE_MAP(CDateTimeCtrlEx, CDateTimeCtrl)
 	//{{AFX_MSG_MAP(CDateTimeCtrlEx)
 	ON_WM_LBUTTONDOWN()
+	ON_WM_LBUTTONUP()
 	ON_NOTIFY_REFLECT_EX(DTN_DATETIMECHANGE, OnDateTimeChange)
 	ON_NOTIFY_REFLECT_EX(DTN_CLOSEUP, OnCloseUp)
 	ON_NOTIFY_REFLECT_EX(DTN_DROPDOWN, OnDropDown)
@@ -134,6 +136,8 @@ void CDateTimeCtrlEx::PreSubclassWindow()
 
 void CDateTimeCtrlEx::OnLButtonDown(UINT nFlags, CPoint point) 
 {
+	m_bSkipLButtonUp = FALSE;
+
 	// the sequence of logic once the dropdown button
 	// has been clicked appears to be this:
 
@@ -183,11 +187,61 @@ void CDateTimeCtrlEx::OnLButtonDown(UINT nFlags, CPoint point)
 
 				return; // eat it
 			}
+			else if (!m_bShowCalendarOnCompleting)
+			{
+				// The date is a plain on/off toggle in this mode. Handle it
+				// explicitly so the control's internal uncheck state cannot
+				// leak into the notification (which can produce 30 Dec 1899).
+				if (IsDateSet())
+					SendMessage(DTM_SETSYSTEMTIME, GDT_NONE, 0);
+				else
+					SetTime(COleDateTime::GetCurrentTime());
+
+				NotifyDateChange();
+
+				m_bSkipLButtonUp = TRUE;
+				return; // eat it
+			}
 			break;
 		}
 	}
 
 	CDateTimeCtrl::OnLButtonDown(nFlags, point);
+}
+
+void CDateTimeCtrlEx::OnLButtonUp(UINT nFlags, CPoint point)
+{
+	if (m_bSkipLButtonUp)
+	{
+		m_bSkipLButtonUp = FALSE;
+		return;
+	}
+
+	CDateTimeCtrl::OnLButtonUp(nFlags, point);
+}
+
+void CDateTimeCtrlEx::NotifyDateChange()
+{
+	// DTM_SETSYSTEMTIME does not notify the parent, so we have to
+	// synthesize the same notification the control would send itself.
+	NMDATETIMECHANGE nmdtc = { 0 };
+
+	nmdtc.nmhdr.hwndFrom = m_hWnd;
+	nmdtc.nmhdr.idFrom = GetDlgCtrlID();
+	nmdtc.nmhdr.code = DTN_DATETIMECHANGE;
+
+	if (IsDateSet())
+	{
+		nmdtc.dwFlags = GDT_VALID;
+		GetTime(&nmdtc.st);
+	}
+	else
+	{
+		nmdtc.dwFlags = GDT_NONE;
+	}
+
+	CAutoFlag af(m_bNotifyingParent, TRUE);
+	GetParent()->SendMessage(WM_NOTIFY, nmdtc.nmhdr.idFrom, (LPARAM)&nmdtc);
 }
 
 BOOL CDateTimeCtrlEx::OnDateTimeChange(NMHDR* pNMHDR, LRESULT* pResult) 

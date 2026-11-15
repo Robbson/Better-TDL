@@ -198,6 +198,7 @@ protected:
 
 	CString m_sAllocBy, m_sStatus, m_sExternalID, m_sVersion;
 	int m_nPriority, m_nRisk, m_nPercentDone;
+	COleDateTime m_dtStart, m_dtDue, m_dtDone;
 	TDCTIMEPERIOD m_timeEstimate, m_timeSpent;
 	TDCCOST m_cost;
 	COLORREF m_crColour;
@@ -235,7 +236,8 @@ protected:
 	void RefreshAllValues();
 	void ClearValues();
 	void EnableDisableControls();
-	void NotifyParent(TDC_ATTRIBUTE nAttribID);
+	void NotifyParent(TDC_ATTRIBUTE nAttribID, BOOL bAsync = FALSE);
+	void SetCachedDate(TDC_ATTRIBUTE nAttribID, const COleDateTime& date);
 	void ReadControlValues() const;
 	void PopulateAutoLists();
 	void PopulateAutoList(TDC_ATTRIBUTE nAttribID);

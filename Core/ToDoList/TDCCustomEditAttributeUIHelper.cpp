@@ -352,9 +352,20 @@ CWnd* CTDCCustomEditAttributeUIHelper::CreateAttributeCtrl(CWnd* pParent, const 
 					}
 				}
 			}
-			else if (bFilter && pControl->IsKindOf(RUNTIME_CLASS(CDateTimeCtrlEx)))
+			else if (pControl->IsKindOf(RUNTIME_CLASS(CDateTimeCtrlEx)))
 			{
-				((CDateTimeCtrlEx*)pControl)->SetMonthCalStyle(MCS_WEEKNUMBERS);
+				CDateTimeCtrlEx* pDTC = (CDateTimeCtrlEx*)pControl;
+
+				if (bFilter)
+				{
+					pDTC->SetMonthCalStyle(MCS_WEEKNUMBERS);
+				}
+				else
+				{
+					// The edit attribute bar treats the checkbox as a simple
+					// on/off toggle rather than opening the calendar
+					pDTC->ShowCalendarOnCompleting(FALSE);
+				}
 			}
 		}
 	}

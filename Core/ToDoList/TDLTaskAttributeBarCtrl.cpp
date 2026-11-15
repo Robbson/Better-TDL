@@ -24,6 +24,13 @@ static char THIS_FILE[] = __FILE__;
 
 /////////////////////////////////////////////////////////////////////////////
 
+static BOOL IsCtrlDateSet(const COleDateTime& date)
+{
+	// Treat the OLE zero date (30 Dec 1899) as unset because it usually
+	// represents a time without a date.
+	return (CDateHelper::IsDateSet(date) && (date.m_dt >= 1.0));
+}
+
 IMPLEMENT_DYNAMIC(CTDLTaskAttributeBarCtrl, CRuntimeDlg)
 
 /////////////////////////////////////////////////////////////////////////////
@@ -251,6 +258,13 @@ BOOL CTDLTaskAttributeBarCtrl::OnInitDialog()
 	m_cpColour.SetBkColour(CLR_DEFAULT);
 	m_cpColour.SetTextColour(CLR_DEFAULT);
 
+	// The legacy editor treats the checkbox as a plain on/off toggle
+	// that sets the date to the currently stored value (today when unset).
+	// The property grid, by contrast, opens the calendar on checkbox clicks.
+	m_dtcStart.ShowCalendarOnCompleting(FALSE);
+	m_dtcDue.ShowCalendarOnCompleting(FALSE);
+	m_dtcDone.ShowCalendarOnCompleting(FALSE);
+
 	m_spinPercent.SetRange(0, 100);
 	m_spinPercent.SetBuddy(GetDlgItem(IDC_TDLAB_PERCENT));
 
@@ -325,6 +339,12 @@ HBRUSH CTDLTaskAttributeBarCtrl::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor
 
 BOOL CTDLTaskAttributeBarCtrl::OnCommand(WPARAM wParam, LPARAM lParam)
 {
+	// Let the base class reflect notifications to the controls first.
+	// This is required for controls that handle their own notifications,
+	// for example CColourPickerEx (BN_CLICKED) and CAutoComboBox (CBN_*).
+	if (CRuntimeDlg::OnCommand(wParam, lParam))
+		return TRUE;
+
 	if (!m_bRefreshing)
 	{
 		UINT nID = LOWORD(wParam);
@@ -349,11 +369,17 @@ BOOL CTDLTaskAttributeBarCtrl::OnCommand(WPARAM wParam, LPARAM lParam)
 		}
 	}
 
-	return CRuntimeDlg::OnCommand(wParam, lParam);
+	return FALSE;
 }
 
 BOOL CTDLTaskAttributeBarCtrl::OnNotify(WPARAM wParam, LPARAM lParam, LRESULT* pResult)
 {
+	// Let the base class reflect notifications to the controls first so that
+	// CDateTimeCtrlEx can manage its calendar interaction and only pass on
+	// date changes the user has actually completed.
+	if (CRuntimeDlg::OnNotify(wParam, lParam, pResult))
+		return TRUE;
+
 	NMHDR* pNMHDR = (NMHDR*)lParam;
 
 	if (!m_bRefreshing && pNMHDR)
@@ -367,7 +393,17 @@ BOOL CTDLTaskAttributeBarCtrl::OnNotify(WPARAM wParam, LPARAM lParam, LRESULT* p
 
 			if (nAttrib != TDCA_NONE)
 			{
-				NotifyParent(nAttrib);
+				const NMDATETIMECHANGE* pNMDTC = (const NMDATETIMECHANGE*)pNMHDR;
+				COleDateTime date = ((pNMDTC->dwFlags == GDT_VALID) ? COleDateTime(pNMDTC->st) : CDateHelper::NullDate());
+
+				SetCachedDate(nAttrib, date);
+
+				// Post, rather than send, so that the date picker has
+				// completely finished processing the checkbox/calendar
+				// interaction before the task is updated and the bar is
+				// refreshed (which resets the picker's date).
+				NotifyParent(nAttrib, TRUE);
+				*pResult = 0;
 				return TRUE;
 			}
 		}
@@ -380,13 +416,38 @@ BOOL CTDLTaskAttributeBarCtrl::OnNotify(WPARAM wParam, LPARAM lParam, LRESULT* p
 		}
 	}
 
-	return CRuntimeDlg::OnNotify(wParam, lParam, pResult);
+	return FALSE;
 }
 
-void CTDLTaskAttributeBarCtrl::NotifyParent(TDC_ATTRIBUTE nAttribID)
+void CTDLTaskAttributeBarCtrl::NotifyParent(TDC_ATTRIBUTE nAttribID, BOOL bAsync)
 {
-	if (GetParent())
-		GetParent()->SendMessage(WM_TDCN_ATTRIBUTEEDITED, nAttribID, 0);
+	if (CWnd* pParent = GetParent())
+	{
+		if (bAsync)
+			pParent->PostMessage(WM_TDCN_ATTRIBUTEEDITED, nAttribID, 0);
+		else
+			pParent->SendMessage(WM_TDCN_ATTRIBUTEEDITED, nAttribID, 0);
+	}
+}
+
+void CTDLTaskAttributeBarCtrl::SetCachedDate(TDC_ATTRIBUTE nAttribID, const COleDateTime& date)
+{
+	COleDateTime dt = (IsCtrlDateSet(date) ? CDateHelper::GetDateOnly(date) : CDateHelper::NullDate());
+
+	switch (nAttribID)
+	{
+	case TDCA_STARTDATE:
+		m_dtStart = dt;
+		break;
+
+	case TDCA_DUEDATE:
+		m_dtDue = dt;
+		break;
+
+	case TDCA_DONEDATE:
+		m_dtDone = dt;
+		break;
+	}
 }
 
 LRESULT CTDLTaskAttributeBarCtrl::OnColourChanged(WPARAM /*wParam*/, LPARAM /*lParam*/)
@@ -1033,42 +1094,48 @@ void CTDLTaskAttributeBarCtrl::RefreshAllValues()
 		else
 			m_crColour = CLR_DEFAULT;
 
-		if (m_multitasker.GetTasksDate(m_aSelectedTaskIDs, TDCD_START, date))
+		if (m_multitasker.GetTasksDate(m_aSelectedTaskIDs, TDCD_START, date) && IsCtrlDateSet(date))
 		{
-			SetCtrlDate(m_dtcStart, date);
+			m_dtStart = CDateHelper::GetDateOnly(date);
+			SetCtrlDate(m_dtcStart, m_dtStart);
 			m_cbTimeStart.SetOleTime(date.m_dt);
 		}
 		else
 		{
-			SetCtrlDate(m_dtcStart, COleDateTime());
+			m_dtStart = CDateHelper::NullDate();
+			SetCtrlDate(m_dtcStart, m_dtStart);
 			m_cbTimeStart.SetOleTime(-1);
 		}
 
-		if (m_multitasker.GetTasksDate(m_aSelectedTaskIDs, TDCD_DUE, date))
+		if (m_multitasker.GetTasksDate(m_aSelectedTaskIDs, TDCD_DUE, date) && IsCtrlDateSet(date))
 		{
-			SetCtrlDate(m_dtcDue, date);
+			m_dtDue = CDateHelper::GetDateOnly(date);
+			SetCtrlDate(m_dtcDue, m_dtDue);
 			m_cbTimeDue.SetOleTime(date.m_dt);
 		}
 		else
 		{
-			SetCtrlDate(m_dtcDue, COleDateTime());
+			m_dtDue = CDateHelper::NullDate();
+			SetCtrlDate(m_dtcDue, m_dtDue);
 			m_cbTimeDue.SetOleTime(-1);
 		}
 
-		if (m_multitasker.GetTasksDate(m_aSelectedTaskIDs, TDCD_DONE, date))
+		if (m_multitasker.GetTasksDate(m_aSelectedTaskIDs, TDCD_DONE, date) && IsCtrlDateSet(date))
 		{
-			SetCtrlDate(m_dtcDone, date);
+			m_dtDone = CDateHelper::GetDateOnly(date);
+			SetCtrlDate(m_dtcDone, m_dtDone);
 			m_cbTimeDone.SetOleTime(date.m_dt);
 		}
 		else
 		{
-			SetCtrlDate(m_dtcDone, COleDateTime());
+			m_dtDone = CDateHelper::NullDate();
+			SetCtrlDate(m_dtcDone, m_dtDone);
 			m_cbTimeDone.SetOleTime(-1);
 		}
 
-		EnableTimeCtrl(m_cbTimeStart, m_multitasker.GetTasksDate(m_aSelectedTaskIDs, TDCD_START, date) ? date : COleDateTime());
-		EnableTimeCtrl(m_cbTimeDue, m_multitasker.GetTasksDate(m_aSelectedTaskIDs, TDCD_DUE, date) ? date : COleDateTime());
-		EnableTimeCtrl(m_cbTimeDone, m_multitasker.GetTasksDate(m_aSelectedTaskIDs, TDCD_DONE, date) ? date : COleDateTime());
+		EnableTimeCtrl(m_cbTimeStart, m_dtStart);
+		EnableTimeCtrl(m_cbTimeDue, m_dtDue);
+		EnableTimeCtrl(m_cbTimeDone, m_dtDone);
 
 		m_cbPriority.SetSelectedPriority(m_nPriority);
 		m_cbRisk.SetSelectedRisk(m_nRisk);
@@ -1091,6 +1158,9 @@ void CTDLTaskAttributeBarCtrl::RefreshAllValues()
 	}
 
 	m_bRefreshing = FALSE;
+
+	// Date changes can affect the time fields' editability
+	EnableDisableControls();
 }
 
 void CTDLTaskAttributeBarCtrl::ClearValues()
@@ -1102,6 +1172,7 @@ void CTDLTaskAttributeBarCtrl::ClearValues()
 	m_sStatus.Empty();
 	m_sVersion.Empty();
 	m_sExternalID.Empty();
+	m_dtStart = m_dtDue = m_dtDone = CDateHelper::NullDate();
 	m_timeEstimate = TDCTIMEPERIOD();
 	m_timeSpent = TDCTIMEPERIOD();
 	m_cost = TDCCOST();
@@ -1121,9 +1192,9 @@ void CTDLTaskAttributeBarCtrl::ClearValues()
 
 	CTDCCustomEditAttributeUIHelper::ClearControls(this, m_aCustomControls, m_aCustAttribDefs);
 
-	SetCtrlDate(m_dtcStart, COleDateTime());
-	SetCtrlDate(m_dtcDue, COleDateTime());
-	SetCtrlDate(m_dtcDone, COleDateTime());
+	SetCtrlDate(m_dtcStart, CDateHelper::NullDate());
+	SetCtrlDate(m_dtcDue, CDateHelper::NullDate());
+	SetCtrlDate(m_dtcDone, CDateHelper::NullDate());
 
 	m_cbTimeStart.SetOleTime(-1);
 	m_cbTimeDue.SetOleTime(-1);
@@ -1134,7 +1205,7 @@ void CTDLTaskAttributeBarCtrl::ClearValues()
 
 void CTDLTaskAttributeBarCtrl::EnableDisableControls()
 {
-	BOOL bEnable = (m_aSelectedTaskIDs.GetSize() > 0);
+	BOOL bHasSelection = (m_aSelectedTaskIDs.GetSize() > 0);
 
 	for (int nCtrl = 0; nCtrl < NUM_LEGACYCTRLITEMS; nCtrl++)
 	{
@@ -1144,7 +1215,15 @@ void CTDLTaskAttributeBarCtrl::EnableDisableControls()
 		if (!pCtrl)
 			continue;
 
-		BOOL bEnableCtrl = bEnable;
+		BOOL bEnableCtrl = bHasSelection;
+
+		if (bEnableCtrl)
+		{
+			int nCanEdit = m_multitasker.CanEditAnyTask(m_aSelectedTaskIDs, ctrl.nAttributeID);
+
+			// Unhandled attributes fall back to the task lock state
+			bEnableCtrl = ((nCanEdit == -1) ? m_multitasker.AnyTaskIsUnlocked(m_aSelectedTaskIDs) : nCanEdit);
+		}
 
 		switch (ctrl.nAttributeID)
 		{
@@ -1174,13 +1253,21 @@ void CTDLTaskAttributeBarCtrl::EnableDisableControls()
 	{
 		const CUSTOMATTRIBCTRLITEM& ctrl = m_aCustomControls[nCust];
 
+		BOOL bEnableCtrl = bHasSelection;
+
+		if (bEnableCtrl)
+		{
+			int nCanEdit = m_multitasker.CanEditAnyTask(m_aSelectedTaskIDs, ctrl.nAttributeID);
+			bEnableCtrl = ((nCanEdit == -1) ? m_multitasker.AnyTaskIsUnlocked(m_aSelectedTaskIDs) : nCanEdit);
+		}
+
 		if (CWnd* pCtrl = GetDlgItem(ctrl.nCtrlID))
-			pCtrl->EnableWindow(bEnable);
+			pCtrl->EnableWindow(bEnableCtrl);
 
 		if (ctrl.HasBuddy())
 		{
 			if (CWnd* pBuddy = GetDlgItem(ctrl.nBuddyCtrlID))
-				pBuddy->EnableWindow(bEnable);
+				pBuddy->EnableWindow(bEnableCtrl);
 		}
 	}
 }
@@ -1323,41 +1410,35 @@ BOOL CTDLTaskAttributeBarCtrl::GetLock() const
 
 COleDateTime CTDLTaskAttributeBarCtrl::GetStartDate() const
 {
-	COleDateTime date;
-	m_dtcStart.GetTime(date);
-	return m_dtcStart.IsDateSet() ? date : COleDateTime();
+	return m_dtStart;
 }
 
 COleDateTime CTDLTaskAttributeBarCtrl::GetDueDate() const
 {
-	COleDateTime date;
-	m_dtcDue.GetTime(date);
-	return m_dtcDue.IsDateSet() ? date : COleDateTime();
+	return m_dtDue;
 }
 
 COleDateTime CTDLTaskAttributeBarCtrl::GetDoneDate() const
 {
-	COleDateTime date;
-	m_dtcDone.GetTime(date);
-	return m_dtcDone.IsDateSet() ? date : COleDateTime();
+	return m_dtDone;
 }
 
 COleDateTime CTDLTaskAttributeBarCtrl::GetStartTime() const
 {
 	double dTime = m_cbTimeStart.GetOleTime();
-	return ((dTime < 0) ? COleDateTime() : COleDateTime(dTime));
+	return ((dTime < 0) ? CDateHelper::NullDate() : COleDateTime(dTime));
 }
 
 COleDateTime CTDLTaskAttributeBarCtrl::GetDueTime() const
 {
 	double dTime = m_cbTimeDue.GetOleTime();
-	return ((dTime < 0) ? COleDateTime() : COleDateTime(dTime));
+	return ((dTime < 0) ? CDateHelper::NullDate() : COleDateTime(dTime));
 }
 
 COleDateTime CTDLTaskAttributeBarCtrl::GetDoneTime() const
 {
 	double dTime = m_cbTimeDone.GetOleTime();
-	return ((dTime < 0) ? COleDateTime() : COleDateTime(dTime));
+	return ((dTime < 0) ? CDateHelper::NullDate() : COleDateTime(dTime));
 }
 
 COLORREF CTDLTaskAttributeBarCtrl::GetColor() const

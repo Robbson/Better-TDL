@@ -4274,7 +4274,11 @@ LRESULT CTDLTaskCtrlBase::ScWindowProc(HWND hRealWnd, UINT msg, WPARAM wp, LPARA
 			{
 				LPNMHDR pNMHDR = (LPNMHDR)lp;
 				HWND hwnd = pNMHDR->hwndFrom;
-				ASSERT(hwnd == m_hdrColumns);
+
+				// Notifications can also come from the column tooltip
+				// which hooks m_lcColumns to handle TTN_SHOW
+				if (hwnd != m_hdrColumns)
+					break;
 				
 				switch (pNMHDR->code)
 				{

@@ -4,7 +4,8 @@ Starting point for agents working in this repository. Read this first, then
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Detailed references:
 [PROJECT_SCOPE.md](PROJECT_SCOPE.md), [docs/DATA_MODEL.md](docs/DATA_MODEL.md),
 [docs/UI_DECOUPLING_ANALYSIS.md](docs/UI_DECOUPLING_ANALYSIS.md),
-[docs/APPLICATION_STATE.md](docs/APPLICATION_STATE.md) and
+[docs/APPLICATION_STATE.md](docs/APPLICATION_STATE.md),
+[docs/TESTING.md](docs/TESTING.md) and
 [customized/index.md](customized/index.md) (all intentional divergences from upstream).
 
 ## Repository at a glance
@@ -68,6 +69,13 @@ Core\TDLTest\Unicode_Debug\TDLTest.exe -ui -uihold     :: leave app open for man
 Core\TDLTest\Unicode_Debug\TDLTest.exe -ui -uiscroll -uihold -record :: manual + JPEG frames
 Core\TDLTest\Unicode_Debug\TDLTest.exe -ui -uifix      :: fixtures only, no GUI
 Core\TDLTest\Unicode_Debug\TDLTest.exe -ui -nodrag     :: locate windows, no input
+```
+
+Code coverage (builds `TDLTest`, runs it under the x86 OpenCppCoverage fork, renders
+`coverage-report\`); see [docs/TESTING.md](docs/TESTING.md) §4.1 for flags and limits:
+
+```powershell
+pwsh -File .\Coverage.ps1
 ```
 
 Notes:
@@ -217,6 +225,7 @@ When asked to analyze or document, prefer producing/updating the root docs and
 - `docs/DATA_MODEL.md` — task/attribute/persistence details.
 - `docs/UI_DECOUPLING_ANALYSIS.md` — business-logic ↔ MFC view coupling and UI-replacement feasibility.
 - `docs/APPLICATION_STATE.md` — INI/registry preferences, session and per-tasklist state, and persist timing.
+- `docs/TESTING.md` — test inventory, unit/integration/e2e classification, run limits and coverage feasibility.
 - `PROJECT_SCOPE.md` — included/excluded projects and dependencies.
 - `customized/index.md` + `customized/CUST-nnn-*.md` — all customized behaviour and its rationale.
 - `AGENTS.md` — this file.

@@ -115,6 +115,13 @@ _TeamCity*
 # DotCover is a Code Coverage Tool
 *.dotCover
 
+# OpenCppCoverage Reports
+coverage-html/
+coverage.xml
+
+# dotnet-reportgenerator
+coverage-report/
+
 # NCrunch
 _NCrunch_*
 .*crunch*.local.xml

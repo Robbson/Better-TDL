@@ -163,6 +163,34 @@ but they are only flushed with the rest of the map. Closing a tab during a sessi
 not guarantee the INI changed on disk; the state may sit in memory until Save All,
 auto-save-on-switch, the Preferences dialog, or exit.
 
+Closing a tasklist document does **not** delete its `FileStates\<key>` section:
+
+- The close path (`CloseToDoCtrl` → `DeleteToDoCtrl`) only destroys the view and drops
+  the tab (`Core/ToDoList/ToDoListWnd.cpp:9158-9176`,
+  `Core/ToDoList/ToDoCtrlMgr.cpp:887-971`).
+- `CToDoCtrl::OnDestroy()` then re-saves tree/splitter/columns/default-recurrence/
+  find-replace (and `CFilteredToDoCtrl`/`CTabbedToDoCtrl` their filter and view state)
+  into the same section (`Core/ToDoList/ToDoCtrl.cpp:5200-5216`,
+  `Core/ToDoList/FilteredToDoCtrl.cpp:258-264`,
+  `Core/ToDoList/TabbedToDoCtrl.cpp:770-774`). Only `TabColor` is explicitly deleted
+  (`Core/ToDoList/ToDoCtrlMgr.cpp:903-912`).
+- On normal exit `DoExit()` closes the remaining tasklists the same way and
+  `OnNcDestroy()` flushes the whole file, so sections of tasklists closed earlier in the
+  session are written as-is (`Core/ToDoList/ToDoListWnd.cpp:9753-9757`,
+  `9849-9855`).
+- A delayed-loaded tab closed before it was ever activated skips the re-save
+  (`m_bDelayLoaded` guard), but its previously stored section is untouched
+  (`Core/ToDoList/ToDoCtrl.cpp:5205`, `5244`).
+- The section survives because the key is derived from the file path when it is opened
+  again (`Core/ToDoList/ToDoCtrl.cpp:8618-8645`). The closed document itself is not
+  reopened at next launch: `LastFileN` only snapshots the tasklists open at exit
+  (`Core/ToDoList/ToDoListWnd.cpp:2639-2673`).
+
+The only routine deletion is the manual Tools → Cleanup INI Preferences command, which
+removes the section (and its subkeys) for selected tasklists and excludes currently open
+ones (`Core/ToDoList/TDLCleanupIniPreferencesDlg.cpp:185-195`,
+`Core/ToDoList/ToDoListWnd.cpp:14867-14872`).
+
 A tasklist can additionally store some UI state inside the `.tdl` file when the
 `TDCS_SAVEUIVISINTASKLIST` style is set (`Core/ToDoList/ToDoCtrl.cpp:8662-8691`); that
 travels with the document, not the INI.

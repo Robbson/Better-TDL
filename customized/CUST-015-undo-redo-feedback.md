@@ -63,7 +63,8 @@ Files:
    `CToDoCtrl::GetUndoActionDescription()` builds "Edit Priority", "Delete 3 tasks",
    "Move task", etc. using the existing attribute labels. `OnUpdateEditUndoRedo()` sets the
    menu text and updates the main-toolbar tooltip through `CToolbarHelper`, appending the
-   shortcut as before.
+   shortcut as before. The cached undo/redo tip text is cleared whenever the main toolbar
+   is (re)initialised so a theme/language toolbar rebuild cannot leave a stale tip.
 5. **Comments capacity queries.**
    `CContentCtrl::CanUndo()` / `CanRedo()` query `EM_CANUNDO` / `EM_CANREDO` on the content
    control window; `CTDLCommentsCtrl` forwards them.

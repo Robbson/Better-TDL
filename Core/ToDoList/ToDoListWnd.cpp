@@ -1707,6 +1707,10 @@ BOOL CToDoListWnd::InitMainToolbar()
 	UpdateCommentsFormatCombo();
 
 	m_tbHelperMain.Initialize(&m_toolbarMain, &m_mgrShortcuts);
+
+	// Tooltips are rebuilt from scratch when the toolbar is (re)created
+	m_sUndoTooltip.Empty();
+	m_sRedoTooltip.Empty();
 	
 	return TRUE;
 }

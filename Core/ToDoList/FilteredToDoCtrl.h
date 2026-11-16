@@ -78,6 +78,9 @@ protected:
 	CTDCFilter m_filter;
 	TDCCOLEDITFILTERVISIBILITY m_visColEditFilter;
 	CDWordArray m_aSelectedTaskIDsForFiltering; // for FT_SELECTED filter
+	CDWordArray m_aUnfilteredExpanded; // tree expansion before the filter was applied
+	BOOL m_bHaveUnfilteredExpanded;
+	BOOL m_bRestoreUnfilteredExpanded;
 	BOOL m_bIgnoreListRebuild;
 	BOOL m_bIgnoreExtensionUpdate;
 
@@ -125,6 +128,8 @@ protected:
 
 	void SaveState() const;
 	void LoadState();
+
+	void CaptureUnfilteredExpansion();
 
 	BOOL RefreshFilter(BOOL bExplicit);
 	BOOL RefreshTreeFilter();

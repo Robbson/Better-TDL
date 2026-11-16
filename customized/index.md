@@ -58,3 +58,4 @@ customized/
 | CUST-013 | Window menu lists up to 25 tasklists and shows the open count | In progress (implemented/built; manual check pending) | [CUST-013-window-menu-list.md](CUST-013-window-menu-list.md) |
 | CUST-014 | Quote-safe values in ToDoList.ini (Quick Find history) | Done | [CUST-014-quoted-ini-values.md](CUST-014-quoted-ini-values.md) |
 | CUST-015 | Undo/redo feedback, enablement and saved-state tracking | Done | [CUST-015-undo-redo-feedback.md](CUST-015-undo-redo-feedback.md) |
+| CUST-016 | Restore tree folding when a filter is cleared | In progress (implemented/built; manual filter test pending) | [CUST-016-filter-fold-restore.md](CUST-016-filter-fold-restore.md) |

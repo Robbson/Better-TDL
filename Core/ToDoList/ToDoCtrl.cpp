@@ -7559,6 +7559,16 @@ HTREEITEM CToDoCtrl::SetAllTasks(const CTaskFile& tasks)
 
 HTREEITEM CToDoCtrl::RebuildTree(const void* pContext)
 {
+	return RebuildTreeInternal(pContext, NULL);
+}
+
+HTREEITEM CToDoCtrl::RebuildTreeWithExpansion(const void* pContext, const CDWordArray& aExpanded)
+{
+	return RebuildTreeInternal(pContext, &aExpanded);
+}
+
+HTREEITEM CToDoCtrl::RebuildTreeInternal(const void* pContext, const CDWordArray* pExpanded)
+{
 	// cache current selection and task breadcrumbs before clearing selection
 	TDCSELECTIONCACHE cache;
 	CacheTreeSelection(cache);
@@ -7567,12 +7577,17 @@ HTREEITEM CToDoCtrl::RebuildTree(const void* pContext)
 	CWaitCursor cursor;
 	CDWordArray aExpanded;
 	
+	// Use the supplied expansion even if the current tree is empty
+	if (pExpanded)
+		aExpanded.Copy(*pExpanded);
+
 	// Allow task tree to prepare for a rebuild
 	m_taskTree.OnBeginRebuild();
 
 	if (m_taskTree.GetItemCount())
 	{
-		m_taskTree.GetExpandedTasks(aExpanded);
+		if (!pExpanded)
+			m_taskTree.GetExpandedTasks(aExpanded);
 		
 		TSH().RemoveAll();
 		TCH().SelectItem(NULL);

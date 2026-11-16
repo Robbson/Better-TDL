@@ -66,6 +66,8 @@ CFilteredToDoCtrl::CFilteredToDoCtrl(CUIExtensionMgr& mgrUIExt,
 	:
 	CTabbedToDoCtrl(mgrUIExt, mgrContent, mgrShortcuts, cfDefault, visDefault),
 	m_visColEditFilter(visDefault),
+	m_bHaveUnfilteredExpanded(FALSE),
+	m_bRestoreUnfilteredExpanded(FALSE),
 	m_bIgnoreListRebuild(FALSE),
 	m_bIgnoreExtensionUpdate(FALSE)
 {
@@ -243,6 +245,16 @@ void CFilteredToDoCtrl::LoadState()
 	}
 }
 
+void CFilteredToDoCtrl::CaptureUnfilteredExpansion()
+{
+	if (!m_taskTree.GetSafeHwnd())
+		return;
+
+	m_aUnfilteredExpanded.RemoveAll();
+	m_taskTree.GetExpandedTasks(m_aUnfilteredExpanded);
+	m_bHaveUnfilteredExpanded = TRUE;
+}
+
 void CFilteredToDoCtrl::OnDestroy() 
 {
 	if (!m_bDelayLoaded)
@@ -391,6 +403,10 @@ void CFilteredToDoCtrl::SetFilter(const TDCFILTER& filter)
 {
 	FTC_VIEW nView = GetActiveTaskView();
 
+	BOOL bWasFiltered = HasAnyFilter();
+	BOOL bHasFilter = filter.IsSet();
+	BOOL bNeedFullTaskUpdate = ((bWasFiltered != bHasFilter) || !FilterMatches(filter));
+
 	if (m_bDelayLoaded)
 	{
 		m_filter.SetFilter(filter);
@@ -403,21 +419,31 @@ void CFilteredToDoCtrl::SetFilter(const TDCFILTER& filter)
 	}
 	else
 	{
-		BOOL bNeedFullTaskUpdate = !FilterMatches(filter);
-
 		m_filter.SetFilter(filter);
-
-		if (bNeedFullTaskUpdate)
-			RefreshFilter(TRUE);
 	}
+
+	if (!bWasFiltered && bHasFilter)
+		CaptureUnfilteredExpansion();
+	else if (bWasFiltered && !bHasFilter)
+		m_bRestoreUnfilteredExpanded = m_bHaveUnfilteredExpanded;
+
+	if (!m_bDelayLoaded && bNeedFullTaskUpdate)
+		RefreshFilter(TRUE);
 
 	ResetNowFilterTimer();
 }
 	
 void CFilteredToDoCtrl::ClearFilter()
 {
+	BOOL bWasFiltered = HasAnyFilter();
+
 	if (m_filter.ClearFilter())
+	{
+		if (bWasFiltered)
+			m_bRestoreUnfilteredExpanded = m_bHaveUnfilteredExpanded;
+
 		RefreshFilter(TRUE);
+	}
 
 	ResetNowFilterTimer();
 }
@@ -428,8 +454,21 @@ void CFilteredToDoCtrl::ToggleFilter()
 	CScopedLogTimer log(_T("CFilteredToDoCtrl::ToggleFilter(%s)"), (m_filter.HasAnyFilter() ? _T("off") : _T("on")));
 	///////////////////////////////////////////////////////////////////
 
+	BOOL bWasFiltered = HasAnyFilter();
+
 	if (m_filter.ToggleFilter())
+	{
+		if (bWasFiltered)
+		{
+			m_bRestoreUnfilteredExpanded = m_bHaveUnfilteredExpanded;
+		}
+		else // turning the filter on
+		{
+			CaptureUnfilteredExpansion();
+		}
+
 		RefreshFilter(TRUE);
+	}
 
 	ResetNowFilterTimer();
 }
@@ -684,6 +723,12 @@ HTREEITEM CFilteredToDoCtrl::RebuildTree(const void* pContext)
 	}
 
 	// else
+	if (m_bRestoreUnfilteredExpanded && m_bHaveUnfilteredExpanded)
+	{
+		m_bRestoreUnfilteredExpanded = FALSE;
+		return RebuildTreeWithExpansion(pContext, m_aUnfilteredExpanded);
+	}
+
 	return CTabbedToDoCtrl::RebuildTree(pContext);
 }
 

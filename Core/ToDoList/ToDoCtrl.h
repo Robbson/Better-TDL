@@ -716,6 +716,8 @@ protected:
 	virtual int GetArchivableTasks(CTaskFile& tasks, BOOL bSelectedOnly = FALSE) const;
 	virtual BOOL RemoveArchivedTask(DWORD dwTaskID);
 	virtual HTREEITEM RebuildTree(const void* pContext = NULL);
+	HTREEITEM RebuildTreeWithExpansion(const void* pContext, const CDWordArray& aExpanded);
+	HTREEITEM RebuildTreeInternal(const void* pContext, const CDWordArray* pExpanded);
 	virtual BOOL WantAddTaskToTree(const TODOITEM* pTDI, const TODOSTRUCTURE* pTDS, const void* pContext) const;
 	virtual DWORD MergeNewTaskIntoTree(const CTaskFile& tasks, HTASKITEM hTask, DWORD dwParentTaskID, BOOL bAndSubtasks);
 

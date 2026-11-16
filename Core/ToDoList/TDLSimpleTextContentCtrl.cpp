@@ -663,6 +663,11 @@ LRESULT CTDLSimpleTextContentCtrl::OnSetFont(WPARAM wp, LPARAM lp)
 {
 	LRESULT lr = CUrlRichEditCtrl::OnSetFont(wp, lp);
 
+	// A programmatic font change can reformat links, so do not leave
+	// that formatting in the undo history
+	if (GetFocus() != this)
+		m_bClearUndoAfterAutoIndent = TRUE;
+
 	ScheduleAutoIndent();
 
 	return lr;
@@ -672,9 +677,12 @@ LRESULT CTDLSimpleTextContentCtrl::OnSetText(WPARAM wp, LPARAM lp)
 {
 	LRESULT lr = CUrlRichEditCtrl::OnSetText(wp, lp);
 
-	// Setting the content must not leave an undo history behind
-	m_bClearUndoAfterAutoIndent = TRUE;
-	ScheduleAutoIndent();
+	// Only an actual content change invalidates the undo buffer
+	if (lr)
+	{
+		m_bClearUndoAfterAutoIndent = TRUE;
+		ScheduleAutoIndent();
+	}
 
 	return lr;
 }

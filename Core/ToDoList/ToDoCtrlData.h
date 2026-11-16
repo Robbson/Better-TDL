@@ -96,7 +96,10 @@ public:
 	BOOL UndoLastAction(BOOL bUndo, CArrayUndoElements& aElms);
 	BOOL CanUndoLastAction(BOOL bUndo) const;
 	int GetLastUndoActionTaskIDs(BOOL bUndo, CDWordArray& aIDs) const;
+	int GetLastUndoActionAttributeIDs(BOOL bUndo, CTDCAttributeArray& aIDs) const;
 	TDC_UNDOACTIONTYPE GetLastUndoActionType(BOOL bUndo) const;
+	void SetUndoActionSavePoint() { m_undo.SetSavePoint(); }
+	BOOL IsAtUndoActionSavePoint() const { return m_undo.IsAtSavePoint(); }
 	void ClearRedoStack() { m_undo.ClearRedoStack(); }
 
 	// Gets

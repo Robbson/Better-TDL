@@ -156,6 +156,9 @@ LRESULT CUrlRichEditCtrl::OnSetText(WPARAM wp, LPARAM lp)
 			lr = CRichEditBaseCtrl::OnSetText(wp, lp);
 
 			ParseAndFormatText(TRUE);
+
+			// Formatting the URLs must not be undoable
+			EmptyUndoBuffer();
 		}
 	}
 	

@@ -209,7 +209,8 @@ static CString GetAutoIndentPrefix(const CRichEditBaseCtrl& ctrl, int nPos)
 CTDLSimpleTextContentCtrl::CTDLSimpleTextContentCtrl() 
 	: 
 	CUrlRichEditCtrl(CTRLCLICKTOFOLLOW, IDS_CTRLCLICKTOFOLLOWLINK),
-	m_bWordWrap(TRUE)
+	m_bWordWrap(TRUE),
+	m_bClearUndoAfterAutoIndent(FALSE)
 {
 	// add custom protocol to comments field for linking to task IDs
 	AddProtocol(TDL_PROTOCOL, TRUE);
@@ -613,6 +614,10 @@ void CTDLSimpleTextContentCtrl::SetContentFont(HFONT hFont)
 
 BOOL CTDLSimpleTextContentCtrl::OnChangeText() 
 {
+	// A real edit must keep its undo history
+	if (GetFocus() == this)
+		m_bClearUndoAfterAutoIndent = FALSE;
+
 	CUrlRichEditCtrl::OnChangeText();
 
 	ScheduleAutoIndent();
@@ -667,6 +672,8 @@ LRESULT CTDLSimpleTextContentCtrl::OnSetText(WPARAM wp, LPARAM lp)
 {
 	LRESULT lr = CUrlRichEditCtrl::OnSetText(wp, lp);
 
+	// Setting the content must not leave an undo history behind
+	m_bClearUndoAfterAutoIndent = TRUE;
 	ScheduleAutoIndent();
 
 	return lr;
@@ -677,7 +684,15 @@ void CTDLSimpleTextContentCtrl::ApplyAutoIndent()
 	const int nTextLen = GetTextLength();
 
 	if ((nTextLen <= 0) || (nTextLen > MAX_AUTOINDENT_LENGTH))
+	{
+		if (m_bClearUndoAfterAutoIndent)
+		{
+			EmptyUndoBuffer();
+			m_bClearUndoAfterAutoIndent = FALSE;
+		}
+
 		return;
+	}
 
 	CHARRANGE crSel;
 	GetSel(crSel);
@@ -730,6 +745,13 @@ void CTDLSimpleTextContentCtrl::ApplyAutoIndent()
 
 	if (bCaret)
 		ShowCaret();
+
+	// Auto-indent is formatting-only, not a user edit
+	if (m_bClearUndoAfterAutoIndent)
+	{
+		EmptyUndoBuffer();
+		m_bClearUndoAfterAutoIndent = FALSE;
+	}
 }
 
 bool CTDLSimpleTextContentCtrl::ApplyAutoIndentToParagraph(int nParaStart, int nParaEnd, int nDpiX)

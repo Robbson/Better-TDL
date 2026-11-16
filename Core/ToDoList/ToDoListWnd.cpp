@@ -8434,6 +8434,8 @@ void CToDoListWnd::UpdateUDTsInToolbar(UDTCHANGETYPE nChange)
 			th.AddToolsToToolbar(aTools, m_toolbarMain, ID_PREFERENCES);
 
 			// refresh tooltips
+			m_sUndoTooltip.Empty();
+			m_sRedoTooltip.Empty();
 			m_tbHelperMain.Release();
 			m_tbHelperMain.Initialize(&m_toolbarMain, &m_mgrShortcuts);
 		}
@@ -13989,7 +13991,34 @@ void CToDoListWnd::OnEditUndoRedo(BOOL bUndo)
 
 void CToDoListWnd::OnUpdateEditUndoRedo(CCmdUI* pCmdUI, BOOL bUndo)
 {
-	pCmdUI->Enable(GetToDoCtrl().CanUndoLastAction(bUndo));
+	CFilteredToDoCtrl& tdc = GetToDoCtrl();
+	BOOL bEnabled = tdc.CanUndoLastAction(bUndo);
+
+	pCmdUI->Enable(bEnabled);
+
+	CString sAction = (bEnabled ? tdc.GetUndoActionDescription(bUndo) : _T(""));
+	CString sMenuText = CEnString(bUndo ? IDS_UNDOACTION_UNDO : IDS_UNDOACTION_REDO);
+
+	if (!sAction.IsEmpty())
+	{
+		sMenuText = CEnString().Format((bUndo ? IDS_UNDOACTION_UNDOFMT : IDS_UNDOACTION_REDOFMT), 
+										(LPCTSTR)sAction);
+	}
+
+	if (pCmdUI->m_pMenu)
+		pCmdUI->SetText(sMenuText);
+
+	// Toolbar tooltips do not show access keys
+	CString sTip = sMenuText;
+	sTip.Remove(_T('&'));
+
+	CString& sLastTip = (bUndo ? m_sUndoTooltip : m_sRedoTooltip);
+
+	if (sLastTip != sTip)
+	{
+		m_tbHelperMain.SetTooltip((bUndo ? ID_EDIT_UNDO : ID_EDIT_REDO), sTip);
+		sLastTip = sTip;
+	}
 }
 
 void CToDoListWnd::OnViewCycleTaskViews() 

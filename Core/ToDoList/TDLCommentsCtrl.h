@@ -63,6 +63,8 @@ public:
 
 	BOOL Undo() { return m_ctrlComments.Undo(); }
 	BOOL Redo() { return m_ctrlComments.Redo(); }
+	BOOL CanUndo() const { return m_ctrlComments.CanUndo(); }
+	BOOL CanRedo() const { return m_ctrlComments.CanRedo(); }
 
 	BOOL ProcessMessage(MSG* pMsg) { return m_ctrlComments.ProcessMessage(pMsg); }
 	BOOL DoIdleProcessing() { return m_ctrlComments.DoIdleProcessing(); }

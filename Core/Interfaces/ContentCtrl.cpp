@@ -21,6 +21,10 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
+#ifndef EM_CANREDO
+#define EM_CANREDO (WM_USER + 0x55)
+#endif
+
 //////////////////////////////////////////////////////////////////////
 
 BOOL CONTENTFORMAT::FormatIsText() const
@@ -199,6 +203,28 @@ BOOL CContentCtrl::Redo()
 
 	// else
 	return FALSE;
+}
+
+BOOL CContentCtrl::CanUndo() const
+{
+	HWND hwnd = GetSafeHwnd();
+
+	if (!hwnd)
+		return FALSE;
+
+	// Content controls are rich edits
+	return (::SendMessage(hwnd, EM_CANUNDO, 0, 0) != 0);
+}
+
+BOOL CContentCtrl::CanRedo() const
+{
+	HWND hwnd = GetSafeHwnd();
+
+	if (!hwnd)
+		return FALSE;
+
+	// Content controls are rich edits
+	return (::SendMessage(hwnd, EM_CANREDO, 0, 0) != 0);
 }
 
 BOOL CContentCtrl::FindReplaceAll(LPCTSTR szFind, LPCTSTR szReplace, BOOL bCaseSensitive, BOOL bWholeWord)

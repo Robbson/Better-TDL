@@ -46,6 +46,8 @@ protected:
 
 	void TestSetTaskPriorityRisk();
 	void TestSetTaskPriorityRisk(BOOL bPriority);
+	void TestUndoSavePoint();
+	void TestMoveUndoRedo();
 	void TestOffsetTaskPriorityRisk();
 	void TestOffsetTaskPriorityRisk(BOOL bPriority, int nNumLevels);
 

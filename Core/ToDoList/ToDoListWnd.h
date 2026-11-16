@@ -158,6 +158,8 @@ protected:
 	CTabCtrlEx m_tabCtrl;
 	CToDoCtrlReminders m_dlgReminders;
 	CToolbarHelper m_tbHelperMain;
+	CString m_sUndoTooltip;
+	CString m_sRedoTooltip;
 	CTrayIcon m_trayIcon;
 	CUIThemeFile m_theme;
 	CWindowIcons m_icons;

@@ -3369,6 +3369,11 @@ int CToDoCtrlData::GetLastUndoActionTaskIDs(BOOL bUndo, CDWordArray& aIDs) const
 	return bUndo ? m_undo.GetLastUndoActionTaskIDs(aIDs) : m_undo.GetLastRedoActionTaskIDs(aIDs);
 }
 
+int CToDoCtrlData::GetLastUndoActionAttributeIDs(BOOL bUndo, CTDCAttributeArray& aIDs) const
+{
+	return m_undo.GetLastUndoActionAttributeIDs(bUndo, aIDs);
+}
+
 TDC_UNDOACTIONTYPE CToDoCtrlData::GetLastUndoActionType(BOOL bUndo) const
 {
 	return (bUndo ? m_undo.GetLastUndoType() : m_undo.GetLastRedoType());

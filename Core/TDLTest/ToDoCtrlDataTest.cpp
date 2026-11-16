@@ -8,6 +8,7 @@
 
 #include "..\todolist\todoctrldata.h"
 #include "..\todolist\todoctrldatautils.h"
+#include "..\todolist\todoctrlundo.h"
 #include "..\todolist\tdcimagelist.h"
 #include "..\todolist\todoctrlfind.h"
 #include "..\todolist\tdcstruct.h"
@@ -65,6 +66,8 @@ TESTRESULT CToDoCtrlDataTest::Run()
 	TestSetTaskPriorityRisk();
 	TestOffsetTaskPriorityRisk();
 	TestAdjustNewRecurringTasksDates();
+	TestUndoSavePoint();
+	TestMoveUndoRedo();
 
 	TestCanOffsetTaskDate();
 	TestOffsetTaskDate();
@@ -589,6 +592,113 @@ CString CToDoCtrlDataTest::GetRegularityText(TDC_REGULARITY nRegularity, DWORD d
 }
 
 ////////////////////////////////////////////////////////////////////////////
+
+void CToDoCtrlDataTest::TestUndoSavePoint()
+{
+	CTDCScopedTest test(*this, _T("CToDoCtrlUndo::SavePoint"));
+
+	CToDoCtrlUndo undo;
+	ExpectTrue(undo.IsAtSavePoint());
+
+	TODOITEM tdi;
+
+	VERIFY(undo.BeginNewAction(TDCUAT_EDIT));
+	VERIFY(undo.SaveElement(TDCUEO_EDIT, 1, 0, 0, (WORD)TDCA_PRIORITY, &tdi));
+	VERIFY(undo.EndCurrentAction());
+	ExpectFalse(undo.IsAtSavePoint());
+
+	undo.SetSavePoint();
+	ExpectTrue(undo.IsAtSavePoint());
+
+	VERIFY(undo.BeginNewAction(TDCUAT_EDIT));
+	VERIFY(undo.SaveElement(TDCUEO_EDIT, 2, 0, 0, (WORD)TDCA_DUEDATE, &tdi));
+	VERIFY(undo.EndCurrentAction());
+	ExpectFalse(undo.IsAtSavePoint());
+
+	VERIFY(undo.UndoLastAction());
+	ExpectTrue(undo.IsAtSavePoint());
+
+	CTDCAttributeArray aAttribIDs;
+	ExpectEQ(undo.GetLastUndoActionAttributeIDs(TRUE, aAttribIDs), 1);
+	ExpectEQ((int)aAttribIDs[0], (int)TDCA_PRIORITY);
+
+	VERIFY(undo.RedoLastAction());
+	ExpectFalse(undo.IsAtSavePoint());
+
+	VERIFY(undo.UndoLastAction());
+	ExpectTrue(undo.IsAtSavePoint());
+
+	// Extending the saved action makes the save point unreachable
+	VERIFY(undo.ExtendLastAction(TDCUAT_EDIT));
+	VERIFY(undo.SaveElement(TDCUEO_EDIT, 1, 0, 0, (WORD)TDCA_PRIORITY, &tdi));
+	VERIFY(undo.EndCurrentAction());
+	ExpectFalse(undo.IsAtSavePoint());
+
+	undo.ResetAll();
+	ExpectTrue(undo.IsAtSavePoint());
+}
+
+void CToDoCtrlDataTest::TestMoveUndoRedo()
+{
+	CTDCScopedTest test(*this, _T("CToDoCtrlData::MoveUndoRedo"));
+
+	CTDCStyleMap aStyles;
+	CTDCCustomAttribDefinitionArray aCustAttrib;
+
+	CToDoCtrlData data(aStyles, aCustAttrib);
+
+	{
+		CUndoAction undo(data, TDCUAT_ADD, FALSE);
+
+		VERIFY(data.AddTask(1, data.NewTask(TODOITEM()), 0, 0));
+		VERIFY(data.AddTask(2, data.NewTask(TODOITEM()), 1, 0));
+		VERIFY(data.AddTask(3, data.NewTask(TODOITEM()), 1, 2));
+		VERIFY(data.AddTask(4, data.NewTask(TODOITEM()), 0, 1));
+	}
+
+	ExpectEQ((int)data.GetTaskParentID(3), 1);
+
+	CDWordArray aTaskIDs;
+	aTaskIDs.Add(3);
+
+	{
+		CUndoAction undo(data, TDCUAT_MOVE, FALSE);
+
+		VERIFY(data.MoveTasks(aTaskIDs, 0, 4));
+	}
+
+	ExpectEQ((int)data.GetTaskParentID(3), 0);
+
+	CArray<int, int> aPositions;
+	ExpectEQ(data.GetTaskPositions(3, aPositions), 1);
+	ExpectEQ(aPositions[0], 2);
+
+	CArrayUndoElements aElms;
+	VERIFY(data.UndoLastAction(TRUE, aElms));
+	ExpectEQ((int)data.GetTaskParentID(3), 1);
+
+	aPositions.RemoveAll();
+	ExpectEQ(data.GetTaskPositions(3, aPositions), 2);
+	ExpectEQ(aPositions[0], 0);
+	ExpectEQ(aPositions[1], 1);
+
+	CArrayUndoElements aElmsRedo;
+	VERIFY(data.UndoLastAction(FALSE, aElmsRedo));
+	ExpectEQ((int)data.GetTaskParentID(3), 0);
+
+	aPositions.RemoveAll();
+	ExpectEQ(data.GetTaskPositions(3, aPositions), 1);
+	ExpectEQ(aPositions[0], 2);
+
+	CArrayUndoElements aElmsUndo2;
+	VERIFY(data.UndoLastAction(TRUE, aElmsUndo2));
+	ExpectEQ((int)data.GetTaskParentID(3), 1);
+
+	aPositions.RemoveAll();
+	ExpectEQ(data.GetTaskPositions(3, aPositions), 2);
+	ExpectEQ(aPositions[0], 0);
+	ExpectEQ(aPositions[1], 1);
+}
 
 void CToDoCtrlDataTest::TestSetTaskPriorityRisk()
 {

@@ -74,6 +74,8 @@ public:
 	
 	BOOL Undo();
 	BOOL Redo();
+	BOOL CanUndo() const;
+	BOOL CanRedo() const;
 
 	void SetUITheme(const UITHEME& theme);
 	void SetContentFont(HFONT hFont);

@@ -404,6 +404,12 @@ sequenceDiagram
 - `TDCUNDOELEMENT` stores the operation (edit/add/delete/move), IDs and a **full
   `TODOITEM` snapshot**, so edits can be replayed by swapping snapshots.
 - Moves are replayed in two passes; a real action clears the redo stack.
+- Each action carries a serial. The serial of the top action at load/save time is the
+  *save point*; `CToDoCtrl::IsModified()` is refreshed from it after undo/redo so returning
+  to the saved state clears the `*`. See [customized/CUST-015](customized/CUST-015-undo-redo-feedback.md).
+- The active control still owns a local undo stack while it has focus (plain edits only
+  undo; the comments rich edit has undo and redo). Undo/redo enablement queries that local
+  stack for its own direction and only falls back to the document stack when it cannot act.
 
 ### 7.2 Filtering, sorting, find/replace
 

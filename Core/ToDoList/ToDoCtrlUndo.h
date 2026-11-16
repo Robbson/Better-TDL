@@ -52,8 +52,10 @@ struct TDCUNDOACTION
 	BOOL operator==(const TDCUNDOACTION& action) const;
 
 	int GetTaskIDs(CDWordArray& aIDs) const;
+	int GetAttributeIDs(CTDCAttributeArray& aIDs) const;
 
 	TDC_UNDOACTIONTYPE nType;
+	DWORD dwSerial;
 	CArrayUndoElements aElements;
 };
 
@@ -81,6 +83,8 @@ public:
 	int GetLastUndoActionTaskIDs(CDWordArray& aIDs) const;
 	int GetLastRedoActionTaskIDs(CDWordArray& aIDs) const;
 
+	int GetLastUndoActionAttributeIDs(BOOL bUndo, CTDCAttributeArray& aIDs) const;
+
 	void ClearRedoStack() { m_aRedo.RemoveAll(); }
 
 	TDC_UNDOACTIONTYPE GetLastUndoType() const;
@@ -92,13 +96,22 @@ public:
 	BOOL CanUndo() const { return m_aUndo.GetSize(); }
 	BOOL CanRedo() const { return m_aRedo.GetSize(); }
 
+	void SetSavePoint();
+	BOOL IsAtSavePoint() const;
+
 protected:
 	CArray<TDCUNDOACTION, TDCUNDOACTION&> m_aUndo;
 	CArray<TDCUNDOACTION, TDCUNDOACTION&> m_aRedo;
 
 	TDC_UNDOACTIONTYPE m_nActiveAction;
+	DWORD m_dwNextSerial;
+	DWORD m_dwSavePointSerial;
+
+	static const DWORD INVALID_SERIAL;
 
 protected:
+	DWORD CurrentSerial() const;
+	void InvalidateSavePoint();
 	TDCUNDOACTION& LastUndoAction();
 	TDCUNDOACTION& LastRedoAction();
 	const TDCUNDOACTION& LastUndoAction() const;

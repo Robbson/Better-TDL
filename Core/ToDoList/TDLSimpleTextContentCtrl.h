@@ -55,6 +55,7 @@ public:
 
 protected:
 	BOOL m_bWordWrap;
+	BOOL m_bClearUndoAfterAutoIndent;
 
 	CRichEditSpellCheck m_reSpellCheck;
 	CMenuIconMgr m_mgrMenuIcons;

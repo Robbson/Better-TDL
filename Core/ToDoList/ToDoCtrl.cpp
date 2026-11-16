@@ -4319,7 +4319,7 @@ TDC_FILE CToDoCtrl::Save(CTaskFile& tasks/*out*/, const CString& sFilePath, BOOL
 	if (nResult == TDCF_SUCCESS)
 	{
 		SetFilePath(sSavePath);
-		m_bModified = FALSE;
+		SetModified(FALSE);
 
 		if (bFirstSave)
 			OnFirstSave(tasks);
@@ -5228,9 +5228,13 @@ void CToDoCtrl::SetModified(BOOL bMod)
 		{
 			m_dtLastTaskMod = COleDateTime::GetCurrentTime();
 		}
-		else if (m_nCommentsState == CS_PENDING)
+		else 
 		{
-			m_nCommentsState = CS_CHANGED;
+			// Treat the current undo position as the new save point
+			m_data.SetUndoActionSavePoint();
+
+			if (m_nCommentsState == CS_PENDING)
+				m_nCommentsState = CS_CHANGED;
 		}
 	}
 }
@@ -9916,27 +9920,97 @@ LRESULT CToDoCtrl::OnFixupPostDropSelection(WPARAM /*wp*/, LPARAM lp)
     return 0L;
 }
 
+BOOL CToDoCtrl::CanUndoLocalAction(BOOL bUndo) const
+{
+	// handle comments field
+	if (m_ctrlComments.HasFocus())
+		return (bUndo ? m_ctrlComments.CanUndo() : m_ctrlComments.CanRedo());
+
+	// Plain edits only support undo
+	if (bUndo)
+	{
+		CWnd* pFocus = GetFocus();
+
+		if (pFocus && CWinClasses::IsClass(*pFocus, WC_EDIT))
+		{
+			CEdit* pEdit = (CEdit*)pFocus;
+			return (pEdit->CanUndo() || IsTaskLabelEditing() || (pEdit->GetDlgCtrlID() == IDC_PROJECTNAME));
+		}
+	}
+
+	return FALSE;
+}
+
 BOOL CToDoCtrl::CanUndoLastAction(BOOL bUndo) const 
 { 
 	if (IsReadOnly())
 		return FALSE;
 
-	// handle comments field
-	if (m_ctrlComments.HasFocus())
-		return (m_nCommentsState != CS_CLEAN);
+	return CanUndoLocalAction(bUndo) || m_data.CanUndoLastAction(bUndo);
+}
 
-	// Handle edit fields as below
-	CWnd* pFocus = GetFocus();
+CString CToDoCtrl::GetUndoActionDescription(BOOL bUndo) const
+{
+	// The focused control may own the undo action
+	if (CanUndoLocalAction(bUndo))
+		return CEnString(IDS_UNDOACTION_EDITTEXT);
 
-	if (pFocus && CWinClasses::IsClass(*pFocus, WC_EDIT))
+	// else the document owns it
+	if (!m_data.CanUndoLastAction(bUndo))
+		return _T("");
+
+	TDC_UNDOACTIONTYPE nType = m_data.GetLastUndoActionType(bUndo);
+
+	if (nType == TDCUAT_NONE)
+		return _T("");
+
+	if (nType == TDCUAT_EDIT)
 	{
-		CEdit* pEdit = (CEdit*)pFocus;
-		
-		if (pEdit->CanUndo() || IsTaskLabelEditing() || (pEdit->GetDlgCtrlID() == IDC_PROJECTNAME))
-			return TRUE;
+		CTDCAttributeArray aAttribIDs;
+		int nAttrib = m_data.GetLastUndoActionAttributeIDs(bUndo, aAttribIDs);
+
+		if (nAttrib == 1)
+		{
+			CString sAttrib = TDC::GetAttributeLabel(aAttribIDs[0]);
+
+			if (!sAttrib.IsEmpty())
+				return CEnString().Format(IDS_UNDOACTION_EDITATTRIB, (LPCTSTR)sAttrib);
+		}
+		else if (nAttrib > 1)
+		{
+			return CEnString().Format(IDS_UNDOACTION_EDITATTRIBS, nAttrib);
+		}
+
+		return CEnString(IDS_UNDOACTION_EDIT);
 	}
 
-	return m_data.CanUndoLastAction(bUndo); 
+	CDWordArray aTaskIDs;
+	int nTasks = m_data.GetLastUndoActionTaskIDs(bUndo, aTaskIDs);
+	BOOL bSingle = (nTasks == 1);
+
+	switch (nType)
+	{
+	case TDCUAT_ADD:
+		return CEnString().Format(bSingle ? IDS_UNDOACTION_ADD1 : IDS_UNDOACTION_ADDN, nTasks);
+
+	case TDCUAT_DELETE:
+		return CEnString().Format(bSingle ? IDS_UNDOACTION_DELETE1 : IDS_UNDOACTION_DELETEN, nTasks);
+
+	case TDCUAT_PASTE:
+		return CEnString().Format(bSingle ? IDS_UNDOACTION_PASTE1 : IDS_UNDOACTION_PASTEN, nTasks);
+
+	case TDCUAT_COPY:
+		return CEnString().Format(bSingle ? IDS_UNDOACTION_COPY1 : IDS_UNDOACTION_COPYN, nTasks);
+
+	case TDCUAT_MOVE:
+		return CEnString().Format(bSingle ? IDS_UNDOACTION_MOVE1 : IDS_UNDOACTION_MOVEN, nTasks);
+
+	case TDCUAT_ARCHIVE:
+		return CEnString().Format(bSingle ? IDS_UNDOACTION_ARCHIVE1 : IDS_UNDOACTION_ARCHIVEN, nTasks);
+	}
+
+	// all else
+	return _T("");
 }
 
 BOOL CToDoCtrl::UndoLastAction(BOOL bUndo)
@@ -9944,26 +10018,19 @@ BOOL CToDoCtrl::UndoLastAction(BOOL bUndo)
 	if (IsReadOnly())
 		return FALSE;
 
-	// handle comments field
-	if (m_ctrlComments.HasFocus())
-		return bUndo ? m_ctrlComments.Undo() : m_ctrlComments.Redo();
-
-	// We pass the undo request to the focused edit if:
-	// 1. Tree label editing
-	// OR
-	// 2. Project description editing
-	// OR
-	// 3. There is something to be undone
-	CWnd* pFocus = GetFocus();
-
-	if (pFocus && CWinClasses::IsClass(*pFocus, WC_EDIT))
+	// The focused control may own the undo action
+	if (CanUndoLocalAction(bUndo))
 	{
-		CEdit* pEdit = (CEdit*)pFocus;
+		if (m_ctrlComments.HasFocus())
+			return bUndo ? m_ctrlComments.Undo() : m_ctrlComments.Redo();
 
-		if (pEdit->CanUndo() || IsTaskLabelEditing() || (pEdit->GetDlgCtrlID() == IDC_PROJECTNAME))
+		// else it's a plain edit which only supports undo
+		CEdit* pEdit = (CEdit*)GetFocus();
+
+		if (pEdit)
 		{
 			pEdit->Undo();
-			return FALSE; 
+			return FALSE;
 		}
 	}
 
@@ -10015,6 +10082,9 @@ BOOL CToDoCtrl::UndoLastAction(BOOL bUndo)
  				SetModified(TDCA_ALL, aTaskIDs);
 			else
 				SetModified(TDCA_UNDO, aTaskIDs);
+
+			// The document is only modified if we are not back at the save point
+			SetModified(!m_data.IsAtUndoActionSavePoint());
 
 			return TRUE;
 		}

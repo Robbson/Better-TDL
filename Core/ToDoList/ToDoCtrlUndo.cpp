@@ -13,6 +13,10 @@ static char THIS_FILE[]=__FILE__;
 
 //////////////////////////////////////////////////////////////////////
 
+const DWORD CToDoCtrlUndo::INVALID_SERIAL = 0xFFFFFFFF;
+
+//////////////////////////////////////////////////////////////////////
+
 TDCUNDOELEMENT::TDCUNDOELEMENT(TDC_UNDOELMOP op, DWORD taskID, DWORD parentID,
 							   DWORD prevSiblingID, WORD flags, const TODOITEM* pTDI) 
 	:
@@ -59,7 +63,7 @@ BOOL TDCUNDOELEMENT::operator!=(const TDCUNDOELEMENT& elm) const
 
 //////////////////////////////////////////////////////////////////////
 
-TDCUNDOACTION::TDCUNDOACTION(TDC_UNDOACTIONTYPE type) : nType(type)
+TDCUNDOACTION::TDCUNDOACTION(TDC_UNDOACTIONTYPE type) : nType(type), dwSerial(0)
 {
 }
 
@@ -71,6 +75,7 @@ TDCUNDOACTION::TDCUNDOACTION(const TDCUNDOACTION& action)
 const TDCUNDOACTION& TDCUNDOACTION::operator=(const TDCUNDOACTION& action)
 {
 	nType = action.nType;
+	dwSerial = action.dwSerial;
 	aElements.Copy(action.aElements);
 
 	return *this;
@@ -101,11 +106,30 @@ int TDCUNDOACTION::GetTaskIDs(CDWordArray& aIDs) const
 	return aIDs.GetSize();
 }
 
+int TDCUNDOACTION::GetAttributeIDs(CTDCAttributeArray& aIDs) const
+{
+	aIDs.RemoveAll();
+
+	for (int nElm = 0; nElm < aElements.GetSize(); nElm++)
+	{
+		const TDCUNDOELEMENT& elm = aElements.GetData()[nElm];
+
+		if ((elm.nOp == TDCUEO_EDIT) && (elm.wFlags != 0) && (elm.wFlags != (WORD)TDCA_NONE))
+			aIDs.AddUnique((TDC_ATTRIBUTE)elm.wFlags);
+	}
+
+	return aIDs.GetSize();
+}
+
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-CToDoCtrlUndo::CToDoCtrlUndo() : m_nActiveAction(TDCUAT_NONE)
+CToDoCtrlUndo::CToDoCtrlUndo() 
+	: 
+	m_nActiveAction(TDCUAT_NONE), 
+	m_dwNextSerial(0), 
+	m_dwSavePointSerial(0)
 {
 
 }
@@ -133,6 +157,7 @@ BOOL CToDoCtrlUndo::BeginNewAction(TDC_UNDOACTIONTYPE nType)
 
 	// create new action container
 	TDCUNDOACTION tdcua(nType);
+	tdcua.dwSerial = ++m_dwNextSerial;
 	m_aUndo.Add(tdcua);
 
 	m_nActiveAction = nType;
@@ -156,7 +181,12 @@ BOOL CToDoCtrlUndo::EndCurrentAction()
 
 	if (curAction.aElements.GetSize() == 0)
 	{
+		DWORD dwRemovedSerial = curAction.dwSerial;
+
 		m_aUndo.RemoveAt(nCurUndo);
+
+		if (dwRemovedSerial == m_dwSavePointSerial)
+			m_dwSavePointSerial = CurrentSerial();
 	}
 	else // clear redo stack
 	{
@@ -189,6 +219,11 @@ BOOL CToDoCtrlUndo::ExtendLastAction(TDC_UNDOACTIONTYPE nType)
 
 	m_nActiveAction = nType;
 	LastUndoAction().nType = nType;
+
+	// Extending the action containing the save point changes the
+	// content that was saved so the save point can no longer be reached
+	if (LastUndoAction().dwSerial == m_dwSavePointSerial)
+		InvalidateSavePoint();
 
 	return TRUE;
 }
@@ -275,6 +310,16 @@ int CToDoCtrlUndo::GetLastRedoActionTaskIDs(CDWordArray& aIDs) const
 	return aIDs.GetSize();
 }
 
+int CToDoCtrlUndo::GetLastUndoActionAttributeIDs(BOOL bUndo, CTDCAttributeArray& aIDs) const
+{
+	if (bUndo ? CanUndo() : CanRedo())
+		return (bUndo ? LastUndoAction() : LastRedoAction()).GetAttributeIDs(aIDs);
+
+	// else
+	aIDs.RemoveAll();
+	return 0;
+}
+
 TDCUNDOACTION* CToDoCtrlUndo::UndoLastAction()
 {
 	if (!CanUndo())
@@ -356,4 +401,28 @@ void CToDoCtrlUndo::ResetAll()
 	
 	m_aUndo.RemoveAll();
 	m_aRedo.RemoveAll();
+
+	m_dwNextSerial = 0;
+	m_dwSavePointSerial = 0;
 }
+
+void CToDoCtrlUndo::SetSavePoint()
+{
+	m_dwSavePointSerial = CurrentSerial();
+}
+
+BOOL CToDoCtrlUndo::IsAtSavePoint() const
+{
+	return (CurrentSerial() == m_dwSavePointSerial);
+}
+
+DWORD CToDoCtrlUndo::CurrentSerial() const
+{
+	return (CanUndo() ? LastUndoAction().dwSerial : 0);
+}
+
+void CToDoCtrlUndo::InvalidateSavePoint()
+{
+	m_dwSavePointSerial = INVALID_SERIAL;
+}
+

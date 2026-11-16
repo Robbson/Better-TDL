@@ -5371,6 +5371,32 @@ BEGIN
     IDS_CUSTOM_FEATURE_IGNORETIMEOFDAY "Ignore time of day"
 END
 
+STRINGTABLE
+BEGIN
+    ID_EDIT_UNDO            "\nUndo"
+    ID_EDIT_REDO            "\nRedo"
+    IDS_UNDOACTION_UNDO     "&Undo"
+    IDS_UNDOACTION_REDO     "&Redo"
+    IDS_UNDOACTION_UNDOFMT  "&Undo: %s"
+    IDS_UNDOACTION_REDOFMT  "&Redo: %s"
+    IDS_UNDOACTION_EDIT     "Edit"
+    IDS_UNDOACTION_EDITATTRIB "Edit %s"
+    IDS_UNDOACTION_EDITATTRIBS "Edit %d fields"
+    IDS_UNDOACTION_ADD1     "Add task"
+    IDS_UNDOACTION_ADDN     "Add %d tasks"
+    IDS_UNDOACTION_DELETE1  "Delete task"
+    IDS_UNDOACTION_DELETEN  "Delete %d tasks"
+    IDS_UNDOACTION_PASTE1   "Paste task"
+    IDS_UNDOACTION_PASTEN   "Paste %d tasks"
+    IDS_UNDOACTION_COPY1    "Copy task"
+    IDS_UNDOACTION_COPYN    "Copy %d tasks"
+    IDS_UNDOACTION_MOVE1    "Move task"
+    IDS_UNDOACTION_MOVEN    "Move %d tasks"
+    IDS_UNDOACTION_ARCHIVE1 "Archive task"
+    IDS_UNDOACTION_ARCHIVEN "Archive %d tasks"
+    IDS_UNDOACTION_EDITTEXT "Edit text"
+END
+
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 

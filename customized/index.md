@@ -59,3 +59,4 @@ customized/
 | CUST-014 | Quote-safe values in ToDoList.ini (Quick Find history) | Done | [CUST-014-quoted-ini-values.md](CUST-014-quoted-ini-values.md) |
 | CUST-015 | Undo/redo feedback, enablement and saved-state tracking | Done | [CUST-015-undo-redo-feedback.md](CUST-015-undo-redo-feedback.md) |
 | CUST-016 | Restore tree folding when a filter is cleared | In progress (implemented/built; manual filter test pending) | [CUST-016-filter-fold-restore.md](CUST-016-filter-fold-restore.md) |
+| CUST-017 | Functional UI automation framework (UIA/FlaUI proposal) | Proposed | [CUST-017-ui-automation-framework.md](CUST-017-ui-automation-framework.md) |

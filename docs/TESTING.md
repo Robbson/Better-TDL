@@ -227,6 +227,10 @@ Interpretation notes:
 - Add end-to-end coverage for the state paths documented in
   [APPLICATION_STATE.md](APPLICATION_STATE.md): close tasklist → exit → reopen same path,
   delay-loaded tab close, and FileStates round-trip.
+- The proposed route for functional UI automation is
+  [CUST-017](../customized/CUST-017-ui-automation-framework.md): an out-of-process
+  UIA/FlaUI test project, starting with an accessibility spike. `CUIPerfTest` stays a
+  rendering/performance harness.
 - Record and track a coverage baseline (the current local run is 10.9% lines) and gate on
   it in CI once `TDLTest` returns a meaningful exit code.
 

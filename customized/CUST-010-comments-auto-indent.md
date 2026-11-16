@@ -113,3 +113,79 @@ Files: `Core/ToDoList/TDLSimpleTextContentCtrl.cpp` and
   `* item`, `-> item`, `=> item`, including indented variants) for both Return
   continuation and wrapped-line alignment, plus an empty bullet followed by Return, font
   changes, paste, undo/redo and Shift+Enter.
+
+## Automated coverage
+
+The proposed UI automation framework ([CUST-017](CUST-017-ui-automation-framework.md))
+covers this behaviour in two layers: unit tests for the prefix/bullet rules (extracted
+into a testable helper) and RichEdit UIA tests that type real keystrokes and assert the
+resulting text, caret and wrapped-line alignment. A UIA probe confirmed the editor
+(`RICHEDIT50W`, id 1003) exposes `TextPattern` text, selection and bounding rectangles,
+so these tests need no test hook. See the comments-editor section of CUST-017 for the
+approach and limitations.
+
+## Behaviour specification
+
+Write the expectation as **text + markers**, not as prose. The same cases drive the pure
+prefix/Tab logic (fast unit layer) and the real-keystroke UIA layer, so the contract cannot
+drift between them.
+
+Markers (escape with `\` when literal):
+
+| Marker | Meaning |
+|---|---|
+| `^` | caret (zero-width) |
+| `[` `]` | selection start / end |
+| `\n` | logical line break (RichEdit returns `\r`; normalise before comparing) |
+| `\t` | tab |
+
+Current contract (decide changes explicitly here, then encode them):
+
+| Case | Initial | Keys | Expected |
+|---|---|---|---|
+| Enter keeps spaces | `"  abc^"` | Enter | `"  abc\n  ^"` |
+| Enter keeps a tab | `"\tabc^"` | Enter | `"\tabc\n\t^"` |
+| Enter no indent | `"abc^"` | Enter | `"abc\n^"` |
+| Enter continues a bullet | `"- item^"` | Enter | `"- item\n  ^"` |
+| Enter indented bullet | `"  - item^"` | Enter | `"  - item\n    ^"` |
+| Enter on empty bullet | `"- ^"` | Enter | `"- \n^"` |
+| Enter replaces a selection | `"  abc[def\nghi]"` | Enter | `"  abc\n  ^"` |
+| Shift+Enter does not indent | `"  abc^"` | Shift+Enter | `"  abc\n^"` |
+| Tab inserts at the caret | `"  ab^c"` | Tab | `"  ab\t^c"` |
+| Tab indents selected lines | `"[a\nb]"` | Tab | `"\t[a\n\tb]"` |
+| Shift+Tab removes one tab per line | `"\t[a\n\tb]"` | Shift+Tab | `"[a\nb]"` |
+| Shift+Tab without a leading tab | `"[a\nb]"` | Shift+Tab | `"[a\nb]"` |
+
+Notes on the Tab cases: the first inserted tab is intentionally **outside** the selection;
+a selection ending at a line start must not indent the following line (the implementation
+trims the trailing `\r\t`). Add cases for both when the test suite is implemented.
+
+### Wrapping and visual alignment
+
+Wrapping is not a text transformation, so assert invariants on the rendered layout instead
+of hard-coded line breaks:
+
+1. The logical text (normalised) is unchanged by resizing or wrapping.
+2. For a **space-indented** paragraph, the left x of every wrapped continuation segment
+   equals the left x of the paragraph's first non-whitespace character (tolerance ±1 px).
+   This is the `PARAFORMAT2.dxOffset` hanging indent in CUST-010.
+3. For a **tab-indented** paragraph, continuation lines align at the paragraph start
+   (`dxOffset = 0`). That is the documented RichEdit 4.1 limitation; a future fix changes
+   this case deliberately.
+4. With word wrap enabled there is no horizontal scrollbar for the paragraph.
+
+Pin the environment for geometry cases: fixed frame/editor width, font (prefer a
+monospaced test font), DPI and window state in the isolated INI. Derive expected positions
+from font metrics (for example the width of the leading spaces) rather than committing
+pixel constants. RichEdit `TextPattern` returns segment rectangles for a range; group them
+by `y` to recover display lines and compare `x`. Verify that grouping in the CUST-017
+Phase 0 spike before relying on it; otherwise use a narrow screenshot check for geometry
+only.
+
+### Where the cases live
+
+Keep this table as the human-readable contract. When the tests are implemented, move the
+same rows into a machine-readable fixture (TSV/JSON) read by both layers, with an optional
+explicit `cpMin`/`cpMax` pair for cases where the markers are ambiguous. Do not maintain
+two independent expectations.
+

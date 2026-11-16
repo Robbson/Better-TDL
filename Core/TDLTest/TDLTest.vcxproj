@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Unicode Debug|Win32">
@@ -179,6 +179,7 @@ unicode_debug\TDLTest.exe
     <ClCompile Include="TDCTaskCalculatorTest.cpp" />
     <ClCompile Include="TDCTaskMatcherTest.cpp" />
     <ClCompile Include="TDCTaskTimeLogTest.cpp" />
+    <ClCompile Include="TDLSimpleTextContentCtrlTest.cpp" />
     <ClCompile Include="TDLTaskCtrlBaseTest.cpp" />
     <ClCompile Include="TDLTest.cpp" />
     <ClCompile Include="TDLTestBase.cpp" />
@@ -212,6 +213,7 @@ unicode_debug\TDLTest.exe
     <ClInclude Include="TDCTaskCalculatorTest.h" />
     <ClInclude Include="TDCTaskMatcherTest.h" />
     <ClInclude Include="TDCTaskTimeLogTest.h" />
+    <ClInclude Include="TDLSimpleTextContentCtrlTest.h" />
     <ClInclude Include="TDLTaskCtrlBaseTest.h" />
     <ClInclude Include="TDLTest.h" />
     <ClInclude Include="TDLTestBase.h" />

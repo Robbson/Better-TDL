@@ -251,7 +251,6 @@ void CRichEditBaseCtrl::Initialise()
 
 	EnableAutoUrlDetection();
 	EnableAutoFontChanging(FALSE);
-	EnableInlineSpellChecking(TRUE);
 	EnableChangeNotifications(TRUE);
 }
 

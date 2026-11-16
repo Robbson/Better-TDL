@@ -14,6 +14,14 @@
 #include "..\Interfaces\IContentControl.h"
 
 /////////////////////////////////////////////////////////////////////////////
+
+// Messages for toggling editor display options on the underlying control
+const UINT WM_SETWORDWRAP = (WM_USER + 1);
+const UINT WM_GETWORDWRAP = (WM_USER + 2);
+const UINT WM_SETSHOWALLCHARS = (WM_USER + 3);
+const UINT WM_GETSHOWALLCHARS = (WM_USER + 4);
+
+/////////////////////////////////////////////////////////////////////////////
 // CTDLSimpleTextContentCtrl window
 
 class CTDLSimpleTextContentCtrl : public CUrlRichEditCtrl, public IContentControl
@@ -55,6 +63,7 @@ public:
 
 protected:
 	BOOL m_bWordWrap;
+	BOOL m_bShowAllChars;
 	BOOL m_bClearUndoAfterAutoIndent;
 
 	CRichEditSpellCheck m_reSpellCheck;
@@ -78,6 +87,10 @@ protected:
 	afx_msg BOOL OnGetTooltip(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg UINT OnGetDlgCode();
 	afx_msg LRESULT OnSetWordWrap(WPARAM wp, LPARAM lp);
+	afx_msg LRESULT OnGetWordWrap(WPARAM wp, LPARAM lp);
+	afx_msg LRESULT OnSetShowAllChars(WPARAM wp, LPARAM lp);
+	afx_msg LRESULT OnGetShowAllChars(WPARAM wp, LPARAM lp);
+	afx_msg void OnPaint();
 	afx_msg void OnTimer(UINT nIDEvent);
 	afx_msg LRESULT OnSetFont(WPARAM wp, LPARAM lp);
 	afx_msg LRESULT OnSetText(WPARAM wp, LPARAM lp);
@@ -92,12 +105,19 @@ protected:
 protected:
 	BOOL IsTDLClipboardEmpty() const;
 	void SetWordWrap(BOOL bWrap);
+	void SetShowAllChars(BOOL bShow);
+	void DrawWhitespace(CDC& dc) const;
 	BOOL Paste();
 	BOOL CanPaste();
 	void InitMenuIconManager();
 	void ScheduleAutoIndent();
+	void UpdateAutoIndentNow();
 	void ApplyAutoIndent();
 	bool ApplyAutoIndentToParagraph(int nParaStart, int nParaEnd, int nDpiX);
+	bool ProcessEditingKey(UINT nVKey, BOOL bCtrl, BOOL bAlt, BOOL bShift);
+	bool RemoveIndent();
+
+	friend class CTDLSimpleTextContentCtrlTest;
 
 };
 

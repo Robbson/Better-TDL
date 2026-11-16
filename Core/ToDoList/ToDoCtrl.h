@@ -412,6 +412,12 @@ public:
 	BOOL GetCommentsFormat(CONTENTFORMAT& cf) const { return m_ctrlComments.GetSelectedFormat(cf); }
 	BOOL SetCommentsFormat(const CONTENTFORMAT& cf) { return m_ctrlComments.ChangeSelectedFormat(cf); }
 	BOOL CanChangeCommentsFormat() const;
+
+	BOOL IsCommentsSimpleText() const { return m_ctrlComments.IsSimpleTextContent(); }
+	BOOL IsCommentsWordWrapped() const { return m_ctrlComments.IsWordWrap(); }
+	void SetCommentsWordWrap(BOOL bWrap) { m_ctrlComments.SetWordWrap(bWrap); }
+	BOOL AreCommentsShowingAllChars() const { return m_ctrlComments.IsShowAllChars(); }
+	void SetCommentsShowingAllChars(BOOL bShow) { m_ctrlComments.SetShowAllChars(bShow); }
 	BOOL FindInComments(LPCTSTR szText, BOOL bCaseSensitive, BOOL bWholeWord) 
 	{ 
 		return m_ctrlComments.FindText(szText, bCaseSensitive, bWholeWord); 

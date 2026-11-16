@@ -154,6 +154,41 @@ tests viable without a test hook.
 IME composition, spell-check popups, and drag/drop text are timing- and environment-heavy;
 document them as manual checks unless a deterministic hook is added.
 
+## Component harness (desktop analogue of isolated component tests)
+
+Web component tests mount a component with its real renderer and controlled inputs. The
+desktop/MFC equivalent is a small test host that creates the **production `CWnd` class**
+inside a test frame, pumps messages, supplies the parent contract, and inspects state
+in-process. There is no DOM or Storybook, but for leaf controls this is feasible and can be
+faster and more precise than UIA.
+
+Feasibility in this repo:
+
+- `TDLTest` is already an MFC app (`CWinApp theApp`, `AfxWinInit`; `TDLTest.cpp:48`,
+  `:131`) and links the production library (`TDLTest.vcxproj:226-239`), so it can host real
+  windows in the test process.
+- In-process assertions can use `GetTextRange()`, `GetSel()` and `EM_GETPARAFORMAT`, so the
+  UIA text/selection/geometry limitations do not apply to component tests.
+- `CTDLSimpleTextContentCtrl`/`CTDLCommentsCtrl` is a good first host: create it in a
+  fixed-size frame, set the font/DPI, answer the `WM_ICC_*` parent messages with a minimal
+  stub (or reuse `CTDLCommentsCtrl`), then drive keys and assert the CUST-010 contract.
+
+Caveats:
+
+- `ToDoList.rc` is compiled into `ToDoList.exe`, not `ToDoListLib`; dialogs, toolbars and
+  string tables are therefore not in `TDLTest.exe` (which has only `TDLTest.rc`). Load the
+  app resources with `LoadLibraryEx(..., LOAD_LIBRARY_AS_DATAFILE)` + `AfxSetResourceHandle`,
+  or add the `.rc` to the test target. Controls that do not load app resources (such as the
+  plain comments edit field) can run without this.
+- Controls depend on MFC globals and services: `CWinApp`, preferences, theme, clipboard,
+  spell-check/content interfaces, plugins. The host must provide them; a drifting stub
+  silently changes behaviour, so keep the host contract minimal and documented.
+- Whole views (`CToDoCtrl`, tree/list, filter, undo) are not leaf components; isolating
+  them means rebuilding the app shell. Keep those at app level (UIA).
+
+Use a component harness for the comments editor, new dialogs/pages and standalone controls.
+Use app-level UIA for tasklist lifecycle, command routing, filtering and persistence.
+
 ## Accessibility probe findings (2026-11-16)
 
 A UIA dump of a fixture tasklist (`biglist.tdl`, isolated INI) produced:

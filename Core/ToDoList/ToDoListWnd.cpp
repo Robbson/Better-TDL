@@ -493,6 +493,8 @@ BEGIN_MESSAGE_MAP(CToDoListWnd, CFrameWnd)
 	ON_COMMAND(ID_COMMENTS_INSERTDATE, OnEditInsertdate)
 	ON_COMMAND(ID_COMMENTS_INSERTDATETIME, OnEditInsertdatetime)
 	ON_COMMAND(ID_COMMENTS_INSERTTIME, OnEditInserttime)
+	ON_COMMAND(ID_COMMENTS_WORDWRAP, OnCommentsWordWrap)
+	ON_COMMAND(ID_COMMENTS_SHOWALLCHARS, OnCommentsShowAllChars)
 	ON_COMMAND(ID_DELETEALLTASKS, OnDeleteAllTasks)
 	ON_COMMAND(ID_DELETETASK, OnDeleteTask)
 	ON_COMMAND(ID_EDIT_CLEARFOCUSEDFIELD, OnEditClearFocusedAttribute)
@@ -761,6 +763,8 @@ BEGIN_MESSAGE_MAP(CToDoListWnd, CFrameWnd)
 	ON_UPDATE_COMMAND_UI(ID_COMMENTS_INSERTDATE, OnUpdateCommentsInsertDateAndOrTime)
 	ON_UPDATE_COMMAND_UI(ID_COMMENTS_INSERTDATETIME, OnUpdateCommentsInsertDateAndOrTime)
 	ON_UPDATE_COMMAND_UI(ID_COMMENTS_INSERTTIME, OnUpdateCommentsInsertDateAndOrTime)
+	ON_UPDATE_COMMAND_UI(ID_COMMENTS_WORDWRAP, OnUpdateCommentsWordWrap)
+	ON_UPDATE_COMMAND_UI(ID_COMMENTS_SHOWALLCHARS, OnUpdateCommentsShowAllChars)
 	ON_UPDATE_COMMAND_UI(ID_DELETEALLTASKS, OnUpdateDeletealltasks)
 	ON_UPDATE_COMMAND_UI(ID_DELETETASK, OnUpdateDeletetask)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_CLEARFOCUSEDFIELD, OnUpdateEditClearFocusedAttribute)
@@ -1688,8 +1692,8 @@ BOOL CToDoListWnd::InitMainToolbar()
 
 	m_mgrPrompts.SetComboEditPrompt(m_cbQuickFind, IDS_QUICKFIND);
 	
-	// insert combobox for comments format after Insert Date/Time buttons
-	nPos = m_toolbarMain.CommandToIndex(ID_COMMENTS_INSERTDATETIME) + 1;
+	// insert combobox for comments format after Insert Date/Time and editor toggle buttons
+	nPos = m_toolbarMain.CommandToIndex(ID_COMMENTS_SHOWALLCHARS) + 1;
 	m_toolbarMain.InsertSeparator(nPos);
 	m_toolbarMain.InsertSeparator(nPos + 1);
 
@@ -6870,7 +6874,7 @@ void CToDoListWnd::ReposToolbars(CDeferWndMove* pDwm, CRect& rAvailable)
 	// ensure m_cbCommentsFmt is positioned correctly
 	if (m_cbCommentsFmt.GetSafeHwnd())
 	{
-		nPos = m_toolbarMain.CommandToIndex(ID_COMMENTS_INSERTDATETIME) + 2;
+		nPos = m_toolbarMain.CommandToIndex(ID_COMMENTS_SHOWALLCHARS) + 2;
 		m_toolbarMain.GetItemRect(nPos, rNewPos);
 
 		CRect rPrevCommentsPos = GetChildRect(&m_cbCommentsFmt);
@@ -13782,6 +13786,34 @@ void CToDoListWnd::OnUpdateCommentsInsertDateAndOrTime(CCmdUI* pCmdUI)
 
 	UpdateCommentsFormatCombo();
 	pCmdUI->Enable(tdc.HasFocus(TDCSF_COMMENTS) && tdc.CanPasteDateTime());
+}
+
+void CToDoListWnd::OnCommentsWordWrap()
+{
+	CFilteredToDoCtrl& tdc = GetToDoCtrl();
+	tdc.SetCommentsWordWrap(!tdc.IsCommentsWordWrapped());
+}
+
+void CToDoListWnd::OnCommentsShowAllChars()
+{
+	CFilteredToDoCtrl& tdc = GetToDoCtrl();
+	tdc.SetCommentsShowingAllChars(!tdc.AreCommentsShowingAllChars());
+}
+
+void CToDoListWnd::OnUpdateCommentsWordWrap(CCmdUI* pCmdUI)
+{
+	const CFilteredToDoCtrl& tdc = GetToDoCtrl();
+
+	pCmdUI->Enable(tdc.IsCommentsSimpleText() && tdc.HasFocus(TDCSF_COMMENTS));
+	pCmdUI->SetCheck(tdc.IsCommentsWordWrapped() ? 1 : 0);
+}
+
+void CToDoListWnd::OnUpdateCommentsShowAllChars(CCmdUI* pCmdUI)
+{
+	const CFilteredToDoCtrl& tdc = GetToDoCtrl();
+
+	pCmdUI->Enable(tdc.IsCommentsSimpleText() && tdc.HasFocus(TDCSF_COMMENTS));
+	pCmdUI->SetCheck(tdc.AreCommentsShowingAllChars() ? 1 : 0);
 }
 
 BOOL CToDoListWnd::CanInsertDateAndTime() const

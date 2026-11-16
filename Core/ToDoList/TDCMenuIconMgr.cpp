@@ -68,6 +68,11 @@ void CTDCMenuIconMgr::Populate(const CPreferencesDlg& prefs)
 	aCmdIDs.Add(ID_TOOLS_TOGGLEDARKMODE);
 	aCmdIDs.Add(ID_PREFERENCES);
 	aCmdIDs.Add(ID_HELP_WIKI);
+	aCmdIDs.Add(ID_COMMENTS_INSERTDATE);
+	aCmdIDs.Add(ID_COMMENTS_INSERTTIME);
+	aCmdIDs.Add(ID_COMMENTS_INSERTDATETIME);
+	aCmdIDs.Add(ID_COMMENTS_WORDWRAP);
+	aCmdIDs.Add(ID_COMMENTS_SHOWALLCHARS);
 
 	AddImages(aCmdIDs, IDB_APP_TOOLBAR_STD, colorMagenta);
 

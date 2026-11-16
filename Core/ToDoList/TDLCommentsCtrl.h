@@ -58,6 +58,12 @@ public:
 	BOOL InsertTextContent(LPCWSTR szContent, BOOL bAtEnd);
 	void ClearContent();
 
+	BOOL IsSimpleTextContent() const;
+	BOOL IsWordWrap() const;
+	void SetWordWrap(BOOL bWrap);
+	BOOL IsShowAllChars() const;
+	void SetShowAllChars(BOOL bShow);
+
 	BOOL FindReplaceAll(LPCTSTR szFind, LPCTSTR szReplace, BOOL bCaseSensitive, BOOL bWholeWord);
 	BOOL FindText(LPCTSTR szFind, BOOL bCaseSensitive, BOOL bWholeWord);
 

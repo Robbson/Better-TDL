@@ -83,7 +83,12 @@ app or a window:
 | `CTDCCUSTOMATTRIBUTECALCULATIONTest` | custom-attribute calculation over `CToDoCtrlData` |
 | `CToDoCtrlDataTest` | data model creation, undo/save point, recurring-date adjustment, priority/risk/custom-date offsets; `-p` adds benchmarks |
 | `CToDoCtrlMgr::CreateBackup` (inside `CTDCFileBackupTest`) | tasklist backup/culling |
+| `CTDLSimpleTextContentCtrlTest` | real offscreen `RichEdit50W` comments editor: Return/Tab/Shift+Tab text + caret contract and wrapped-line alignment (CUST-010) |
 | `CWorkingWeek::CalculateDuration` | registered but currently runs no checks |
+
+These create real windows (the comments-editor suite uses a hidden host window and a
+400×300 `RichEdit50W` child) but never show them or launch `ToDoList.exe`, so they run
+without an interactive desktop.
 
 These write to temporary files or a relative `backup` folder and read them back. They
 still run in the test process; nothing is installed, no tasklist is opened by the real

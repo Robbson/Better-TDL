@@ -1244,6 +1244,7 @@
 #define ID_COMMENTS_FINDREPLACE         34163
 #define ID_COMMENTS_INLINESPELLCHECK    34164
 #define ID_COMMENTS_COPYURL             34165
+#define ID_COMMENTS_SHOWALLCHARS        34166
 #define ID_COMMENTS_LAST                34175
 #define ID_HELP_COMMANDLINE             34180
 #define ID_HELP_DONATE                  34181

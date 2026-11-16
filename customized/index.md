@@ -52,7 +52,7 @@ customized/
 | CUST-007 | Comments editor controls moved to the main toolbar | Done | [CUST-007-comments-toolbar-in-main-toolbar.md](CUST-007-comments-toolbar-in-main-toolbar.md) |
 | CUST-008 | Hide mouse pointer while typing in text controls | Done | [CUST-008-comments-hide-pointer-while-typing.md](CUST-008-comments-hide-pointer-while-typing.md) |
 | CUST-009 | Highlight Quick Find matches in the comments editor | Done | [CUST-009-quickfind-comments-highlight.md](CUST-009-quickfind-comments-highlight.md) |
-| CUST-010 | Auto-indent (Return and wrapped lines) in the comments editor | In progress (implemented/built; manual test pending) | [CUST-010-comments-auto-indent.md](CUST-010-comments-auto-indent.md) |
+| CUST-010 | Auto-indent (Return and wrapped lines) in the comments editor | In progress (implemented; covered by TDLTest) | [CUST-010-comments-auto-indent.md](CUST-010-comments-auto-indent.md) |
 | CUST-011 | IntelliJ-style MRU tasklist switcher for Ctrl+Tab | In progress (implemented/built; manual test pending) | [CUST-011-mru-tasklist-switcher.md](CUST-011-mru-tasklist-switcher.md) |
 | CUST-012 | Product name and release label from version resource; About layout | Done (built; manual About check pending) | [CUST-012-branding-and-about.md](CUST-012-branding-and-about.md) |
 | CUST-013 | Window menu lists up to 25 tasklists and shows the open count | In progress (implemented/built; manual check pending) | [CUST-013-window-menu-list.md](CUST-013-window-menu-list.md) |
@@ -60,3 +60,5 @@ customized/
 | CUST-015 | Undo/redo feedback, enablement and saved-state tracking | Done | [CUST-015-undo-redo-feedback.md](CUST-015-undo-redo-feedback.md) |
 | CUST-016 | Restore tree folding when a filter is cleared | In progress (implemented/built; manual filter test pending) | [CUST-016-filter-fold-restore.md](CUST-016-filter-fold-restore.md) |
 | CUST-017 | Functional UI automation framework (UIA/FlaUI proposal) | Proposed | [CUST-017-ui-automation-framework.md](CUST-017-ui-automation-framework.md) |
+| CUST-018 | Comments editor word-wrap and show-all-characters toolbar toggles | In progress (implemented/built; interactive check pending) | [CUST-018-comments-display-toggles.md](CUST-018-comments-display-toggles.md) |
+

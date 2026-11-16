@@ -305,6 +305,8 @@ protected:
 	afx_msg void OnEditInsertdate();
 	afx_msg void OnEditInsertdatetime();
 	afx_msg void OnEditInserttime();
+	afx_msg void OnCommentsWordWrap();
+	afx_msg void OnCommentsShowAllChars();
 	afx_msg void OnEditLocktask();
 	afx_msg void OnEditOffsetDates();
 	afx_msg void OnEditOffsetStartDueDates(UINT nCmdID);
@@ -470,6 +472,8 @@ protected:
 	afx_msg void OnUpdateCloseall(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateCloseallbutthis(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateCommentsInsertDateAndOrTime(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateCommentsWordWrap(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateCommentsShowAllChars(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateCopyTaskasDependency(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateCopyTaskasDependencyFull(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateCopyTaskasLink(CCmdUI* pCmdUI);

@@ -41,7 +41,6 @@ static char THIS_FILE[] = __FILE__;
 
 /////////////////////////////////////////////////////////////////////////////
 
-const UINT WM_SETWORDWRAP = (WM_USER+1);
 const UINT IDC_DROPLIST = 100;
 
 const UINT TIMER_AUTOINDENT = 2;
@@ -52,7 +51,7 @@ const DWORD SIMPLETEXT_COMMENTS = (DWORD)(LPCTSTR)_T("SIMPLETEXT_COMMENTS");
 
 /////////////////////////////////////////////////////////////////////////////
 
-BOOL CTDLSimpleTextContentCtrl::s_bInlineSpellChecking = TRUE;
+BOOL CTDLSimpleTextContentCtrl::s_bInlineSpellChecking = FALSE;
 BOOL CTDLSimpleTextContentCtrl::s_bPasteSourceUrls = TRUE;
 
 /////////////////////////////////////////////////////////////////////////////
@@ -140,6 +139,68 @@ static int GetBulletPrefixLength(const CString& sText, int nStart)
 	return 0;
 }
 
+static int FindLineStartInText(const CString& sText, int nPos)
+{
+	int nStart = nPos;
+
+	while ((nStart > 0) && (sText[nStart - 1] != _T('\n')) && (sText[nStart - 1] != _T('\r')))
+	{
+		nStart--;
+	}
+
+	return nStart;
+}
+
+// Returns the length of the indentation to remove from a line start:
+// one tab or up to two spaces (the editor's tab width).
+static int GetRemovableIndentLength(const CString& sText, int nStart)
+{
+	if ((nStart < 0) || (nStart >= sText.GetLength()))
+		return 0;
+
+	if (sText[nStart] == _T('\t'))
+		return 1;
+
+	int nSpaces = 0;
+
+	while ((nSpaces < 2) && ((nStart + nSpaces) < sText.GetLength()) &&
+		   (sText[nStart + nSpaces] == _T(' ')))
+	{
+		nSpaces++;
+	}
+
+	return nSpaces;
+}
+
+static void GetParagraphPrefix(const CString& sPara, int& nFirstNonWs, int& nBulletLen, int& nTextStart){
+	nFirstNonWs = 0;
+
+	while ((nFirstNonWs < sPara.GetLength()) &&
+		   ((sPara[nFirstNonWs] == _T(' ')) || (sPara[nFirstNonWs] == _T('\t'))))
+	{
+		nFirstNonWs++;
+	}
+
+	nTextStart = nFirstNonWs;
+	nBulletLen = GetBulletPrefixLength(sPara, nFirstNonWs);
+
+	if (nBulletLen > 0)
+	{
+		nTextStart += nBulletLen;
+
+		// skip any extra spaces/tabs after the marker
+		while ((nTextStart < sPara.GetLength()) &&
+			   ((sPara[nTextStart] == _T(' ')) || (sPara[nTextStart] == _T('\t'))))
+		{
+			nTextStart++;
+		}
+	}
+	else if (nFirstNonWs == sPara.GetLength())
+	{
+		nTextStart = 0; // whitespace-only paragraph has nothing to align to
+	}
+}
+
 static CString GetAutoIndentPrefix(const CRichEditBaseCtrl& ctrl, int nPos)
 {
 	const int CHUNK = 1024;
@@ -210,6 +271,7 @@ CTDLSimpleTextContentCtrl::CTDLSimpleTextContentCtrl()
 	: 
 	CUrlRichEditCtrl(CTRLCLICKTOFOLLOW, IDS_CTRLCLICKTOFOLLOWLINK),
 	m_bWordWrap(TRUE),
+	m_bShowAllChars(FALSE),
 	m_bClearUndoAfterAutoIndent(FALSE)
 {
 	// add custom protocol to comments field for linking to task IDs
@@ -234,6 +296,10 @@ BEGIN_MESSAGE_MAP(CTDLSimpleTextContentCtrl, CUrlRichEditCtrl)
 	ON_CONTROL_REFLECT_EX(EN_CHANGE, OnChangeText)
 	ON_CONTROL_REFLECT_EX(EN_KILLFOCUS, OnKillFocus)
 	ON_MESSAGE(WM_SETWORDWRAP, OnSetWordWrap)
+	ON_MESSAGE(WM_GETWORDWRAP, OnGetWordWrap)
+	ON_MESSAGE(WM_SETSHOWALLCHARS, OnSetShowAllChars)
+	ON_MESSAGE(WM_GETSHOWALLCHARS, OnGetShowAllChars)
+	ON_WM_PAINT()
 	ON_MESSAGE(WM_SETFONT, OnSetFont)
 	ON_MESSAGE(WM_SETTEXT, OnSetText)
 	ON_WM_TIMER()
@@ -317,6 +383,181 @@ LPCTSTR CTDLSimpleTextContentCtrl::GetTypeID() const
 	return _T("PLAIN_TEXT"); 
 }
 
+bool CTDLSimpleTextContentCtrl::ProcessEditingKey(UINT nVKey, BOOL bCtrl, BOOL bAlt, BOOL bShift)
+{
+	switch (nVKey)
+	{
+	case VK_TAB:
+		{
+			CHARRANGE cr;
+			GetSel(cr);
+
+			const LPCTSTR TAB = _T("\t");
+			const LPCTSTR CR = _T("\r");
+			const LPCTSTR CRTAB = _T("\r\t");
+
+			if (bShift) // remove leading indentation
+			{
+				RemoveIndent();
+			}
+			else // insert leading tabs
+			{
+				CString sSel = (TAB + GetTextRange(cr));
+
+				// Don't include first tab in resulting selection
+				cr.cpMin++;
+				cr.cpMax++;
+
+				// Insert a tab after every subsequent new line
+				cr.cpMax += sSel.Replace(CR, CRTAB);
+
+				// Trim trailing newline/tab pair else next line gets indented
+				// but without trimming the result because that would remove
+				// any remaining tabs
+				if (Misc::RemoveSuffix(CRTAB, sSel, FALSE, FALSE))
+				{
+					sSel += CR; // restore carriage return
+					cr.cpMax--;
+				}
+
+				ReplaceSel(sSel, TRUE);
+				SetSel(cr);
+			}
+
+			// Apply the new indentation immediately so the paragraph does not
+			// render once with the previous hanging indent and then jump
+			UpdateAutoIndentNow();
+
+			return true;
+		}
+
+	case VK_RETURN:
+		// auto-indent a plain <return> to match the current line
+		if (!bCtrl && !bAlt && !bShift)
+		{
+			CHARRANGE crSel;
+			GetSel(crSel);
+
+			// Pressing Return at the start of a line must leave the
+			// existing line unchanged and just insert an empty line
+			CString sIndent;
+
+			if (crSel.cpMin > FindParagraphStart(*this, crSel.cpMin))
+				sIndent = GetAutoIndentPrefix(*this, crSel.cpMin);
+
+			const CString sInsert = (_T("\r") + sIndent);
+
+			ReplaceSel(sInsert, TRUE);
+
+			// RichEdit leaves the caret at the line break rather than
+			// after the inserted indent, so set it explicitly
+			const int nCaret = (crSel.cpMin + sInsert.GetLength());
+
+			SetSel(nCaret, nCaret);
+
+			UpdateAutoIndentNow();
+
+			return true;
+		}
+		break;
+	}
+
+	return false;
+}
+
+void CTDLSimpleTextContentCtrl::UpdateAutoIndentNow()
+{
+	KillTimer(TIMER_AUTOINDENT);
+	ApplyAutoIndent();
+}
+
+bool CTDLSimpleTextContentCtrl::RemoveIndent()
+{
+	CHARRANGE crSel;
+	GetSel(crSel);
+
+	// Read the internal text because RichEdit's character positions use
+	// a single CR for each line break whereas GetWindowText returns CRLF
+	CString sRaw = GetTextRange(CHARRANGE{ 0, GetTextLength() });
+
+	if (crSel.cpMin == crSel.cpMax)
+	{
+		const int nLineStart = FindLineStartInText(sRaw, crSel.cpMin);
+		const int nRemove = GetRemovableIndentLength(sRaw, nLineStart);
+
+		if (nRemove > 0)
+		{
+			SetSel(nLineStart, (nLineStart + nRemove));
+			ReplaceSel(_T(""), TRUE);
+
+			int nCaret = crSel.cpMin;
+
+			if (nCaret > nLineStart)
+				nCaret = max(nLineStart, (nCaret - nRemove));
+
+			SetSel(nCaret, nCaret);
+		}
+
+		return true;
+	}
+
+	// Selection: outdent every logical line touched by the selection
+	const int nStart = FindLineStartInText(sRaw, crSel.cpMin);
+	const int nEnd = crSel.cpMax;
+
+	if (nEnd <= nStart)
+		return true;
+
+	const CString sRange = sRaw.Mid(nStart, (nEnd - nStart));
+	CString sOut;
+	int nRemoved = 0;
+	BOOL bLineStart = TRUE;
+
+	for (int nChar = 0; nChar < sRange.GetLength(); )
+	{
+		if (bLineStart)
+		{
+			const int nRemove = GetRemovableIndentLength(sRange, nChar);
+
+			if (nRemove > 0)
+			{
+				nChar += nRemove;
+				nRemoved += nRemove;
+				bLineStart = FALSE;
+				continue;
+			}
+
+			bLineStart = FALSE;
+		}
+
+		const TCHAR ch = sRange[nChar++];
+
+		if (ch == _T('\r'))
+		{
+			sOut += _T('\r');
+
+			// Store CR only; RichEdit re-expands it to CRLF
+			if ((nChar < sRange.GetLength()) && (sRange[nChar] == _T('\n')))
+				nChar++;
+
+			bLineStart = TRUE;
+		}
+		else
+		{
+			sOut += ch;
+		}
+	}
+
+	if (nRemoved == 0)
+		return true;
+
+	SetSel(nStart, nEnd);
+	ReplaceSel(sOut, TRUE);
+	SetSel(nStart, (nStart + sOut.GetLength()));
+
+	return true;
+}
+
 bool CTDLSimpleTextContentCtrl::ProcessMessage(MSG* pMsg) 
 {
 	if (!IsWindowEnabled())
@@ -388,85 +629,8 @@ bool CTDLSimpleTextContentCtrl::ProcessMessage(MSG* pMsg)
 		}
 		else if (bEnabled)
 		{
-			switch (pMsg->wParam)
-			{
-			case VK_TAB:
-				{
-					CHARRANGE cr;
-					GetSel(cr);
-
-					const LPCTSTR TAB = _T("\t");
-					const LPCTSTR CR = _T("\r");
-					const LPCTSTR CRTAB = _T("\r\t");
-
-					if (bShift) // removed leading tabs
-					{
-						if (GetCharacterAtCaret(FALSE) == TAB)
-						{
-							// prevent selections being seen
-							CHoldRedraw hr(*this);
-
-							// Selected text without leading tab
-							CString sSel = GetTextRange(cr);
-
-							// Reselect text WITHOUT leading tab
-							cr.cpMin--;
-							SetSel(cr);
-							
-							// Remove a tab after every subsequent new line
-							int nNumReplaced = sSel.Replace(CRTAB, CR);
-
-							// Update selected text
-							ReplaceSel(sSel, TRUE);
-
-							// Restore selection
-							cr.cpMax -= (1 + nNumReplaced);
-
-							SetSel(cr);
-						}
-					}
-					else // insert leading tabs
-					{
-						CString sSel = (TAB + GetTextRange(cr));
-
-						// Don't include first tab in resulting selection
-						cr.cpMin++;
-						cr.cpMax++;
-
-						// Insert a tab after every subsequent new line
-						cr.cpMax += sSel.Replace(CR, CRTAB);
-
-						// Trim trailing newline/tab pair else next line gets indented
-						// but without trimming the result because that would remove
-						// any remaining tabs
-						if (Misc::RemoveSuffix(CRTAB, sSel, FALSE, FALSE))
-						{
-							sSel += CR; // restore carriage return
-							cr.cpMax--;
-						}
-
-						ReplaceSel(sSel, TRUE);
-						SetSel(cr);
-					}
-
-					return true;
-				}
-				break;
-
-			case VK_RETURN:
-				// auto-indent a plain <return> to match the current line
-				if (!bCtrl && !bAlt && !bShift)
-				{
-					CHARRANGE crSel;
-					GetSel(crSel);
-
-					CString sIndent = GetAutoIndentPrefix(*this, crSel.cpMin);
-					ReplaceSel((_T("\r\n") + sIndent), TRUE);
-
-					return true;
-				}
-				break;
-			}
+			if (ProcessEditingKey(pMsg->wParam, bCtrl, bAlt, bShift))
+				return true;
 		}
 	}
 	else if (pMsg->message == WM_CHAR)
@@ -523,6 +687,7 @@ void CTDLSimpleTextContentCtrl::InitMenuIconManager()
 	aCmdIDs.Add(ID_COMMENTS_DELETE);
 	aCmdIDs.Add(ID_COMMENTS_WORDWRAP);
 	aCmdIDs.Add(ID_COMMENTS_INLINESPELLCHECK);
+	aCmdIDs.Add(ID_COMMENTS_SHOWALLCHARS);
 
 	m_mgrMenuIcons.AddImages(aCmdIDs, IDB_SIMPLETEXT_MENU, colorMagenta);
 }
@@ -563,6 +728,7 @@ void CTDLSimpleTextContentCtrl::SetUITheme(const UITHEME* /*pTheme*/)
 void CTDLSimpleTextContentCtrl::SavePreferences(IPreferences* pPrefs, LPCWSTR szKey) const
 {
 	pPrefs->WriteProfileInt(szKey, _T("WordWrap"), m_bWordWrap);
+	pPrefs->WriteProfileInt(szKey, _T("ShowAllChars"), m_bShowAllChars);
 }
 
 void CTDLSimpleTextContentCtrl::LoadPreferences(const IPreferences* pPrefs, LPCWSTR szKey, bool bAppOnly)
@@ -575,6 +741,8 @@ void CTDLSimpleTextContentCtrl::LoadPreferences(const IPreferences* pPrefs, LPCW
 		// get very confused about something and doesn't repaint properly
 		// when resizing
 		PostMessage(WM_SETWORDWRAP, bWordWrap, (LPARAM)GetSafeHwnd());
+
+		PostMessage(WM_SETSHOWALLCHARS, pPrefs->GetProfileInt(szKey, _T("ShowAllChars"), FALSE), (LPARAM)GetSafeHwnd());
 	}
 }
 
@@ -767,32 +935,8 @@ bool CTDLSimpleTextContentCtrl::ApplyAutoIndentToParagraph(int nParaStart, int n
 	CHARRANGE crPara = { nParaStart, nParaEnd };
 	CString sPara = GetTextRange(crPara);
 
-	int nFirstNonWs = 0;
-
-	while ((nFirstNonWs < sPara.GetLength()) &&
-		   ((sPara[nFirstNonWs] == _T(' ')) || (sPara[nFirstNonWs] == _T('\t'))))
-	{
-		nFirstNonWs++;
-	}
-
-	int nTextStart = nFirstNonWs;
-	int nBulletLen = GetBulletPrefixLength(sPara, nFirstNonWs);
-
-	if (nBulletLen > 0)
-	{
-		nTextStart += nBulletLen;
-
-		// skip any extra spaces/tabs after the marker
-		while ((nTextStart < sPara.GetLength()) &&
-			   ((sPara[nTextStart] == _T(' ')) || (sPara[nTextStart] == _T('\t'))))
-		{
-			nTextStart++;
-		}
-	}
-	else if (nFirstNonWs == sPara.GetLength())
-	{
-		nTextStart = 0; // whitespace-only paragraph has nothing to align to
-	}
+	int nFirstNonWs, nBulletLen, nTextStart;
+	GetParagraphPrefix(sPara, nFirstNonWs, nBulletLen, nTextStart);
 
 	int nOffset = 0;
 
@@ -804,11 +948,13 @@ bool CTDLSimpleTextContentCtrl::ApplyAutoIndentToParagraph(int nParaStart, int n
 
 	GetParaFormat(pf);
 
-	// RichEdit 4.1 advances a first-line tab from dxStartIndent + dxOffset
-	// but draws the line from dxStartIndent. Applying a hanging indent to a
-	// tab-indented prefix therefore pushes the leading tab one tab stop
-	// further right, and measuring it would fold the offset back into the
-	// next pass. Only align prefixes that use spaces.
+	// RichEdit lays out a first-line tab against the hanging-indent
+	// position (dxStartIndent + dxOffset) instead of the line's actual
+	// left edge. The character after the tab therefore lands on the
+	// continuation indent, and the text after the marker stays
+	// marker-width to its right. Changing dxOffset moves both the
+	// continuation and the tab target by the same amount, so no offset
+	// can align a tab-prefixed paragraph. Only align space prefixes.
 	if ((nTextStart > 0) && (nTextStart < sPara.GetLength()) &&
 		(sPara.Left(nTextStart).Find(_T('\t')) < 0))
 	{
@@ -997,6 +1143,10 @@ void CTDLSimpleTextContentCtrl::OnCommentsMenuCmd(UINT nCmdID)
 		SetWordWrap(!m_bWordWrap);
 		break;
 
+	case ID_COMMENTS_SHOWALLCHARS:
+		SetShowAllChars(!m_bShowAllChars);
+		break;
+
 	case ID_COMMENTS_INLINESPELLCHECK:
 #ifndef _DEBUG
 		if (SupportsInlineSpellChecking())
@@ -1013,6 +1163,17 @@ void CTDLSimpleTextContentCtrl::SetWordWrap(BOOL bWrap)
 {
 	SetTargetDevice(NULL, bWrap ? 0 : 1);
 	m_bWordWrap = bWrap;
+
+	Invalidate(FALSE);
+}
+
+void CTDLSimpleTextContentCtrl::SetShowAllChars(BOOL bShow)
+{
+	if (m_bShowAllChars != bShow)
+	{
+		m_bShowAllChars = bShow;
+		Invalidate(FALSE);
+	}
 }
 
 void CTDLSimpleTextContentCtrl::OnUpdateCommentsMenuCmd(CCmdUI* pCmdUI)
@@ -1093,7 +1254,11 @@ void CTDLSimpleTextContentCtrl::OnUpdateCommentsMenuCmd(CCmdUI* pCmdUI)
 	case ID_COMMENTS_WORDWRAP:
 		pCmdUI->SetCheck(m_bWordWrap ? 1 : 0);
 		break;
-		
+
+	case ID_COMMENTS_SHOWALLCHARS:
+		pCmdUI->SetCheck(m_bShowAllChars ? 1 : 0);
+		break;
+
 	case ID_COMMENTS_INLINESPELLCHECK:
 #ifndef _DEBUG
 		if (SupportsInlineSpellChecking())
@@ -1208,6 +1373,125 @@ LRESULT CTDLSimpleTextContentCtrl::OnSetWordWrap(WPARAM wp, LPARAM lp)
 	
 	SetWordWrap(wp);
 	return 0L;
+}
+
+LRESULT CTDLSimpleTextContentCtrl::OnGetWordWrap(WPARAM /*wp*/, LPARAM /*lp*/)
+{
+	return (m_bWordWrap ? 1L : 0L);
+}
+
+LRESULT CTDLSimpleTextContentCtrl::OnSetShowAllChars(WPARAM wp, LPARAM /*lp*/)
+{
+	SetShowAllChars(wp);
+	return 0L;
+}
+
+LRESULT CTDLSimpleTextContentCtrl::OnGetShowAllChars(WPARAM /*wp*/, LPARAM /*lp*/)
+{
+	return (m_bShowAllChars ? 1L : 0L);
+}
+
+void CTDLSimpleTextContentCtrl::OnPaint()
+{
+	// Let the rich edit draw its content first
+	Default();
+
+	if (m_bShowAllChars)
+	{
+		CClientDC dc(this);
+		DrawWhitespace(dc);
+	}
+}
+
+void CTDLSimpleTextContentCtrl::DrawWhitespace(CDC& dc) const
+{
+	const int nTextLen = GetTextLength();
+
+	if (nTextLen <= 0)
+		return;
+
+	CRect rClient, rText;
+	GetClientRect(rClient);
+	GetRect(&rText);
+	rText.IntersectRect(rText, rClient);
+
+	if (rText.IsRectEmpty())
+		return;
+
+	POINTL ptFirst = { (rText.left + 1), (rText.top + 1) };
+	POINTL ptLast = { (rText.right - 1), (rText.bottom - 1) };
+
+	int nFirst = (int)SendMessage(EM_CHARFROMPOS, 0, (LPARAM)&ptFirst);
+	int nLast = (int)SendMessage(EM_CHARFROMPOS, 0, (LPARAM)&ptLast);
+
+	nFirst = max(0, nFirst);
+	nLast = min((nTextLen - 1), nLast);
+
+	if (nLast < nFirst)
+		return;
+
+	CString sVisible = GetTextRange(CHARRANGE{ nFirst, (nLast + 1) });
+	const int nLineHeight = GetLineHeight();
+
+	const COLORREF crMarker = RGB(140, 140, 140);
+	CPen pen(PS_SOLID, 1, crMarker);
+	CBrush brush(crMarker);
+
+	CPen* pOldPen = dc.SelectObject(&pen);
+	CBrush* pOldBrush = dc.SelectObject(&brush);
+	const int nOldBkMode = dc.SetBkMode(TRANSPARENT);
+
+	for (int nChar = 0; nChar < sVisible.GetLength(); nChar++)
+	{
+		const TCHAR ch = sVisible[nChar];
+
+		if ((ch != _T(' ')) && (ch != _T('\t')))
+			continue;
+
+		const int nPos = (nFirst + nChar);
+
+		CPoint ptChar, ptNext;
+		PointFromChar(nPos, ptChar);
+		PointFromChar((nPos + 1), ptNext);
+
+		if ((ptChar.y < rText.top) || (ptChar.y >= rText.bottom) ||
+			(ptChar.x < rText.left) || (ptChar.x >= rText.right))
+		{
+			continue;
+		}
+
+		const int nMarkerY = (ptChar.y + ((nLineHeight * 3) / 4));
+
+		if (ch == _T(' '))
+		{
+			int nCellWidth = ((ptNext.y == ptChar.y) ? (ptNext.x - ptChar.x) : (nLineHeight / 2));
+			nCellWidth = max(nCellWidth, 2);
+
+			const int nDotX = (ptChar.x + (nCellWidth / 2));
+			dc.Ellipse((nDotX - 1), (nMarkerY - 1), (nDotX + 1), (nMarkerY + 1));
+		}
+		else // tab
+		{
+			int nTabEnd = ((ptNext.y == ptChar.y) ? ptNext.x : rText.right);
+			nTabEnd = min(nTabEnd, rText.right);
+
+			if ((nTabEnd - ptChar.x) > 4)
+			{
+				const int nArrowEnd = (nTabEnd - 2);
+
+				dc.MoveTo((ptChar.x + 2), nMarkerY);
+				dc.LineTo(nArrowEnd, nMarkerY);
+				dc.MoveTo((nArrowEnd - 3), (nMarkerY - 3));
+				dc.LineTo(nArrowEnd, nMarkerY);
+				dc.MoveTo((nArrowEnd - 3), (nMarkerY + 3));
+				dc.LineTo(nArrowEnd, nMarkerY);
+			}
+		}
+	}
+
+	dc.SelectObject(pOldBrush);
+	dc.SelectObject(pOldPen);
+	dc.SetBkMode(nOldBkMode);
 }
 
 int CTDLSimpleTextContentCtrl::OnCreate(LPCREATESTRUCT lpCreateStruct) 

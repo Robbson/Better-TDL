@@ -5,6 +5,7 @@
 #include "resource.h"
 #include "TDLCommentsCtrl.h"
 #include "TDCContentMgr.h"
+#include "TDLSimpleTextContentCtrl.h"
 
 #include "..\shared\graphicsmisc.h"
 #include "..\shared\dlgunits.h"
@@ -538,6 +539,42 @@ BOOL CTDLCommentsCtrl::InsertTextContent(LPCWSTR szContent, BOOL bAtEnd)
 void CTDLCommentsCtrl::ClearContent()
 {
 	m_ctrlComments.SetTextContent(_T(""), FALSE);
+}
+
+BOOL CTDLCommentsCtrl::IsSimpleTextContent() const
+{
+	if (!m_pMgrContent || !m_ctrlComments.GetSafeHwnd())
+		return FALSE;
+
+	return m_ctrlComments.IsFormat(m_pMgrContent->GetSimpleTextContentFormat());
+}
+
+BOOL CTDLCommentsCtrl::IsWordWrap() const
+{
+	if (!IsSimpleTextContent())
+		return TRUE; // rich text controls always wrap
+
+	return (::SendMessage(m_ctrlComments.GetSafeHwnd(), WM_GETWORDWRAP, 0, 0) != 0);
+}
+
+void CTDLCommentsCtrl::SetWordWrap(BOOL bWrap)
+{
+	if (IsSimpleTextContent())
+		m_ctrlComments.SendMessage(WM_SETWORDWRAP, bWrap, (LPARAM)m_ctrlComments.GetSafeHwnd());
+}
+
+BOOL CTDLCommentsCtrl::IsShowAllChars() const
+{
+	if (!IsSimpleTextContent())
+		return FALSE;
+
+	return (::SendMessage(m_ctrlComments.GetSafeHwnd(), WM_GETSHOWALLCHARS, 0, 0) != 0);
+}
+
+void CTDLCommentsCtrl::SetShowAllChars(BOOL bShow)
+{
+	if (IsSimpleTextContent())
+		m_ctrlComments.SendMessage(WM_SETSHOWALLCHARS, bShow, (LPARAM)m_ctrlComments.GetSafeHwnd());
 }
 
 BOOL CTDLCommentsCtrl::FindReplaceAll(LPCTSTR szFind, LPCTSTR szReplace, BOOL bCaseSensitive, BOOL bWholeWord)

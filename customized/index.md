@@ -62,4 +62,5 @@ customized/
 | CUST-017 | Functional UI automation framework (UIA/FlaUI proposal) | Proposed | [CUST-017-ui-automation-framework.md](CUST-017-ui-automation-framework.md) |
 | CUST-018 | Comments editor word-wrap and show-all-characters toolbar toggles | In progress (implemented/built; interactive check pending) | [CUST-018-comments-display-toggles.md](CUST-018-comments-display-toggles.md) |
 | CUST-019 | Toolbar architecture: command tables, split bars, main-toolbar customization | In progress (phase 1 done: data-driven main toolbar; later phases proposed) | [CUST-019-toolbar-architecture.md](CUST-019-toolbar-architecture.md) |
+| CUST-020 | Tri-state view toolbar button (task list / editor / split) | Proposed (design note) | [CUST-020-tristate-view-toolbar-button.md](CUST-020-tristate-view-toolbar-button.md) |
 

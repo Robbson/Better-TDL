@@ -218,49 +218,10 @@ static CString GetAutoIndentPrefix(const CRichEditBaseCtrl& ctrl, int nPos)
 		nIndentLen++;
 	}
 
-	CString sPrefix = sLead.Left(nIndentLen);
-	int nBulletLen = GetBulletPrefixLength(sLead, nIndentLen);
-
-	if (nBulletLen > 0)
-	{
-		int nTextStart = (nIndentLen + nBulletLen);
-
-		// include any extra spaces/tabs after the marker
-		while ((nTextStart < sLead.GetLength()) &&
-			   ((sLead[nTextStart] == _T(' ')) || (sLead[nTextStart] == _T('\t'))))
-		{
-			nTextStart++;
-		}
-
-		BOOL bHasText = FALSE;
-
-		for (int nChar = nTextStart; nChar < sLead.GetLength(); nChar++)
-		{
-			if ((sLead[nChar] != _T(' ')) && (sLead[nChar] != _T('\t')))
-			{
-				bHasText = TRUE;
-				break;
-			}
-		}
-
-		// if the marker falls before the end of a long paragraph
-		if (!bHasText && (nChunkEnd < nParaEnd))
-			bHasText = TRUE;
-
-		// don't continue an empty bullet
-		if (bHasText)
-		{
-			// Replace the marker and any extra whitespace after it with
-			// spaces so the next line starts under the bullet text.
-			// A tab counts as two spaces, matching the editor's tab stops.
-			for (int nChar = nIndentLen; nChar < nTextStart; nChar++)
-			{
-				sPrefix += ((sLead[nChar] == _T('\t')) ? _T("  ") : _T(" "));
-			}
-		}
-	}
-
-	return sPrefix;
+	// Enter copies only the previous line's leading whitespace.
+	// Bullet markers are a wrapped-line alignment feature and are
+	// deliberately not continued here.
+	return sLead.Left(nIndentLen);
 }
 
 ///////////////////////////////////////////////////////////////////////////

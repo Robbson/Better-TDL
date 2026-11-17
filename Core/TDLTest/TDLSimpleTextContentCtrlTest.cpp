@@ -34,8 +34,8 @@ static const EDITKEYCASE EDITKEYCASES[] =
 	{ _T("  abc"),				5,	5,	VK_RETURN,	FALSE,	_T("  abc\n  ^") },
 	{ _T("\tabc"),				4,	4,	VK_RETURN,	FALSE,	_T("\tabc\n\t^") },
 	{ _T("abc"),				3,	3,	VK_RETURN,	FALSE,	_T("abc\n^") },
-	{ _T("- item"),				6,	6,	VK_RETURN,	FALSE,	_T("- item\n  ^") },
-	{ _T("  - item"),			8,	8,	VK_RETURN,	FALSE,	_T("  - item\n    ^") },
+	{ _T("- item"),				6,	6,	VK_RETURN,	FALSE,	_T("- item\n^") },
+	{ _T("  - item"),			8,	8,	VK_RETURN,	FALSE,	_T("  - item\n  ^") },
 	{ _T("- "),					2,	2,	VK_RETURN,	FALSE,	_T("- \n^") },
 	{ _T("  abcdef\nghi"),		5,	12,	VK_RETURN,	FALSE,	_T("  abc\n  ^") },
 
@@ -46,8 +46,8 @@ static const EDITKEYCASE EDITKEYCASES[] =
 	{ _T("  abc"),				0,	0,	VK_RETURN,	FALSE,	_T("\n^  abc") },
 	{ _T("abc"),				0,	0,	VK_RETURN,	FALSE,	_T("\n^abc") },
 
-	// Return keeps a leading tab and the bullet becomes spaces
-	{ _T("\t- item"),			7,	7,	VK_RETURN,	FALSE,	_T("\t- item\n\t  ^") },
+	// Return copies only the leading whitespace, not the bullet marker
+	{ _T("\t- item"),			7,	7,	VK_RETURN,	FALSE,	_T("\t- item\n\t^") },
 
 	// Tab insertion
 	{ _T("  abc"),				4,	4,	VK_TAB,		FALSE,	_T("  ab\t^c") },
@@ -495,6 +495,7 @@ CString CTDLSimpleTextContentCtrlTest::GetMarkedText(const CTDLSimpleTextContent
 
 	return sText;
 }
+
 
 
 

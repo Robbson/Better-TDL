@@ -5,12 +5,12 @@ Status: **In progress** (implemented and covered by `TDLTest`; interactive check
 ## Goal
 
 Pressing a plain `Enter` in the plain-text comments editor starts the new line with the
-same leading whitespace (spaces and tabs) as the current line. On recognised bullet
-lines, the marker is replaced by an equivalent run of spaces rather than repeated. In
-addition, word-wrapped continuation lines of **space-indented** paragraphs are visually
-aligned with the first non-whitespace character of their paragraph, so indentation remains
-readable when a long line wraps. Tab-indented paragraphs keep their tabs and are not
-hang-indented (see the options table below).
+same leading whitespace (spaces and tabs) as the current line, up to its first printable
+character. Bullet markers are **not** continued by `Enter`; they are only used by the
+wrapped-line alignment feature. In addition, word-wrapped continuation lines of
+**space-indented** paragraphs are visually aligned with the first non-whitespace character
+of their paragraph, so indentation remains readable when a long line wraps. Tab-indented
+paragraphs keep their tabs and are not hang-indented (see the options table below).
 
 The `Enter` behaviour restores a feature that used to be implemented as a hack in the
 older comments control's `ProcessMessage(MSG*)`. The behaviour is now specified below and
@@ -33,24 +33,23 @@ Files: `Core/ToDoList/TDLSimpleTextContentCtrl.cpp` and
 
 1. A file-local `GetAutoIndentPrefix()` helper finds the start of the paragraph
    containing the caret by scanning backwards for the previous `\r`/`\n` in chunks. It
-   returns the paragraph's leading spaces/tabs plus any recognised bullet marker. The
-   markers are listed in `BULLET_PREFIXES` and currently include `- `, `-> `
-   and `=> `; add or remove entries there to change the set. Scanning the paragraph
-   rather than using `LineFromChar()`/`LineIndex()` avoids treating word-wrapped display
-   lines as paragraphs.
+   returns only the paragraph's leading spaces/tabs (up to the first printable character).
+   Scanning the paragraph rather than using `LineFromChar()`/`LineIndex()` avoids treating
+   word-wrapped display lines as paragraphs. Bullet markers are deliberately not returned
+   here; `BULLET_PREFIXES` is used only by the wrapped-line hanging indent in step 3.
 2. `ProcessEditingKey()` handles `WM_KEYDOWN`/`VK_RETURN` when no Ctrl, Alt or Shift is
-   held. It inserts `"\r"` followed by the prefix from step 1 with `ReplaceSel()`, then
-   restores the caret after the inserted prefix, and returns `true` so the control does
-   not process the key itself. On a bullet line with text, the marker and any extra
-   whitespace after it are replaced by spaces, so the next line starts under the bullet
-   text instead of repeating the bullet. Pressing Return on an empty bullet adds no bullet
-   prefix.
+   held. It inserts `"\r"` followed by the leading whitespace from step 1 with
+   `ReplaceSel()`, then restores the caret after the inserted prefix, and returns `true`
+   so the control does not process the key itself. This matches the usual editor
+   behaviour: `"- item"` continues with no indent, `"  - item"` continues with two spaces
+   and `"\t- item"` continues with a tab.
 3. `ApplyAutoIndent()` walks each paragraph and sets the RichEdit hanging indent
    (`PARAFORMAT2.dxOffset` / `PFM_OFFSET`) to the measured width of the paragraph's
-   leading spaces plus any bullet marker. Wrapped lines therefore start where the
-   paragraph's text starts. The width is measured with `PointFromChar()` and converted
-   from pixels to twips, so spaces, proportional fonts, bullet markers and the control's
-   custom tab stops are handled by RichEdit itself.
+   leading spaces plus any recognised bullet marker (`BULLET_PREFIXES`: `- `, `-> `,
+   `=> `). Wrapped lines therefore start where the paragraph's text starts. The width is
+   measured with `PointFromChar()` and converted from pixels to twips, so spaces,
+   proportional fonts, bullet markers and the control's custom tab stops are handled by
+   RichEdit itself.
 4. Formatting is synchronous; there is no auto-indent timer. `OnChangeText()` formats only
    the caret paragraph (`ApplyAutoIndentToCaretParagraph()`), so ordinary typing does not
    walk the whole document. `Tab`, `Return` and `Shift+Tab` format only the paragraphs
@@ -104,7 +103,7 @@ the chosen option and would catch a regression if another option is tried.
 | Literal tabs in the saved comments | No — replaced by spaces | **Yes** | **Yes** (formatting is not saved; tabs remain literal) |
 | Tab key / tab stops / tab width | Tab must insert two spaces; tab stops become irrelevant for indentation; pasted/loaded tabs must be normalised too | Unchanged | Unchanged in the text; layout is driven by paragraph indents |
 | Shift+Tab | Must outdent spaces (two at a time) on every path | Works; extended to the caret line and multi-line selections | Must find and account for hidden tabs; caret can sit before/after hidden characters |
-| Enter auto-indent | New lines contain spaces; copied prefix tabs must be normalised | New lines keep leading tabs; bullet marker becomes spaces (as before) | New lines keep tabs; hidden state must be re-applied |
+| Enter auto-indent | New lines contain spaces; copied prefix tabs must be normalised | New lines copy only the leading spaces/tabs; bullet markers are not continued | New lines keep tabs; hidden state must be re-applied |
 | Caret, Home/End, Backspace, selection | No hidden characters, but every insert/paste path must consistently normalise | Normal, predictable | Hidden characters can be skipped or deleted invisibly; Home/End/selection can land oddly |
 | Undo/redo | Safe only if normalisation happens on input; normalising in a formatting pass creates edits that are not in the undo history | Unaffected | Character-format changes are outside plain-text undo; re-applying them can desync undo/redo |
 | Saved content / other views | Tabs are lost; external tools and other views see spaces | Unchanged | Unchanged |
@@ -153,8 +152,8 @@ Option 2 is chosen because it preserves the editor's native tab semantics and th
 comments exactly, removes the text-mutating formatting pass that caused the surprising
 behaviour, and is simple enough to test deterministically. The only cost is that wrapped
 lines of tab-indented paragraphs are not aligned under the text. Space-indented
-paragraphs, and the space-based continuation produced by Enter on a bullet line, still
-align.
+paragraphs and space-indented bullet lines still align; Enter no longer creates a
+space-based bullet continuation.
 
 Option 1 was implemented first and rejected: rewriting the buffer to spaces made
 `Shift+Tab` find no tabs, changed the saved comments, and combined with the timer to
@@ -222,14 +221,15 @@ states after every call (auto-repeat).
   A future edit path that calls the rich edit directly (for example a new OLE insertion
   handler) must do the same or only its caret paragraph will be indented.
 - Shift+Enter, Ctrl+Enter and Alt+Enter keep their existing behaviour.
-- Bullet recognition requires the exact marker strings in `BULLET_PREFIXES`, including
-  the trailing space. Lines without the trailing space (for example `-item`) are treated
-  as ordinary text.
+- Bullet markers are used **only** by the wrapped-line hanging indent, not by `Enter`.
+  `Enter` always copies exactly the previous line's leading whitespace.
+- Bullet recognition for the hanging indent requires the exact marker strings in
+  `BULLET_PREFIXES`, including the trailing space. Lines without the trailing space (for
+  example `-item`) are treated as ordinary text.
 - Bullet markers are recognised literally, not parsed as Markdown; nested markers are
   supported only through the leading spaces/tabs before the marker.
-- The Return continuation replaces each marker character with one space and each tab with
-  two spaces. This aligns exactly with monospaced/coder fonts; proportional fonts may be
-  off by a fraction of a character.
+- `Enter` copies leading spaces and tabs verbatim (a tab stays a tab); it does not convert
+  the indent to spaces.
 - The tests create the editor offscreen with a fixed size and a monospaced font. Geometry
   cases therefore do not exercise DPI changes, themes or a visible caret; those remain
   manual checks.
@@ -323,9 +323,9 @@ Current contract (decide changes explicitly here, then encode them):
 | Enter keeps spaces | `"  abc^"` | Enter | `"  abc\n  ^"` |
 | Enter keeps a tab | `"\tabc^"` | Enter | `"\tabc\n\t^"` |
 | Enter no indent | `"abc^"` | Enter | `"abc\n^"` |
-| Enter continues a bullet | `"- item^"` | Enter | `"- item\n  ^"` |
-| Enter indented bullet | `"  - item^"` | Enter | `"  - item\n    ^"` |
-| Enter tab-indented bullet | `"\t- item^"` | Enter | `"\t- item\n\t  ^"` |
+| Enter after a bullet | `"- item^"` | Enter | `"- item\n^"` |
+| Enter indented bullet | `"  - item^"` | Enter | `"  - item\n  ^"` |
+| Enter tab-indented bullet | `"\t- item^"` | Enter | `"\t- item\n\t^"` |
 | Enter on empty bullet | `"- ^"` | Enter | `"- \n^"` |
 | Enter replaces a selection | `"  abc[def\nghi]"` | Enter | `"  abc\n  ^"` |
 | Enter at line start (bullet) | `"^- item"` | Enter | `"\n^- item"` |
@@ -376,6 +376,8 @@ committed pixel constants.
 machine-readable fixture for the text/caret rows, and
 `CTDLSimpleTextContentCtrlTest::TestWrappedLineAlignment()` encodes the geometry rules.
 Update this table and those tests together.
+
+
 
 
 

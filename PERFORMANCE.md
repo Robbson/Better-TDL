@@ -49,6 +49,13 @@ construction. This is now fixed (CUST-005): a delay-loaded tab creates its windo
 first activation, which reduces the marginal cost to ~85 ms per document. The remaining
 startup floor is still the largest single term. See P0-5.
 
+Opening a document while the application is already running has the same fixed cost.
+Measured in Release, activating an 8 KB document took 3.7–4.2 s with `-g` logging
+(about 3 s without), independent of file size. Window creation was 0.8–1.0 s, preference
+application ~0.9 s, loading/restoring the task UI 0.8–1.3 s and showing/painting the tab
+about another 0.9 s; reading the 1.7 MB sample took only ~60 ms. This is tracked
+separately in [customized/CUST-021-tasklist-open-activation-cost.md](customized/CUST-021-tasklist-open-activation-cost.md).
+
 ---
 
 ## 2. Method and limitations
@@ -558,6 +565,20 @@ So deferring the scans would save ~0.14 s at the cost of a plugin-contract chang
 the bad-version warning and the per-plugin preferences. Not worth it; the pristine
 tasklist above is 8× larger. The timers are kept (they are once-per-process and gated
 on logging) so the number can be re-checked after plugin changes.
+
+#### Per-document cost outside startup (CUST-021)
+
+CUST-005 moved the per-document window construction to first activation, but it did not
+make that activation cheap. Opening a document in a running app, or selecting a
+delay-loaded tab, still pays the full fixed UI bill: create the tab window, apply the
+runtime preferences, load the tasks into the tree/list and restore the per-file UI state,
+then show and paint the tab. In Release an 8 KB and a 1.7 MB document both take roughly
+3 s without logging; the file read and XML parse is ~60 ms even for 1.7 MB.
+
+The measured breakdown and the instrumentation/profiling plan are in
+[customized/CUST-021-tasklist-open-activation-cost.md](customized/CUST-021-tasklist-open-activation-cost.md).
+This is a separate follow-up from the startup work above: the remaining cost is
+per-activation, not per-process, and it is not addressed by CUST-005 or CUST-006.
 
 ---
 

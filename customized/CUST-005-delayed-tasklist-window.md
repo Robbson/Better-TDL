@@ -136,3 +136,7 @@ document is restored costs ~1.1 s. See `PERFORMANCE.md` P0-5 for the follow-up.
   This preserves the observable result for hidden tabs but means a preference change
   made while a tab is still unactivated is applied from the new value (which is what
   the user expects).
+- First activation is now the visible cost centre: creating the window, applying the
+  runtime preferences, restoring the UI state and painting the tab take ~3 s in Release
+  even for a tiny tasklist. This is measured and tracked in
+  [CUST-021](CUST-021-tasklist-open-activation-cost.md).

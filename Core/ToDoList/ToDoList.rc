@@ -412,7 +412,7 @@ BEGIN
     RTEXT           "0/64 tools remaining",IDC_REMAININGCOUNT,129,146,263,8
 END
 
-IDD_PREFUI_PAGE DIALOG 0, 0, 395, 695
+IDD_PREFUI_PAGE DIALOG 0, 0, 395, 710
 STYLE DS_SETFONT | WS_CHILD
 FONT 8, "Tahoma"
 BEGIN
@@ -467,17 +467,19 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | BS_TOP | WS_TABSTOP,7,505,381,10
     CONTROL         "In&clude web link when pasting browser content",IDC_INCLUDEWEBLINKINCOMMENTSPASTE,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,520,387,10
-    LTEXT           "Tasklist Tab Bar",IDC_TABBARGROUP,7,540,381,8
+    CONTROL         "&Insert spaces instead of tabs when indenting",IDC_INSERTSPACESFORCOMMENTSTABS,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,535,381,10
+    LTEXT           "Tasklist Tab Bar",IDC_TABBARGROUP,7,555,381,8
     CONTROL         "&Hide tab bar when only one tasklist is open",IDC_AUTOHIDETABBAR,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,554,381,10
-    CONTROL         "&Stack tab bar items",IDC_STACKTABBARITEMS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,570,381,10
-    CONTROL         "Keep tabs or&dered by name",IDC_KEEPTABSORDERED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,585,381,10
-    LTEXT           "Default Task View Visibility",IDC_TASKVIEWSGROUP,7,602,381,8
-    LISTBOX         IDC_TASKVIEWVISIBILITY,7,617,331,51,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | LBS_MULTICOLUMN | WS_VSCROLL | WS_TABSTOP
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,569,381,10
+    CONTROL         "&Stack tab bar items",IDC_STACKTABBARITEMS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,585,381,10
+    CONTROL         "Keep tabs or&dered by name",IDC_KEEPTABSORDERED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,600,381,10
+    LTEXT           "Default Task View Visibility",IDC_TASKVIEWSGROUP,7,617,381,8
+    LISTBOX         IDC_TASKVIEWVISIBILITY,7,632,331,51,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | LBS_MULTICOLUMN | WS_VSCROLL | WS_TABSTOP
     CONTROL         "Right &align attribute labels",IDC_RIGHTALIGNLABELS,
                     "Button",BS_AUTOCHECKBOX | NOT WS_VISIBLE | WS_DISABLED | WS_TABSTOP,363,14,25,17
     CONTROL         "Use &legacy attribute editor (v8.2 style)",IDC_USELEGACYATTRIBUTEEDITOR,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,675,381,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,690,381,10
 END
 
 IDD_PREFUITASKLIST_PAGE DIALOG 0, 0, 394, 600
@@ -5432,4 +5434,5 @@ LANGUAGE 9, 1
 
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
+
 

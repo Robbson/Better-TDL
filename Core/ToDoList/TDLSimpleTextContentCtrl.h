@@ -58,6 +58,8 @@ public:
 
 	// global settings
 	static void SetPasteSourceUrls(BOOL bPasteUrls) { s_bPasteSourceUrls = bPasteUrls; }
+	static void SetTabIndentWithSpaces(BOOL bSpaces) { s_bTabIndentWithSpaces = bSpaces; }
+	static BOOL IsTabIndentWithSpaces() { return s_bTabIndentWithSpaces; }
 	static void EnableInlineSpellChecking(BOOL bEnable) { s_bInlineSpellChecking = bEnable; }
 	static BOOL IsInlineSpellCheckingEnabled() { return s_bInlineSpellChecking; }
 
@@ -72,6 +74,7 @@ protected:
 
 	static BOOL s_bInlineSpellChecking;
 	static BOOL s_bPasteSourceUrls;
+	static BOOL s_bTabIndentWithSpaces;
 
 protected:
 	virtual void PreSubclassWindow();
@@ -130,6 +133,7 @@ protected:
 // Microsoft Visual C++ will insert additional declarations immediately before the previous line.
 
 #endif // !defined(AFX_TDLSIMPLETEXTCONTENTCTRL_H__E9A5D982_4D40_43B2_A071_E3BE70D122B7__INCLUDED_)
+
 
 
 

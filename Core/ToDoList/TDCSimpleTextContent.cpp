@@ -92,5 +92,6 @@ void CTDCSimpleTextContent::LoadPreferences(const IPreferences* pPrefs, LPCWSTR 
 		CTDLSimpleTextContentCtrl::EnableInlineSpellChecking(pPrefs->GetProfileInt(szKey, _T("InlineSpellChecking"), FALSE));
 
 	CTDLSimpleTextContentCtrl::SetPasteSourceUrls(pPrefs->GetProfileInt(_T("Preferences"), _T("IncludeWebLinksInCommentsPaste"), TRUE));
+	CTDLSimpleTextContentCtrl::SetTabIndentWithSpaces(pPrefs->GetProfileInt(_T("Preferences"), _T("InsertSpacesForCommentsIndent"), TRUE));
 }
 

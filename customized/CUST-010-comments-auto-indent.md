@@ -28,6 +28,9 @@ auto-indent behaviour.
 
 Files: `Core/ToDoList/TDLSimpleTextContentCtrl.cpp` and
 `Core/ToDoList/TDLSimpleTextContentCtrl.h`,
+`Core/ToDoList/TDCSimpleTextContent.cpp`,
+`Core/ToDoList/PreferencesUIPage.cpp/.h`,
+`Core/ToDoList/ToDoList.rc`, `Core/ToDoList/resource.h`,
 `Core/TDLTest/TDLSimpleTextContentCtrlTest.cpp/.h`,
 `Core/TDLTest/TDLTest.cpp`, `Core/TDLTest/TDLTest.vcxproj` and `docs/TESTING.md`.
 
@@ -93,25 +96,26 @@ Files: `Core/ToDoList/TDLSimpleTextContentCtrl.cpp` and
 
 RichEdit's first-line tab rule (see the explanation in the Risks section) means that a
 tab-prefixed paragraph cannot be hang-indented with a literal tab in the text. Three
-approaches were considered. This table is the decision record; the current tests cover
-the chosen option and would catch a regression if another option is tried.
+approaches were considered. Option 2 is the default; option 1 is now available as an
+opt-in preference (see “Optional space indentation”). The current tests cover both the
+default and the opt-in behaviour.
 
 | Criterion | 1. Convert tabs to spaces on input | 2. Keep tabs, skip hanging indent (chosen) | 3. Hide tabs, emulate indent |
 |---|---|---|---|
-| Wrapped alignment, tab-indented line | Yes | **No** | Yes |
+| Wrapped alignment, tab-indented line | Yes for lines indented after opting in; existing tab-indented lines remain unaligned | **No** | Yes |
 | Wrapped alignment, space-indented line | Yes | Yes | Yes |
-| Literal tabs in the saved comments | No — replaced by spaces | **Yes** | **Yes** (formatting is not saved; tabs remain literal) |
-| Tab key / tab stops / tab width | Tab must insert two spaces; tab stops become irrelevant for indentation; pasted/loaded tabs must be normalised too | Unchanged | Unchanged in the text; layout is driven by paragraph indents |
-| Shift+Tab | Must outdent spaces (two at a time) on every path | Works; extended to the caret line and multi-line selections | Must find and account for hidden tabs; caret can sit before/after hidden characters |
+| Literal tabs in the saved comments | New indentation uses spaces; existing tabs are untouched | **Yes** | **Yes** (formatting is not saved; tabs remain literal) |
+| Tab key / tab stops / tab width | Tab inserts two spaces when the option is on; existing/pasted/loaded tabs are untouched | Unchanged | Unchanged in the text; layout is driven by paragraph indents |
+| Shift+Tab | Works: removes up to two leading spaces (implemented and tested) | Works; extended to the caret line and multi-line selections | Must find and account for hidden tabs; caret can sit before/after hidden characters |
 | Enter auto-indent | New lines contain spaces; copied prefix tabs must be normalised | New lines copy only the leading spaces/tabs; bullet markers are not continued | New lines keep tabs; hidden state must be re-applied |
 | Caret, Home/End, Backspace, selection | No hidden characters, but every insert/paste path must consistently normalise | Normal, predictable | Hidden characters can be skipped or deleted invisibly; Home/End/selection can land oddly |
-| Undo/redo | Safe only if normalisation happens on input; normalising in a formatting pass creates edits that are not in the undo history | Unaffected | Character-format changes are outside plain-text undo; re-applying them can desync undo/redo |
-| Saved content / other views | Tabs are lost; external tools and other views see spaces | Unchanged | Unchanged |
+| Undo/redo | Safe: spaces are inserted on input, so undo restores what was typed | Unaffected | Character-format changes are outside plain-text undo; re-applying them can desync undo/redo |
+| Saved content / other views | New indentation is spaces; existing tabs stay | Unchanged | Unchanged |
 | 50 ms auto-indent timer | No text-normalising timer; the input path inserts spaces immediately | **Removed**: caret paragraph formatted synchronously on edits; full pass on load/font/paste/drop/undo/redo | Formatting every pass; potential flicker/performance cost |
-| Two-stage layout / visible jump | High if normalisation stays in the timer pass; low only if every insertion path is changed | **Low** | Medium (formatting still changes layout, but the text is not rewritten) |
-| Implementation complexity | Low–medium: change Tab/paste/load, rewrite Shift+Tab for spaces, migrate existing content | **Low**: current implementation | **High**: hidden char formats, indentation arithmetic, caret navigation, reapply on load/font/DPI |
-| Testability | Text/caret tests plus geometry | Text/caret and geometry tests implemented (offscreen `RichEdit50W`) | Needs hidden-format and interactive caret tests; hard to validate offscreen |
-| Status | Tried and rejected: broke Shift+Tab and produced the tab jump | **Implemented** | Future option, not attempted |
+| Two-stage layout / visible jump | **Low**: spaces are inserted at input time; no later rewrite | **Low** | Medium (formatting still changes layout, but the text is not rewritten) |
+| Implementation complexity | **Implemented** as an opt-in: Tab inserts spaces; Shift+Tab already handles spaces; existing content untouched | **Low**: current default | **High**: hidden char formats, indentation arithmetic, caret navigation, reapply on load/font/DPI |
+| Testability | `SpaceIndent` text/caret tests implemented | Text/caret and geometry tests implemented (offscreen `RichEdit50W`) | Needs hidden-format and interactive caret tests; hard to validate offscreen |
+| Status | **Available as an opt-in preference (default off)** | **Default** | Future option, not attempted |
 
 ### Why a first-line tab cannot be hang-indented
 
@@ -146,21 +150,50 @@ the text always stays `M` to the right of the continuation. No `O` satisfies
 `S + O = S + O + M`. A space-indented prefix has no tab, so its normal spaces, the
 continuation indent and the text start all agree.
 
-### Chosen approach: 2 — keep tabs and skip the hanging indent for tab prefixes
+### Default: 2 — keep tabs and skip the hanging indent for tab prefixes
 
-Option 2 is chosen because it preserves the editor's native tab semantics and the stored
-comments exactly, removes the text-mutating formatting pass that caused the surprising
-behaviour, and is simple enough to test deterministically. The only cost is that wrapped
-lines of tab-indented paragraphs are not aligned under the text. Space-indented
-paragraphs and space-indented bullet lines still align; Enter no longer creates a
-space-based bullet continuation.
+Option 2 remains the default because it preserves the editor's native tab semantics and
+the stored comments exactly, removes the text-mutating formatting pass that caused the
+surprising behaviour, and is simple enough to test deterministically. The only cost is
+that wrapped lines of tab-indented paragraphs are not aligned under the text.
+Space-indented paragraphs and space-indented bullet lines still align; Enter no longer
+creates a space-based bullet continuation.
 
-Option 1 was implemented first and rejected: rewriting the buffer to spaces made
-`Shift+Tab` find no tabs, changed the saved comments, and combined with the timer to
-produce a visible two-stage layout (a literal tab first, spaces 50 ms later). Option 3
-is the only way to keep tabs *and* align every wrapped line, but it depends on hidden
-character formatting and can make caret navigation and deletion around the line start
-unpredictable; it remains a future option now that the behaviour is covered by tests.
+An earlier attempt to make option 1 unconditional was rejected: it rewrote the buffer
+inside the formatting pass, which made `Shift+Tab` find no tabs, changed the saved
+comments and produced a visible two-stage layout (a literal tab first, spaces 50 ms
+later). The opt-in implementation below does none of those things because it inserts
+spaces on input, never rewrites existing text and needs no timer.
+
+Option 3 is the only way to keep tabs *and* align every wrapped line, but it depends on
+hidden character formatting and can make caret navigation and deletion around the line
+start unpredictable; it remains a future option now that the behaviour is covered by
+tests.
+
+### Optional space indentation (option 1, opt-in)
+
+The user can choose to indent new lines with spaces instead of tabs under
+**Preferences → User Interface → General → Task Comments → “Insert spaces instead of
+tabs when indenting”**. The setting is app-wide (`Preferences\
+InsertSpacesForCommentsIndent`, default `FALSE`) and is applied immediately by
+`UpdateAppPreferences()`.
+
+When enabled:
+
+- `Tab` inserts two spaces per level (matching the editor's two-character tab stops)
+  immediately, including after every line of a multi-line selection.
+- A selection ending at a line start does not indent the following line.
+- Existing tabs, pasted text and loaded comments are left exactly as they are; nothing is
+  normalised later and no timer is involved.
+- `Shift+Tab` still removes one indent level: a leading tab or up to two leading spaces.
+- `Enter` copies the previous line's leading whitespace verbatim, so space-indented lines
+  continue with spaces and tab-indented lines continue with tabs.
+- New space-indented lines get the normal wrapped-line hanging indent and therefore align;
+  old tab-indented lines remain unaligned until they are re-indented with spaces.
+
+The `SpaceIndent` test covers single-line and multi-line Tab insertion, the
+selection-ending-at-line-start case, preservation of an existing tab, and the following
+`Shift+Tab` removal.
 
 ### Formatting timing (implemented)
 
@@ -230,6 +263,11 @@ states after every call (auto-repeat).
   supported only through the leading spaces/tabs before the marker.
 - `Enter` copies leading spaces and tabs verbatim (a tab stays a tab); it does not convert
   the indent to spaces.
+- The optional space indentation is app-wide and affects only newly inserted indentation.
+  Existing tabs, pasted text and loaded comments are not converted, so their wrapped lines
+  remain unaligned until the user re-indents them with the option enabled.
+- Each space-indent level is exactly two spaces, matching the control's two-character tab
+  stops. The preference does not change the tab-stop width.
 - The tests create the editor offscreen with a fixed size and a monospaced font. Geometry
   cases therefore do not exercise DPI changes, themes or a visible caret; those remain
   manual checks.
@@ -244,8 +282,8 @@ states after every call (auto-repeat).
 ## Verification
 
 - `Core/ToDoListLib/ToDoListLib.vcxproj` builds successfully in `Unicode Debug`.
-- `TDLTest` builds and passes: 310407/310407 tests, including the new
-  `CTDLSimpleTextContentCtrlTest` suite (110 assertions). The suite covers every row of the
+- `TDLTest` builds and passes: 310419/310419 tests, including the new
+  `CTDLSimpleTextContentCtrlTest` suite (122 assertions). The suite covers every row of the
   behaviour table below, tab preservation, and space-indented/space-bullet wrapped-line
   alignment. It also asserts that tab-indented paragraphs are not re-indented (the
   `Shift+Tab` regression) and that inserting a leading tab into a `-> item` paragraph
@@ -257,6 +295,10 @@ states after every call (auto-repeat).
 - `RepeatedIndentKeys` presses Tab four times and then Shift+Tab four times, checking the
   text and caret after every keydown. This covers the auto-repeat case where the
   intermediate indentation states must be applied immediately, before the key is released.
+- `SpaceIndent` enables the new preference and checks: two-space caret Tab, multi-line
+  insertion, a selection ending at a line start, preservation of an existing tab, and
+  `Shift+Tab` removing the inserted spaces. The preference control is
+  `IDC_INSERTSPACESFORCOMMENTSTABS` on the UI General page under Task Comments.
 - Reproduced outside the app with a `RichEdit50W` control using the same tab stops and
   start indent: for a `"\t-> "` prefix the character after the tab (`-`) moved to exactly
   `dxStartIndent + dxOffset` (the continuation indent), not to the normal tab stop after
@@ -343,10 +385,12 @@ Current contract (decide changes explicitly here, then encode them):
 | Shift+Tab removes two spaces | `"  abc^"` | Shift+Tab | `"abc^"` |
 | Shift+Tab without a leading tab | `"[a\nb]"` | Shift+Tab | `"[a\nb]"` |
 
-Notes on the Tab cases: the first inserted tab is intentionally **outside** the selection;
-a selection ending at a line start must not indent the following line (the implementation
-trims the trailing `\r\t`). The `Shift+Tab` rows cover both a caret and a selection; the
-outdent removes one tab or up to two leading spaces from each touched logical line.
+Notes on the Tab cases: the first inserted indent is intentionally **outside** the
+selection; a selection ending at a line start must not indent the following line (the
+implementation trims the trailing `\r` + indent). The `Shift+Tab` rows cover both a caret
+and a selection; the outdent removes one tab or up to two leading spaces from each touched
+logical line. When the “Insert spaces instead of tabs” preference is on, every `\t` in the
+Tab rows is replaced by two spaces; `SpaceIndent` encodes those cases.
 `Shift+Enter` is asserted at the handler level: `ProcessEditingKey()` must return false so
 RichEdit performs its normal line break. The other rows are encoded in `EDITKEYCASES` in
 `TDLSimpleTextContentCtrlTest.cpp`.
@@ -376,6 +420,8 @@ committed pixel constants.
 machine-readable fixture for the text/caret rows, and
 `CTDLSimpleTextContentCtrlTest::TestWrappedLineAlignment()` encodes the geometry rules.
 Update this table and those tests together.
+
+
 
 
 

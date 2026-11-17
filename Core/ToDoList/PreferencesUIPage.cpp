@@ -70,6 +70,7 @@ void CPreferencesUIPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_TASKVIEWVISIBILITY, m_lbTaskViews);
 	DDX_Check(pDX, IDC_SORTDONETASKSATBOTTOM, m_bSortDoneTasksAtBottom);
 	DDX_Check(pDX, IDC_INCLUDEWEBLINKINCOMMENTSPASTE, m_bIncludeWebLinksInCommentsPaste);
+	DDX_Check(pDX, IDC_INSERTSPACESFORCOMMENTSTABS, m_bInsertSpacesForCommentsIndent);
 	DDX_Check(pDX, IDC_USELEGACYATTRIBUTEEDITOR, m_bUseLegacyAttributeEditor);
 
 	m_cbThemes.DDX(pDX, m_sUIThemeFile);
@@ -160,6 +161,7 @@ void CPreferencesUIPage::LoadPreferences(const IPreferences* pPrefs, LPCTSTR szK
 	m_bStackEditFieldsAndComments = pPrefs->GetProfileInt(szKey, _T("StackEditFieldsAndComments"), TRUE);
 	m_bStackCommentsAboveEditFields = pPrefs->GetProfileInt(szKey, _T("StackCommentsAboveEditFields"), TRUE);
 	m_bIncludeWebLinksInCommentsPaste = pPrefs->GetProfileInt(szKey, _T("IncludeWebLinksInCommentsPaste"), TRUE);
+	m_bInsertSpacesForCommentsIndent = pPrefs->GetProfileInt(szKey, _T("InsertSpacesForCommentsIndent"), TRUE);
 	m_bUseLegacyAttributeEditor = pPrefs->GetProfileInt(szKey, _T("AttributeEditorMode"), 0) != 0;
 
 	// First time handling of new 'Attribute Editor'
@@ -221,6 +223,7 @@ void CPreferencesUIPage::SavePreferences(IPreferences* pPrefs, LPCTSTR szKey) co
 	pPrefs->WriteProfileInt(szKey, _T("StackEditFieldsAndComments"), m_bStackEditFieldsAndComments);
 	pPrefs->WriteProfileInt(szKey, _T("StackCommentsAboveEditFields"), m_bStackCommentsAboveEditFields);
 	pPrefs->WriteProfileInt(szKey, _T("IncludeWebLinksInCommentsPaste"), m_bIncludeWebLinksInCommentsPaste);
+	pPrefs->WriteProfileInt(szKey, _T("InsertSpacesForCommentsIndent"), m_bInsertSpacesForCommentsIndent);
 	pPrefs->WriteProfileInt(szKey, _T("AttributeEditor"), TRUE);
 
 	pPrefs->WriteProfileString(szKey, _T("UIThemeFile"), m_sUIThemeFile);
@@ -270,3 +273,4 @@ BOOL CPreferencesUIPage::SetAutoHideTabbar(BOOL bAutoHide)
 	m_bAutoHideTabbar = bAutoHide;
 	return TRUE;
 }
+

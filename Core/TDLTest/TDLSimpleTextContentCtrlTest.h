@@ -26,6 +26,7 @@ protected:
 	BOOL CreateEditor(CTDLSimpleTextContentCtrl& ctrl);
 
 	void TestDefaults();
+	void TestSpaceIndent();
 	void TestSynchronousFormatting();
 	void TestFormattingScope();
 	void TestRepeatedIndentKeys();
@@ -41,4 +42,5 @@ protected:
 };
 
 #endif // !defined(AFX_TDLSIMPLETEXTCONTENTCTRLTEST_H__6E5B4B0F_7A3C_4E6E_9C4B_8F5D1E2A3B4C__INCLUDED_)
+
 

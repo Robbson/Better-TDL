@@ -51,6 +51,7 @@ const DWORD SIMPLETEXT_COMMENTS = (DWORD)(LPCTSTR)_T("SIMPLETEXT_COMMENTS");
 
 BOOL CTDLSimpleTextContentCtrl::s_bInlineSpellChecking = FALSE;
 BOOL CTDLSimpleTextContentCtrl::s_bPasteSourceUrls = TRUE;
+BOOL CTDLSimpleTextContentCtrl::s_bTabIndentWithSpaces = TRUE;
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -357,32 +358,33 @@ bool CTDLSimpleTextContentCtrl::ProcessEditingKey(UINT nVKey, BOOL bCtrl, BOOL b
 			CHARRANGE cr;
 			GetSel(cr);
 
-			const LPCTSTR TAB = _T("\t");
 			const LPCTSTR CR = _T("\r");
-			const LPCTSTR CRTAB = _T("\r\t");
+			const CString sIndent = (s_bTabIndentWithSpaces ? _T("  ") : _T("\t"));
+			const CString sCRIndent = (CString(CR) + sIndent);
+			const int nIndentLen = sIndent.GetLength();
 
 			if (bShift) // remove leading indentation
 			{
 				RemoveIndent();
 			}
-			else // insert leading tabs
+			else // insert leading indentation
 			{
-				CString sSel = (TAB + GetTextRange(cr));
+				CString sSel = (sIndent + GetTextRange(cr));
 
-				// Don't include first tab in resulting selection
-				cr.cpMin++;
-				cr.cpMax++;
+				// Don't include the first indent in the resulting selection
+				cr.cpMin += nIndentLen;
+				cr.cpMax += nIndentLen;
 
-				// Insert a tab after every subsequent new line
-				cr.cpMax += sSel.Replace(CR, CRTAB);
+				// Insert an indent after every subsequent new line
+				cr.cpMax += (nIndentLen * sSel.Replace(CR, sCRIndent));
 
-				// Trim trailing newline/tab pair else next line gets indented
+				// Trim trailing newline/indent pair else next line gets indented
 				// but without trimming the result because that would remove
-				// any remaining tabs
-				if (Misc::RemoveSuffix(CRTAB, sSel, FALSE, FALSE))
+				// any remaining indentation
+				if (Misc::RemoveSuffix(sCRIndent, sSel, FALSE, FALSE))
 				{
 					sSel += CR; // restore carriage return
-					cr.cpMax--;
+					cr.cpMax -= nIndentLen;
 				}
 
 				ReplaceSel(sSel, TRUE);

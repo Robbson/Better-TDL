@@ -55,6 +55,7 @@ public:
 	BOOL GetStackEditFieldsAndComments() const { return m_bStackEditFieldsAndComments; }
 	BOOL GetStackCommentsAboveEditFields() const { return (m_bStackEditFieldsAndComments && m_bStackCommentsAboveEditFields); }
 	BOOL GetIncludeWebLinksInCommentsPaste() const { return m_bIncludeWebLinksInCommentsPaste; }
+	BOOL GetInsertSpacesForCommentsIndent() const { return m_bInsertSpacesForCommentsIndent; }
 //	BOOL Get() const { return ; }
 
 protected:
@@ -84,6 +85,7 @@ protected:
 	BOOL	m_bStackEditFieldsAndComments;
 	BOOL	m_bStackCommentsAboveEditFields;
 	BOOL	m_bIncludeWebLinksInCommentsPaste;
+	BOOL	m_bInsertSpacesForCommentsIndent;
 	BOOL	m_bSortDoneTasksAtBottom;
 	BOOL	m_bUseLegacyAttributeEditor;
 
@@ -125,3 +127,4 @@ protected:
 // Microsoft Visual C++ will insert additional declarations immediately before the previous line.
 
 #endif // !defined(AFX_PREFERENCESUIPAGE_H__5AE787F2_44B0_4A48_8D75_24C6C16B45DF__INCLUDED_)
+

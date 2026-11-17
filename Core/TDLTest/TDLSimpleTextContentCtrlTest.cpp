@@ -111,6 +111,7 @@ TESTRESULT CTDLSimpleTextContentCtrlTest::Run()
 	if (CreateHost())
 	{
 		TestDefaults();
+		TestSpaceIndent();
 		TestSynchronousFormatting();
 		TestFormattingScope();
 		TestRepeatedIndentKeys();
@@ -154,6 +155,9 @@ void CTDLSimpleTextContentCtrlTest::TestDefaults()
 	// Inline spell checking is off until a preference explicitly enables it
 	ExpectFalse(CTDLSimpleTextContentCtrl::IsInlineSpellCheckingEnabled());
 
+	// Spaces are inserted by default
+	ExpectTrue(CTDLSimpleTextContentCtrl::IsTabIndentWithSpaces());
+
 	CTDLSimpleTextContentCtrl ctrl;
 
 	if (!ExpectTrue(CreateEditor(ctrl)))
@@ -161,6 +165,43 @@ void CTDLSimpleTextContentCtrlTest::TestDefaults()
 
 	// Word wrap is on by default
 	ExpectTrue(ctrl.SendMessage(WM_GETWORDWRAP) != 0);
+}
+
+void CTDLSimpleTextContentCtrlTest::TestSpaceIndent()
+{
+	CTDCScopedTest test(*this, _T("CTDLSimpleTextContentCtrl::SpaceIndent"));
+
+	CTDLSimpleTextContentCtrl ctrl;
+
+	if (!ExpectTrue(CreateEditor(ctrl)))
+		return;
+
+	CTDLSimpleTextContentCtrl::SetTabIndentWithSpaces(TRUE);
+
+	// Caret Tab inserts two spaces
+	SetEditorTextAndSelection(ctrl, _T("abc"), 0, 0);
+	ExpectTrue(ctrl.ProcessEditingKey(VK_TAB, FALSE, FALSE, FALSE));
+	ExpectEQ(GetMarkedText(ctrl), _T("  ^abc"));
+
+	// Multi-line selection
+	SetEditorTextAndSelection(ctrl, _T("a\nb"), 0, 3);
+	ExpectTrue(ctrl.ProcessEditingKey(VK_TAB, FALSE, FALSE, FALSE));
+	ExpectEQ(GetMarkedText(ctrl), _T("  [a\n  b]"));
+
+	// Selection ending at a line start
+	SetEditorTextAndSelection(ctrl, _T("a\nb"), 0, 2);
+	ExpectTrue(ctrl.ProcessEditingKey(VK_TAB, FALSE, FALSE, FALSE));
+	ExpectEQ(GetMarkedText(ctrl), _T("  [a\n]b"));
+
+	// Existing tabs are untouched; Shift+Tab removes the inserted spaces
+	SetEditorTextAndSelection(ctrl, _T("\tabc"), 0, 0);
+	ExpectTrue(ctrl.ProcessEditingKey(VK_TAB, FALSE, FALSE, FALSE));
+	ExpectEQ(GetMarkedText(ctrl), _T("  ^\tabc"));
+
+	ExpectTrue(ctrl.ProcessEditingKey(VK_TAB, FALSE, FALSE, TRUE));
+	ExpectEQ(GetMarkedText(ctrl), _T("^\tabc"));
+
+	CTDLSimpleTextContentCtrl::SetTabIndentWithSpaces(FALSE);
 }
 
 void CTDLSimpleTextContentCtrlTest::TestSynchronousFormatting()

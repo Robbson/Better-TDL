@@ -111,6 +111,9 @@ TESTRESULT CTDLSimpleTextContentCtrlTest::Run()
 	if (CreateHost())
 	{
 		TestDefaults();
+		TestSynchronousFormatting();
+		TestFormattingScope();
+		TestRepeatedIndentKeys();
 		TestEditingKeys();
 		TestImmediateIndentUpdate();
 		TestWrappedLineAlignment();
@@ -158,6 +161,169 @@ void CTDLSimpleTextContentCtrlTest::TestDefaults()
 
 	// Word wrap is on by default
 	ExpectTrue(ctrl.SendMessage(WM_GETWORDWRAP) != 0);
+}
+
+void CTDLSimpleTextContentCtrlTest::TestSynchronousFormatting()
+{
+	CTDCScopedTest test(*this, _T("CTDLSimpleTextContentCtrl::SynchronousFormatting"));
+
+	CTDLSimpleTextContentCtrl ctrl;
+
+	if (!ExpectTrue(CreateEditor(ctrl)))
+		return;
+
+	PARAFORMAT2 pf;
+	ZeroMemory(&pf, sizeof(pf));
+	pf.cbSize = sizeof(pf);
+
+	// Loading text applies the hanging indent before returning
+	ctrl.SetTextContent(_T("- item"), TRUE);
+
+	ctrl.SetSel(0, 0);
+	ctrl.GetParaFormat(pf);
+	ExpectTrue(pf.dxOffset > 0);
+
+	// Editing the prefix updates the caret paragraph immediately
+	ctrl.SetSel(0, 0);
+	ctrl.ReplaceSel(_T("  "), TRUE);
+	ctrl.OnChangeText();
+
+	ctrl.SetSel(0, 0);
+	ZeroMemory(&pf, sizeof(pf));
+	pf.cbSize = sizeof(pf);
+	ctrl.GetParaFormat(pf);
+
+	CPoint ptStart, ptText;
+	ctrl.PointFromChar(0, ptStart);
+	ctrl.PointFromChar(4, ptText);
+
+	CClientDC dc(&ctrl);
+	const int nDpiX = dc.GetDeviceCaps(LOGPIXELSX);
+	const int nExpected = ((ptText.x - ptStart.x) * 1440 / nDpiX);
+
+	ExpectEQ((int)pf.dxOffset, nExpected);
+
+	// Multi-line insertion re-indents all inserted paragraphs
+	ctrl.SetTextContent(_T(""), TRUE);
+	ExpectTrue(ctrl.InsertTextContent(_T("- one\r- two"), TRUE));
+
+	ctrl.SetSel(0, 0);
+	ZeroMemory(&pf, sizeof(pf));
+	pf.cbSize = sizeof(pf);
+	ctrl.GetParaFormat(pf);
+	ExpectTrue(pf.dxOffset > 0);
+
+	ctrl.SetSel(6, 6);
+	ZeroMemory(&pf, sizeof(pf));
+	pf.cbSize = sizeof(pf);
+	ctrl.GetParaFormat(pf);
+	ExpectTrue(pf.dxOffset > 0);
+
+	// Undo/redo run the full pass on the restored text
+	ctrl.SetTextContent(_T("abc"), TRUE);
+	ctrl.SetSel(3, 3);
+	ctrl.ReplaceSel(_T("\r- item"), TRUE);
+
+	ExpectTrue(ctrl.Undo());
+
+	CString sUndo = ctrl.GetTextRange(CHARRANGE{ 0, ctrl.GetTextLength() });
+	ExpectEQ(sUndo, _T("abc"));
+
+	ExpectTrue(ctrl.Redo());
+
+	CString sRedo = ctrl.GetTextRange(CHARRANGE{ 0, ctrl.GetTextLength() });
+	ExpectEQ(sRedo, _T("abc\r- item"));
+
+	ctrl.SetSel(4, 4);
+	ZeroMemory(&pf, sizeof(pf));
+	pf.cbSize = sizeof(pf);
+	ctrl.GetParaFormat(pf);
+	ExpectTrue(pf.dxOffset > 0);
+}
+
+void CTDLSimpleTextContentCtrlTest::TestFormattingScope()
+{
+	CTDCScopedTest test(*this, _T("CTDLSimpleTextContentCtrl::FormattingScope"));
+
+	CTDLSimpleTextContentCtrl ctrl;
+
+	if (!ExpectTrue(CreateEditor(ctrl)))
+		return;
+
+	CString sDoc;
+
+	for (int nLine = 0; nLine < 10; nLine++)
+		sDoc += _T("- item\r");
+
+	// Ordinary typing formats only the caret paragraph
+	ctrl.SetTextContent(sDoc, TRUE);
+	ctrl.SetSel(ctrl.GetTextLength(), ctrl.GetTextLength());
+	ctrl.ReplaceSel(_T("x"), TRUE);
+
+	ctrl.m_nNumParagraphsFormatted = 0;
+	ctrl.OnChangeText();
+	ExpectEQ(ctrl.m_nNumParagraphsFormatted, 1);
+
+	// Tab with a caret formats only its paragraph, regardless of document size
+	ctrl.SetTextContent(sDoc, TRUE);
+	ctrl.SetSel(0, 0);
+
+	ctrl.m_nNumParagraphsFormatted = 0;
+	ExpectTrue(ctrl.ProcessEditingKey(VK_TAB, FALSE, FALSE, FALSE));
+	ExpectEQ(ctrl.m_nNumParagraphsFormatted, 1);
+
+	// Return at a line start formats only the two affected paragraphs
+	ctrl.SetTextContent(sDoc, TRUE);
+	ctrl.SetSel(0, 0);
+
+	ctrl.m_nNumParagraphsFormatted = 0;
+	ExpectTrue(ctrl.ProcessEditingKey(VK_RETURN, FALSE, FALSE, FALSE));
+	ExpectTrue(ctrl.m_nNumParagraphsFormatted <= 2);
+
+	// Tab on a selection formats only the touched paragraphs
+	ctrl.SetTextContent(sDoc, TRUE);
+	ctrl.SetSel(0, 10);
+
+	ctrl.m_nNumParagraphsFormatted = 0;
+	ExpectTrue(ctrl.ProcessEditingKey(VK_TAB, FALSE, FALSE, FALSE));
+	ExpectTrue(ctrl.m_nNumParagraphsFormatted <= 3);
+}
+
+void CTDLSimpleTextContentCtrlTest::TestRepeatedIndentKeys()
+{
+	CTDCScopedTest test(*this, _T("CTDLSimpleTextContentCtrl::RepeatedIndentKeys"));
+
+	CTDLSimpleTextContentCtrl ctrl;
+
+	if (!ExpectTrue(CreateEditor(ctrl)))
+		return;
+
+	ctrl.SetTextContent(_T("abc"), TRUE);
+	ctrl.SetSel(0, 0);
+
+	// Each Tab keydown is applied immediately, including auto-repeat
+	for (int nTab = 1; nTab <= 4; nTab++)
+	{
+		ExpectTrue(ctrl.ProcessEditingKey(VK_TAB, FALSE, FALSE, FALSE));
+
+		ExpectEQ(ctrl.GetTextRange(CHARRANGE{ 0, nTab }), CString(_T('\t'), nTab));
+
+		CHARRANGE cr;
+		ctrl.GetSel(cr);
+		ExpectEQ((int)cr.cpMin, nTab);
+	}
+
+	// And each Shift+Tab removes one level immediately
+	for (int nTab = 3; nTab >= 0; nTab--)
+	{
+		ExpectTrue(ctrl.ProcessEditingKey(VK_TAB, FALSE, FALSE, TRUE));
+
+		ExpectEQ(ctrl.GetTextRange(CHARRANGE{ 0, nTab }), CString(_T('\t'), nTab));
+
+		CHARRANGE cr;
+		ctrl.GetSel(cr);
+		ExpectEQ((int)cr.cpMin, nTab);
+	}
 }
 
 void CTDLSimpleTextContentCtrlTest::TestEditingKeys()
@@ -329,6 +495,7 @@ CString CTDLSimpleTextContentCtrlTest::GetMarkedText(const CTDLSimpleTextContent
 
 	return sText;
 }
+
 
 
 

@@ -43,8 +43,6 @@ static char THIS_FILE[] = __FILE__;
 
 const UINT IDC_DROPLIST = 100;
 
-const UINT TIMER_AUTOINDENT = 2;
-const UINT AUTOINDENT_DELAY = 50;
 const int MAX_AUTOINDENT_LENGTH = (1024 * 1024);
 
 const DWORD SIMPLETEXT_COMMENTS = (DWORD)(LPCTSTR)_T("SIMPLETEXT_COMMENTS");
@@ -272,7 +270,8 @@ CTDLSimpleTextContentCtrl::CTDLSimpleTextContentCtrl()
 	CUrlRichEditCtrl(CTRLCLICKTOFOLLOW, IDS_CTRLCLICKTOFOLLOWLINK),
 	m_bWordWrap(TRUE),
 	m_bShowAllChars(FALSE),
-	m_bClearUndoAfterAutoIndent(FALSE)
+	m_bClearUndoAfterAutoIndent(FALSE),
+	m_nNumParagraphsFormatted(0)
 {
 	// add custom protocol to comments field for linking to task IDs
 	AddProtocol(TDL_PROTOCOL, TRUE);
@@ -302,7 +301,8 @@ BEGIN_MESSAGE_MAP(CTDLSimpleTextContentCtrl, CUrlRichEditCtrl)
 	ON_WM_PAINT()
 	ON_MESSAGE(WM_SETFONT, OnSetFont)
 	ON_MESSAGE(WM_SETTEXT, OnSetText)
-	ON_WM_TIMER()
+	ON_MESSAGE(WM_DROPFILES, OnDropFiles)
+	ON_MESSAGE(WM_PASTE, OnPaste)
 	ON_NOTIFY_REFLECT_EX(TTN_NEEDTEXT, OnGetTooltip)
 END_MESSAGE_MAP()
 
@@ -335,7 +335,11 @@ bool CTDLSimpleTextContentCtrl::InsertTextContent(LPCWSTR szContent, bool bAtEnd
 {
 	AFX_MANAGE_STATE(AfxGetStaticModuleState());
 
-	return (InsertSimpleText(szContent, (bAtEnd ? TRUE : FALSE)) != FALSE);
+	if (!InsertSimpleText(szContent, (bAtEnd ? TRUE : FALSE)))
+		return false;
+
+	ApplyAutoIndent();
+	return true;
 }
 
 int CTDLSimpleTextContentCtrl::GetContent(unsigned char* /*pContent*/) const 
@@ -426,7 +430,11 @@ bool CTDLSimpleTextContentCtrl::ProcessEditingKey(UINT nVKey, BOOL bCtrl, BOOL b
 
 			// Apply the new indentation immediately so the paragraph does not
 			// render once with the previous hanging indent and then jump
-			UpdateAutoIndentNow();
+			CHARRANGE crIndent;
+			GetSel(crIndent);
+
+			ApplyAutoIndentRange(min(crIndent.cpMin, crIndent.cpMax),
+								 max(crIndent.cpMin, crIndent.cpMax), FALSE);
 
 			return true;
 		}
@@ -455,7 +463,8 @@ bool CTDLSimpleTextContentCtrl::ProcessEditingKey(UINT nVKey, BOOL bCtrl, BOOL b
 
 			SetSel(nCaret, nCaret);
 
-			UpdateAutoIndentNow();
+			ApplyAutoIndentRange(min(crSel.cpMin, nCaret),
+								 max(crSel.cpMin, nCaret), FALSE);
 
 			return true;
 		}
@@ -463,12 +472,6 @@ bool CTDLSimpleTextContentCtrl::ProcessEditingKey(UINT nVKey, BOOL bCtrl, BOOL b
 	}
 
 	return false;
-}
-
-void CTDLSimpleTextContentCtrl::UpdateAutoIndentNow()
-{
-	KillTimer(TIMER_AUTOINDENT);
-	ApplyAutoIndent();
 }
 
 bool CTDLSimpleTextContentCtrl::RemoveIndent()
@@ -712,12 +715,20 @@ ISpellCheck* CTDLSimpleTextContentCtrl::GetSpellCheckInterface()
 
 bool CTDLSimpleTextContentCtrl::Undo() 
 { 
-	return (CUrlRichEditCtrl::Undo() != 0); 
+	if (!CUrlRichEditCtrl::Undo())
+		return false;
+
+	ApplyAutoIndent();
+	return true;
 }
 
 bool CTDLSimpleTextContentCtrl::Redo() 
 { 
-	return (CUrlRichEditCtrl::Redo() != 0); 
+	if (!CUrlRichEditCtrl::Redo())
+		return false;
+
+	ApplyAutoIndent();
+	return true;
 }
 
 void CTDLSimpleTextContentCtrl::SetUITheme(const UITHEME* /*pTheme*/) 
@@ -748,7 +759,11 @@ void CTDLSimpleTextContentCtrl::LoadPreferences(const IPreferences* pPrefs, LPCW
 
 bool CTDLSimpleTextContentCtrl::FindReplaceAll(LPCTSTR szFind, LPCTSTR szReplace, bool bCaseSensitive, bool bWholeWord)
 {
-	return (CUrlRichEditCtrl::ReplaceAll(szFind, szReplace, bCaseSensitive, bWholeWord) > 0);
+	if (CUrlRichEditCtrl::ReplaceAll(szFind, szReplace, bCaseSensitive, bWholeWord) <= 0)
+		return false;
+
+	ApplyAutoIndent();
+	return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -788,7 +803,7 @@ BOOL CTDLSimpleTextContentCtrl::OnChangeText()
 
 	CUrlRichEditCtrl::OnChangeText();
 
-	ScheduleAutoIndent();
+	ApplyAutoIndentToCaretParagraph();
 
 	// If we don't have the focus and inline spell-checking
 	// is enabled then assume that this is probably not a 
@@ -809,24 +824,6 @@ BOOL CTDLSimpleTextContentCtrl::OnKillFocus()
 	return FALSE; // continue routing
 }
 
-void CTDLSimpleTextContentCtrl::ScheduleAutoIndent()
-{
-	if (GetSafeHwnd())
-		SetTimer(TIMER_AUTOINDENT, AUTOINDENT_DELAY, NULL);
-}
-
-void CTDLSimpleTextContentCtrl::OnTimer(UINT nIDEvent) 
-{
-	if (nIDEvent == TIMER_AUTOINDENT)
-	{
-		KillTimer(TIMER_AUTOINDENT);
-		ApplyAutoIndent();
-		return;
-	}
-
-	CUrlRichEditCtrl::OnTimer(nIDEvent);
-}
-
 LRESULT CTDLSimpleTextContentCtrl::OnSetFont(WPARAM wp, LPARAM lp) 
 {
 	LRESULT lr = CUrlRichEditCtrl::OnSetFont(wp, lp);
@@ -836,7 +833,7 @@ LRESULT CTDLSimpleTextContentCtrl::OnSetFont(WPARAM wp, LPARAM lp)
 	if (GetFocus() != this)
 		m_bClearUndoAfterAutoIndent = TRUE;
 
-	ScheduleAutoIndent();
+	ApplyAutoIndent();
 
 	return lr;
 }
@@ -849,14 +846,56 @@ LRESULT CTDLSimpleTextContentCtrl::OnSetText(WPARAM wp, LPARAM lp)
 	if (lr)
 	{
 		m_bClearUndoAfterAutoIndent = TRUE;
-		ScheduleAutoIndent();
+		ApplyAutoIndent();
 	}
 
 	return lr;
 }
 
+LRESULT CTDLSimpleTextContentCtrl::OnDropFiles(WPARAM wp, LPARAM lp)
+{
+	LRESULT lr = CUrlRichEditCtrl::OnDropFiles(wp, lp);
+
+	ApplyAutoIndent();
+	return lr;
+}
+
+LRESULT CTDLSimpleTextContentCtrl::OnPaste(WPARAM /*wp*/, LPARAM /*lp*/)
+{
+	LRESULT lr = Default(); // let the rich edit paste
+
+	ApplyAutoIndent();
+	return lr;
+}
+
+HRESULT CTDLSimpleTextContentCtrl::QueryAcceptData(LPDATAOBJECT lpdataobj, CLIPFORMAT FAR* lpcfFormat, 
+													DWORD reco, BOOL fReally, HGLOBAL hMetaPict)
+{
+	HRESULT hr = CUrlRichEditCtrl::QueryAcceptData(lpdataobj, lpcfFormat, reco, fReally, hMetaPict);
+
+	if (fReally && SUCCEEDED(hr))
+		ApplyAutoIndent();
+
+	return hr;
+}
+
 void CTDLSimpleTextContentCtrl::ApplyAutoIndent()
 {
+	ApplyAutoIndentRange(0, GetTextLength(), TRUE);
+}
+
+void CTDLSimpleTextContentCtrl::ApplyAutoIndentToCaretParagraph()
+{
+	CHARRANGE crSel;
+	GetSel(crSel);
+
+	ApplyAutoIndentRange(crSel.cpMin, crSel.cpMax, FALSE);
+}
+
+void CTDLSimpleTextContentCtrl::ApplyAutoIndentRange(int nFrom, int nTo, BOOL bFullPass)
+{
+	m_nNumParagraphsFormatted = 0;
+
 	const int nTextLen = GetTextLength();
 
 	if ((nTextLen <= 0) || (nTextLen > MAX_AUTOINDENT_LENGTH))
@@ -875,7 +914,7 @@ void CTDLSimpleTextContentCtrl::ApplyAutoIndent()
 
 	const int nFirstLine = GetFirstVisibleLine();
 	const BOOL bVisible = IsWindowVisible();
-	const BOOL bCaret = (GetFocus() == this);
+	const BOOL bCaret = (bFullPass && (GetFocus() == this));
 
 	if (bCaret)
 		HideCaret();
@@ -883,44 +922,56 @@ void CTDLSimpleTextContentCtrl::ApplyAutoIndent()
 	CRePauseUndo rep(*this);
 	DWORD dwEventMask = SetEventMask(0);
 
-	if (bVisible)
+	if (bFullPass && bVisible)
 		SetRedraw(FALSE);
 
 	CClientDC dc(this);
 	const int nDpiX = dc.GetDeviceCaps(LOGPIXELSX);
 
 	BOOL bChanged = FALSE;
-	int nParaStart = 0;
+	const int nStart = (bFullPass ? 0 : max(0, min(nFrom, nTextLen)));
+	const int nEnd = (bFullPass ? nTextLen : max(nStart, min(nTo, nTextLen)));
+	int nParaStart = FindParagraphStart(*this, nStart);
 
-	while (nParaStart <= nTextLen)
+	for (;;)
 	{
 		int nParaEnd = FindParagraphEnd(*this, nParaStart, nTextLen);
 
 		if (ApplyAutoIndentToParagraph(nParaStart, nParaEnd, nDpiX))
 			bChanged = TRUE;
 
-		if (nParaEnd >= nTextLen)
+		if ((nParaEnd >= nTextLen) || (!bFullPass && (nParaEnd >= nEnd)))
 			break;
 
 		nParaStart = (nParaEnd + 1);
 	}
 
-	SetSel(crSel);
-	SetFirstVisibleLine(nFirstLine);
+	CHARRANGE crNow;
+	GetSel(crNow);
+
+	if ((crNow.cpMin != crSel.cpMin) || (crNow.cpMax != crSel.cpMax))
+		SetSel(crSel);
+
+	if (GetFirstVisibleLine() != nFirstLine)
+		SetFirstVisibleLine(nFirstLine);
+
 	SetEventMask(dwEventMask);
 
-	if (bVisible)
+	if (bFullPass)
 	{
-		SetRedraw(TRUE);
+		if (bVisible)
+		{
+			SetRedraw(TRUE);
 
-		// The per-paragraph selection moves can leave non-blinking caret
-		// artefacts behind even when no paragraph format changed
-		if (bChanged || bCaret)
-			Invalidate(FALSE);
+			// The per-paragraph selection moves can leave non-blinking caret
+			// artefacts behind even when no paragraph format changed
+			if (bChanged || bCaret)
+				Invalidate(FALSE);
+		}
+
+		if (bCaret)
+			ShowCaret();
 	}
-
-	if (bCaret)
-		ShowCaret();
 
 	// Auto-indent is formatting-only, not a user edit
 	if (m_bClearUndoAfterAutoIndent)
@@ -932,6 +983,8 @@ void CTDLSimpleTextContentCtrl::ApplyAutoIndent()
 
 bool CTDLSimpleTextContentCtrl::ApplyAutoIndentToParagraph(int nParaStart, int nParaEnd, int nDpiX)
 {
+	m_nNumParagraphsFormatted++;
+
 	CHARRANGE crPara = { nParaStart, nParaEnd };
 	CString sPara = GetTextRange(crPara);
 
@@ -940,7 +993,16 @@ bool CTDLSimpleTextContentCtrl::ApplyAutoIndentToParagraph(int nParaStart, int n
 
 	int nOffset = 0;
 
-	SetSel(nParaStart, nParaStart);
+	// Avoid moving the selection when it is already inside this paragraph;
+	// moving it to a long paragraph's start would scroll the view and force
+	// unrelated text to repaint on every keystroke.
+	CHARRANGE crSel;
+	GetSel(crSel);
+
+	const BOOL bSelInPara = ((crSel.cpMin >= nParaStart) && (crSel.cpMin <= nParaEnd));
+
+	if (!bSelInPara)
+		SetSel(nParaStart, nParaStart);
 
 	PARAFORMAT2 pf;
 	ZeroMemory(&pf, sizeof(pf));
@@ -1286,6 +1348,7 @@ BOOL CTDLSimpleTextContentCtrl::Paste()
 	
 	CStringArray aFiles;
 	int nNumFiles = CClipboard().GetDropFilePaths(aFiles);
+	BOOL bPasted = FALSE;
 
 	switch (nNumFiles)
 	{
@@ -1294,11 +1357,18 @@ BOOL CTDLSimpleTextContentCtrl::Paste()
 		return FALSE;
 
 	case 0:
-		return PasteSimpleText(s_bPasteSourceUrls);
+		bPasted = PasteSimpleText(s_bPasteSourceUrls);
+		break;
+
+	default:
+		bPasted = CRichEditHelper::PasteFiles(*this, aFiles, REP_ASFILEURL, FALSE);
+		break;
 	}
 
-	// default > 0
-	return CRichEditHelper::PasteFiles(*this, aFiles, REP_ASFILEURL, FALSE);
+	if (bPasted)
+		ApplyAutoIndent();
+
+	return bPasted;
 }
 
 BOOL CTDLSimpleTextContentCtrl::CanPaste()
@@ -1543,3 +1613,4 @@ UINT CTDLSimpleTextContentCtrl::OnGetDlgCode()
 {
 	return (DLGC_WANTALLKEYS & ~DLGC_HASSETSEL);
 }
+

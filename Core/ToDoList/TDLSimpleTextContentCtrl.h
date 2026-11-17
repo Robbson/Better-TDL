@@ -65,6 +65,7 @@ protected:
 	BOOL m_bWordWrap;
 	BOOL m_bShowAllChars;
 	BOOL m_bClearUndoAfterAutoIndent;
+	int m_nNumParagraphsFormatted;
 
 	CRichEditSpellCheck m_reSpellCheck;
 	CMenuIconMgr m_mgrMenuIcons;
@@ -91,13 +92,15 @@ protected:
 	afx_msg LRESULT OnSetShowAllChars(WPARAM wp, LPARAM lp);
 	afx_msg LRESULT OnGetShowAllChars(WPARAM wp, LPARAM lp);
 	afx_msg void OnPaint();
-	afx_msg void OnTimer(UINT nIDEvent);
 	afx_msg LRESULT OnSetFont(WPARAM wp, LPARAM lp);
+	afx_msg LRESULT OnDropFiles(WPARAM wp, LPARAM lp);
+	afx_msg LRESULT OnPaste(WPARAM wp, LPARAM lp);
 	afx_msg LRESULT OnSetText(WPARAM wp, LPARAM lp);
 
 	DECLARE_MESSAGE_MAP()
 
 	virtual LRESULT SendNotifyCustomUrl(LPCTSTR szUrl) const;
+	virtual HRESULT QueryAcceptData(LPDATAOBJECT lpdataobj, CLIPFORMAT FAR* lpcfFormat, DWORD reco, BOOL fReally, HGLOBAL hMetaPict);
 	virtual LRESULT SendNotifyFailedUrl(LPCTSTR szUrl) const;
 	virtual CLIPFORMAT GetAcceptableClipFormat(LPDATAOBJECT lpDataOb, CLIPFORMAT format);
 	virtual void OnSelectPopupListItem(const CString& sSelItem);
@@ -110,9 +113,9 @@ protected:
 	BOOL Paste();
 	BOOL CanPaste();
 	void InitMenuIconManager();
-	void ScheduleAutoIndent();
-	void UpdateAutoIndentNow();
 	void ApplyAutoIndent();
+	void ApplyAutoIndentToCaretParagraph();
+	void ApplyAutoIndentRange(int nFrom, int nTo, BOOL bFullPass);
 	bool ApplyAutoIndentToParagraph(int nParaStart, int nParaEnd, int nDpiX);
 	bool ProcessEditingKey(UINT nVKey, BOOL bCtrl, BOOL bAlt, BOOL bShift);
 	bool RemoveIndent();
@@ -127,3 +130,6 @@ protected:
 // Microsoft Visual C++ will insert additional declarations immediately before the previous line.
 
 #endif // !defined(AFX_TDLSIMPLETEXTCONTENTCTRL_H__E9A5D982_4D40_43B2_A071_E3BE70D122B7__INCLUDED_)
+
+
+

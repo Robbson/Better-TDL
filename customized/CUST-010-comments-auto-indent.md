@@ -51,15 +51,20 @@ Files: `Core/ToDoList/TDLSimpleTextContentCtrl.cpp` and
    paragraph's text starts. The width is measured with `PointFromChar()` and converted
    from pixels to twips, so spaces, proportional fonts, bullet markers and the control's
    custom tab stops are handled by RichEdit itself.
-4. Formatting runs from a short `TIMER_AUTOINDENT` (50 ms) timer after `EN_CHANGE`,
-   `WM_SETTEXT` and `WM_SETFONT`, so it is coalesced while typing and re-applied after a
-   font or content change. `EM_SETPARAFORMAT` is sent directly rather than through
-   `CRichEditBaseCtrl::SetParaFormat()` to avoid that helper's synthetic `EN_CHANGE`.
-   The operation is wrapped in `CRePauseUndo` so the visual formatting does not create
-   undo entries, and the selection/first visible line are restored. `Tab`, `Return` and
-   `Shift+Tab` call `UpdateAutoIndentNow()` after changing the text so the paragraph is
-   formatted before the control repaints; otherwise a newly inserted leading tab briefly
-   renders with the previous hanging indent and visibly jumps.
+4. Formatting is synchronous; there is no auto-indent timer. `OnChangeText()` formats only
+   the caret paragraph (`ApplyAutoIndentToCaretParagraph()`), so ordinary typing does not
+   walk the whole document. `Tab`, `Return` and `Shift+Tab` format only the paragraphs
+   they touch (`ApplyAutoIndentRange()`), not the whole document. Content loads
+   (`WM_SETTEXT`), font changes (`WM_SETFONT`), paste, dropped text/files, multi-line
+   insertion, find/replace all, undo and redo run the full document pass
+   (`ApplyAutoIndent()`). `EM_SETPARAFORMAT` is sent directly rather than through
+   `CRichEditBaseCtrl::SetParaFormat()` to avoid that helper's synthetic `EN_CHANGE`. The
+   operation is wrapped in `CRePauseUndo` so the visual formatting does not create undo
+   entries. The range pass does not toggle redraw, does not invalidate the whole control,
+   and does not move the selection when it is already inside the paragraph being
+   formatted; this keeps typing and indentation from repainting or scrolling unrelated
+   text. The selection/first visible line are restored only when a selection move was
+   actually needed.
 5. Pressing `Return` at the very start of a paragraph inserts only the line break. The
    original line keeps its own indent and moves down, and no copy of the prefix is added
    in front of it.
@@ -103,7 +108,7 @@ the chosen option and would catch a regression if another option is tried.
 | Caret, Home/End, Backspace, selection | No hidden characters, but every insert/paste path must consistently normalise | Normal, predictable | Hidden characters can be skipped or deleted invisibly; Home/End/selection can land oddly |
 | Undo/redo | Safe only if normalisation happens on input; normalising in a formatting pass creates edits that are not in the undo history | Unaffected | Character-format changes are outside plain-text undo; re-applying them can desync undo/redo |
 | Saved content / other views | Tabs are lost; external tools and other views see spaces | Unchanged | Unchanged |
-| 50 ms auto-indent timer | The input path can insert spaces immediately; remaining delay only for load/paste normalisation | Attribute-only pass; can be removed by formatting the caret paragraph synchronously | Formatting every pass; potential flicker/performance cost |
+| 50 ms auto-indent timer | No text-normalising timer; the input path inserts spaces immediately | **Removed**: caret paragraph formatted synchronously on edits; full pass on load/font/paste/drop/undo/redo | Formatting every pass; potential flicker/performance cost |
 | Two-stage layout / visible jump | High if normalisation stays in the timer pass; low only if every insertion path is changed | **Low** | Medium (formatting still changes layout, but the text is not rewritten) |
 | Implementation complexity | Low–medium: change Tab/paste/load, rewrite Shift+Tab for spaces, migrate existing content | **Low**: current implementation | **High**: hidden char formats, indentation arithmetic, caret navigation, reapply on load/font/DPI |
 | Testability | Text/caret tests plus geometry | Text/caret and geometry tests implemented (offscreen `RichEdit50W`) | Needs hidden-format and interactive caret tests; hard to validate offscreen |
@@ -158,21 +163,40 @@ is the only way to keep tabs *and* align every wrapped line, but it depends on h
 character formatting and can make caret navigation and deletion around the line start
 unpredictable; it remains a future option now that the behaviour is covered by tests.
 
-### The 50 ms auto-indent timer
+### Formatting timing (implemented)
 
-The timer was introduced by this customization, not by upstream ToDoList or RichEdit.
-`ApplyAutoIndent()` walks every paragraph, so `ScheduleAutoIndent()` debounces it after
-`EN_CHANGE`, `WM_SETTEXT` and `WM_SETFONT` to avoid moving the selection and re-measuring
-the whole comments field on every keystroke. That is its only purpose.
+The former 50 ms `TIMER_AUTOINDENT` was introduced by this customization, not by
+upstream ToDoList or RichEdit. It existed only to debounce the whole-document
+`ApplyAutoIndent()` walk after `EN_CHANGE`, `WM_SETTEXT` and `WM_SETFONT`. It has been
+removed:
 
-It is not a RichEdit requirement, and it is the reason option 1 produced a visible second
-layout: the pass changed the text 50 ms after the key was processed. In the chosen
-approach the pass changes only paragraph attributes, and `Tab`, `Return` and `Shift+Tab`
-already call `UpdateAutoIndentNow()` synchronously, so the timer is no longer needed for
-an immediate editing response. The natural follow-up is to format only the caret
-paragraph synchronously on `EN_CHANGE` and keep the full pass for load, font changes,
-paste, undo and redo; that removes the remaining delay and the whole-document walk while
-typing. Paste/undo tests should be added before doing that.
+- `OnChangeText()` formats only the caret paragraph
+  (`ApplyAutoIndentToCaretParagraph()`), so ordinary typing is immediate and does not walk
+  the whole comments field.
+- `WM_SETTEXT`, `WM_SETFONT`, `WM_PASTE`, OLE drops (`QueryAcceptData`),
+  `WM_DROPFILES`, `InsertTextContent()`, `FindReplaceAll()`, `Undo()` and `Redo()` run the
+  full `ApplyAutoIndent()` pass.
+- `Tab`, `Return` and `Shift+Tab` run `ApplyAutoIndentRange()` synchronously over only the
+  paragraphs they touch. A single-line Tab no longer walks the whole document, so its
+  response time no longer grows with the comments length.
+
+The range pass neither toggles redraw nor invalidates the whole control, and it avoids
+moving the selection when the caret is already in the paragraph being formatted. This
+prevents unrelated/far-away text from repainting or the view from scrolling on every
+keystroke. The full pass still uses redraw suppression and one final invalidate for bulk
+changes.
+
+This removes the delayed hanging indent that produced the visible “basic state → wrapped
+state” flash when setting/loading comments, because `WM_SETTEXT` is formatted before the
+control paints. The wrap *mode* is still applied through the posted
+`WM_SETWORDWRAP` from `LoadPreferences()` (the old RichEdit resize workaround), so that
+part is unchanged; only the paragraph-format delay is gone.
+
+The `SynchronousFormatting` test covers load, a caret-prefix edit, multi-line insertion
+and undo/redo. `FormattingScope` proves that typing, a single-line Tab, Return at a line
+start and a selection Tab format only the affected paragraphs in a ten-line document.
+`RepeatedIndentKeys` drives consecutive Tab/Shift+Tab keydowns and checks the intermediate
+states after every call (auto-repeat).
 
 ## Risks
 
@@ -193,6 +217,10 @@ typing. Paste/undo tests should be added before doing that.
   spaces are removed. Lines with a single leading space lose that space.
 - Auto-indent is skipped for comments larger than 1 MB to avoid walking very large
   documents on every edit.
+- Ordinary edits format only the caret paragraph. Any path that can change several
+  paragraphs must use the full pass; the current ones are listed in “Formatting timing”.
+  A future edit path that calls the rich edit directly (for example a new OLE insertion
+  handler) must do the same or only its caret paragraph will be indented.
 - Shift+Enter, Ctrl+Enter and Alt+Enter keep their existing behaviour.
 - Bullet recognition requires the exact marker strings in `BULLET_PREFIXES`, including
   the trailing space. Lines without the trailing space (for example `-item`) are treated
@@ -205,21 +233,30 @@ typing. Paste/undo tests should be added before doing that.
 - The tests create the editor offscreen with a fixed size and a monospaced font. Geometry
   cases therefore do not exercise DPI changes, themes or a visible caret; those remain
   manual checks.
-- The paragraph-format pass temporarily moves the caret to each paragraph. Selection and
-  the first visible line are restored, but a horizontal scroll position is not explicitly
-  restored (word wrap normally makes that irrelevant).
+- The full and multi-paragraph range passes temporarily move the caret to each paragraph.
+  Selection and the first visible line are restored, but a horizontal scroll position is
+  not explicitly restored (word wrap normally makes that irrelevant). The single-paragraph
+  caret/range path does not move the selection when the caret is already inside the
+  paragraph.
 - A paragraph whose leading whitespace exceeds 1024 characters is truncated to the first
   1024 characters, which is well beyond realistic comment indentation.
 
 ## Verification
 
 - `Core/ToDoListLib/ToDoListLib.vcxproj` builds successfully in `Unicode Debug`.
-- `TDLTest` builds and passes: 310363/310363 tests, including the new
-  `CTDLSimpleTextContentCtrlTest` suite (66 assertions). The suite covers every row of the
+- `TDLTest` builds and passes: 310407/310407 tests, including the new
+  `CTDLSimpleTextContentCtrlTest` suite (110 assertions). The suite covers every row of the
   behaviour table below, tab preservation, and space-indented/space-bullet wrapped-line
   alignment. It also asserts that tab-indented paragraphs are not re-indented (the
   `Shift+Tab` regression) and that inserting a leading tab into a `-> item` paragraph
   clears the old hanging indent immediately, so the visible tab jump cannot return.
+- `FormattingScope` proves the scope on a ten-line document: typing formats 1 paragraph,
+  Tab with a caret formats 1, Return at a line start formats at most 2, and Tab on a
+  two-line selection formats at most 3. Tab indentation therefore no longer scales with
+  the total comments length.
+- `RepeatedIndentKeys` presses Tab four times and then Shift+Tab four times, checking the
+  text and caret after every keydown. This covers the auto-repeat case where the
+  intermediate indentation states must be applied immediately, before the key is released.
 - Reproduced outside the app with a `RichEdit50W` control using the same tab stops and
   start indent: for a `"\t-> "` prefix the character after the tab (`-`) moved to exactly
   `dxStartIndent + dxOffset` (the continuation indent), not to the normal tab stop after
@@ -230,15 +267,22 @@ typing. Paste/undo tests should be added before doing that.
   width) to the right of the continuation line for a tab-indented prefix, so no offset
   aligns it. Expanding the tab to spaces aligned it but broke tab-based indentation and
   `Shift+Tab`, so that approach was reverted.
-- The caret is hidden during the paragraph pass and the control is invalidated afterwards,
-  so editing and then moving the caret no longer leaves non-blinking caret artefacts.
+- The full pass hides the caret and invalidates the control once; the single-paragraph
+  range pass does neither, and it does not move the selection when the caret is already
+  in the paragraph. This avoids the far-away repaint/scroll side effects on typing.
+- No 50 ms auto-indent timer remains in the editor. The other application timers
+  (find-highlight, mouse-cursor hiding, etc.) are unrelated. If a delayed duplicate line
+  is still observed, verify that the `ToDoList.exe` binary was rebuilt after these
+  changes.
 - The test control uses RichEdit's CR-only character positions internally; its
   `GetWindowText` returns CRLF, so the tests read text via `GetTextRange()` for positions.
   `Return` insertion now inserts `\r` and restores the caret after the inserted indent
   explicitly, because RichEdit otherwise leaves the caret between CR and LF.
-- Manual verification pending: visible editing with real keystrokes, DPI/theme changes and
-  the caret artefacts check. All pure text/caret/geometry cases moved to `TDLTest` so
-  further changes to the editor run them automatically.
+- Manual verification pending on an interactive desktop: hold Space in a long comments
+  field and check that unrelated text no longer flickers; check Tab/Shift+Tab latency on a
+  long document; press Enter at a line start and check that no duplicate of the moved line
+  remains; hold Tab/Shift+Tab and check that each auto-repeat state is visible. The pure
+  text/caret/formatting-scope cases are covered by `TDLTest`.
 
 ## Automated coverage
 
@@ -332,6 +376,8 @@ committed pixel constants.
 machine-readable fixture for the text/caret rows, and
 `CTDLSimpleTextContentCtrlTest::TestWrappedLineAlignment()` encodes the geometry rules.
 Update this table and those tests together.
+
+
 
 
 

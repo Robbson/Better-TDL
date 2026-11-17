@@ -1,5 +1,7 @@
 # UI-003: Extended Window menu list and document count
 
+Status: **Done** (implemented, built and manually verified)
+
 ## Goal
 
 Show up to 25 open tasklists in the **Window** menu instead of 16. When more than 25
@@ -59,5 +61,5 @@ Files: `Core/ToDoList/ToDoListWnd.h/.cpp`, `Core/ToDoList/TDCMainMenu.cpp`,
 - Built `Core/ToDoList_Core.sln` (`Unicode Debug`, `Win32`) successfully.
 - `TDLTest` ran; the 24 `CTDCTaskMatcherTest::IndividualRules` text-array failures are
   pre-existing and unrelated to this change.
-- Manual check: open enough tasklists to exceed 25 and confirm the extended list, the `...`
-  marker, and the title count.
+- Manual check passed: with more than 25 tasklists open, the extended list, the `...`
+  marker and the title count are correct.

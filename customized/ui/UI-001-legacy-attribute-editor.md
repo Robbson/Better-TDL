@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | In progress |
+| Status | Done (phases 1–3 implemented; date-field issues resolved) |
 | Upstream baseline | ToDoList 9.3.DP7 |
 | Scope | Attribute editor presentation |
 | Default | Keep the 9.x property grid as default |
@@ -308,7 +308,7 @@ Verification:
   `CTDCTaskMatcherTest::IndividualRules` and are unrelated to this change (no matcher
   code was touched); they are likely locale/date-sensitive.
 
-### Phase 2 (built-in attributes implemented; runtime verification pending)
+### Phase 2 (built-in attributes implemented)
 
 Implemented a functional legacy bar for all built-in attributes:
 
@@ -488,7 +488,6 @@ Remaining limitations:
 - Custom auto-list data collection (`GetCustomAttributeAutoListData`) is not yet wired
   back into the bar.
 - File-link thumbnails in custom attributes are forced off.
-- The date-picker checkbox painting issue remains postponed.
 - No per-mode persistence of legacy-bar ordering/state yet.
 - Auto-list read-only state is not reflected in the legacy bar’s controls yet (task lock,
   read-only tasklists and per-attribute edit restrictions are now enforced).

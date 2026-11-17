@@ -1,6 +1,6 @@
 # UI-002: MRU tasklist switcher for Ctrl+Tab
 
-Status: **In progress** (implemented and built; manual Ctrl+Tab test pending)
+Status: **Done** (implemented, built and manually verified)
 
 ## Goal
 
@@ -80,8 +80,8 @@ Files: `Core/ToDoList/ToDoListWnd.h/.cpp`,
 ## Verification
 
 - `Core/ToDoListLib/ToDoListLib.vcxproj` builds in `Unicode Debug` (solution build).
-- Manual verification pending: open at least three tasklists, switch between them, then
-  check quick `Ctrl+Tab` release, repeated `Tab`/`Shift+Tab`, `Enter`, `Esc`, mouse click,
-  and that normal menu "Next/Previous TaskList" still cycles sequentially. Also check
-  that a modified tasklist is blue, a delay-loaded tasklist is grey, and selecting the
-  grey entry keeps the switcher open and disabled until loading completes.
+- Manual verification passed: quick `Ctrl+Tab` release, repeated `Tab`/`Shift+Tab`,
+  `Enter`, `Esc`, mouse click, and normal menu "Next/Previous TaskList" sequential
+  cycling all behave correctly. Modified tasklists appear blue, delay-loaded tasklists
+  grey, and selecting a grey entry keeps the switcher open and disabled until loading
+  completes.

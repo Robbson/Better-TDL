@@ -45,7 +45,7 @@ BEGIN
             VALUE "FileDescription", "Better TDL"
             VALUE "FileVersion", "1.0.0.0"
             VALUE "InternalName", "BetterTDL"
-            VALUE "LegalCopyright", "Original version: Copyright (c) AbstractSpoon 2003-26"
+            VALUE "LegalCopyright", "Based on ToDoList 9.3 by AbstractSpoon, Copyright (c) 2003-26"
             VALUE "OriginalFilename", "ToDoList.exe"
             VALUE "ProductName", "Better TDL"
             VALUE "ProductVersion", "1, 0, 0, 0"
@@ -1291,9 +1291,9 @@ FONT 8, "Tahoma", 0, 0, 0x0
 BEGIN
     ICON            IDR_MAINFRAME_STD,IDC_STATIC,7,8,20,20
     EDITTEXT        IDC_TITLE,34,7,173,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
-    LTEXT           "Original version: Copyright (c) AbstractSpoon 2003-26",IDC_STATIC,34,21,267,8
+    LTEXT           "Based on ToDoList 9.3 by AbstractSpoon, Copyright (c) 2003-26",IDC_STATIC,34,21,267,8
     LTEXT           "A simple and effective way to keep on top of your daily tasks",IDC_STATIC,34,32,267,8
-    LTEXT           "Contributors",IDC_STATIC,7,45,250,8
+    LTEXT           "Contributors of ToDoList",IDC_STATIC,7,45,250,8
     CONTROL         "List1",IDC_CONTRIBUTORS,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_NOCOLUMNHEADER | LVS_NOSORTHEADER | WS_BORDER | WS_TABSTOP,7,57,318,110
     LTEXT           "License",IDC_STATIC,7,173,64,8
     LTEXT           "Static",IDC_LICENSE,71,173,254,8

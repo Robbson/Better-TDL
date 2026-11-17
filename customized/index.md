@@ -78,7 +78,7 @@ Rules of thumb:
 
 | ID | Title | Status | Document |
 |---|---|---|---|
-| GEN-001 | Product name and release label from version resource; About layout | Done (built; manual About check pending) | [GEN-001-branding-and-about.md](general/GEN-001-branding-and-about.md) |
+| GEN-001 | Product name and release label from version resource; About layout | Done (built and manually verified) | [GEN-001-branding-and-about.md](general/GEN-001-branding-and-about.md) |
 | GEN-002 | Quote-safe values in ToDoList.ini (Quick Find history) | Done | [GEN-002-quoted-ini-values.md](general/GEN-002-quoted-ini-values.md) |
 | GEN-003 | Functional UI automation framework (UIA/FlaUI proposal) | Proposed | [GEN-003-ui-automation-framework.md](general/GEN-003-ui-automation-framework.md) |
 
@@ -107,10 +107,10 @@ Rules of thumb:
 
 | ID | Title | Status | Document |
 |---|---|---|---|
-| UI-001 | Legacy (v8.2-style) attribute editor, selectable | In progress (Phases 1–3 done; date painting pending) | [UI-001-legacy-attribute-editor.md](ui/UI-001-legacy-attribute-editor.md) |
-| UI-002 | IntelliJ-style MRU tasklist switcher for Ctrl+Tab | In progress (implemented/built; manual test pending) | [UI-002-mru-tasklist-switcher.md](ui/UI-002-mru-tasklist-switcher.md) |
-| UI-003 | Window menu lists up to 25 tasklists and shows the open count | In progress (implemented/built; manual check pending) | [UI-003-window-menu-list.md](ui/UI-003-window-menu-list.md) |
+| UI-001 | Legacy (v8.2-style) attribute editor, selectable | Done (phases 1–3 implemented; date-field issues resolved) | [UI-001-legacy-attribute-editor.md](ui/UI-001-legacy-attribute-editor.md) |
+| UI-002 | IntelliJ-style MRU tasklist switcher for Ctrl+Tab | Done (built and manually verified) | [UI-002-mru-tasklist-switcher.md](ui/UI-002-mru-tasklist-switcher.md) |
+| UI-003 | Window menu lists up to 25 tasklists and shows the open count | Done (built and manually verified) | [UI-003-window-menu-list.md](ui/UI-003-window-menu-list.md) |
 | UI-004 | Undo/redo feedback, enablement and saved-state tracking | Done | [UI-004-undo-redo-feedback.md](ui/UI-004-undo-redo-feedback.md) |
-| UI-005 | Restore tree folding when a filter is cleared | In progress (implemented/built; manual filter test pending) | [UI-005-filter-fold-restore.md](ui/UI-005-filter-fold-restore.md) |
+| UI-005 | Restore tree folding when a filter is cleared | Done (built and manually verified; multiple-snapshot support deferred) | [UI-005-filter-fold-restore.md](ui/UI-005-filter-fold-restore.md) |
 | UI-006 | Toolbar architecture: command tables, split bars, main-toolbar customization | In progress (phase 1 done: data-driven main toolbar; later phases proposed) | [UI-006-toolbar-architecture.md](ui/UI-006-toolbar-architecture.md) |
 | UI-007 | Tri-state view toolbar button (task list / editor / split) | Proposed (design note) | [UI-007-tristate-view-toolbar-button.md](ui/UI-007-tristate-view-toolbar-button.md) |

@@ -1,6 +1,6 @@
 # UI-005: Restore tree folding when a filter is cleared
 
-Status: **In progress** (implemented and compiled; manual filter test pending)
+Status: **Done** (implemented, built and manually verified)
 
 ## Goal
 
@@ -57,8 +57,14 @@ Files: `Core/ToDoList/FilteredToDoCtrl.h/.cpp`, `Core/ToDoList/ToDoCtrl.h/.cpp`.
 - Delayed-load tasklists that set a filter before the tree window exists cannot capture a
   snapshot.
 
+## Future work
+
+- Only a single unfiltered snapshot is kept. If filter-to-filter transitions or nested
+  filter workflows later need to restore each intermediate layout, replace the snapshot
+  pair with a stack of snapshots keyed by filter state.
+
 ## Tests
 
 - Core `Unicode Debug` build (ToDoListLib / TDLTest).
-- Manual check: expand/collapse a mix of parents, apply a filter, clear or toggle it off,
-  confirm the original layout returns.
+- Manual check passed: expand/collapse a mix of parents, apply a filter, clear or toggle
+  it off, and the original layout returns.

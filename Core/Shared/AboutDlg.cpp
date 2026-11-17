@@ -67,7 +67,7 @@ CAboutDlg::CAboutDlg(UINT nAppIconID, AB_STYLE nStyle,
 		{
 			// add a 'contributers' label
 			nTop -= 3;
-			AddRCControl(_T("LTEXT"), _T(""), _T("&Contributors:"), 0, 0, 36, nTop, nWidth, DLUPERLINE, (UINT)IDC_STATIC);
+			AddRCControl(_T("LTEXT"), _T(""), _T("&Contributors of ToDoList:"), 0, 0, 36, nTop, nWidth, DLUPERLINE, (UINT)IDC_STATIC);
 			nTop += DLUPERLINE;
 
 			switch (m_nStyle)

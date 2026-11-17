@@ -1,5 +1,7 @@
 # GEN-001 Branding and About dialog
 
+Status: **Done** (implemented and built; About dialog manually verified)
+
 ## Goal
 
 Show the fork's product name and release label in the application title and About dialog,
@@ -46,5 +48,5 @@ being clipped.
 ## Test notes
 
 - Built `Core/ToDoList/ToDoList.vcxproj` (`Unicode Debug`, `Win32`) successfully.
-- Manual check: open **Help > About** and confirm the title/release label and the
-  unwrapped copyright line.
+- Manual check: **Help > About** shows the correct title/release label and an unwrapped
+  copyright line.

@@ -49,7 +49,7 @@ customized/
 | CUST-004 | Automated UI performance/artefact harness | In progress (implemented/built; interactive baseline pending) | [CUST-004-ui-perf-harness.md](CUST-004-ui-perf-harness.md) |
 | CUST-005 | Deferred window creation for delay-loaded tasklists | Done | [CUST-005-delayed-tasklist-window.md](CUST-005-delayed-tasklist-window.md) |
 | CUST-006 | No throwaway tasklist at startup | Done | [CUST-006-no-throwaway-tasklist.md](CUST-006-no-throwaway-tasklist.md) |
-| CUST-007 | Comments editor controls moved to the main toolbar | Done | [CUST-007-comments-toolbar-in-main-toolbar.md](CUST-007-comments-toolbar-in-main-toolbar.md) |
+| CUST-007 | Comments editor controls moved to the main toolbar | Done (date/time buttons stay; format-combo move planned to be reverted — see CUST-019) | [CUST-007-comments-toolbar-in-main-toolbar.md](CUST-007-comments-toolbar-in-main-toolbar.md) |
 | CUST-008 | Hide mouse pointer while typing in text controls | Done | [CUST-008-comments-hide-pointer-while-typing.md](CUST-008-comments-hide-pointer-while-typing.md) |
 | CUST-009 | Highlight Quick Find matches in the comments editor | Done | [CUST-009-quickfind-comments-highlight.md](CUST-009-quickfind-comments-highlight.md) |
 | CUST-010 | Auto-indent (Return and wrapped lines) in the comments editor | In progress (implemented; covered by TDLTest) | [CUST-010-comments-auto-indent.md](CUST-010-comments-auto-indent.md) |
@@ -61,4 +61,5 @@ customized/
 | CUST-016 | Restore tree folding when a filter is cleared | In progress (implemented/built; manual filter test pending) | [CUST-016-filter-fold-restore.md](CUST-016-filter-fold-restore.md) |
 | CUST-017 | Functional UI automation framework (UIA/FlaUI proposal) | Proposed | [CUST-017-ui-automation-framework.md](CUST-017-ui-automation-framework.md) |
 | CUST-018 | Comments editor word-wrap and show-all-characters toolbar toggles | In progress (implemented/built; interactive check pending) | [CUST-018-comments-display-toggles.md](CUST-018-comments-display-toggles.md) |
+| CUST-019 | Toolbar architecture: command tables, split bars, main-toolbar customization | Proposed (analysis and migration plan) | [CUST-019-toolbar-architecture.md](CUST-019-toolbar-architecture.md) |
 

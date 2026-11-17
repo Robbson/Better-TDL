@@ -91,6 +91,15 @@ Files: `Core/ToDoList/TDLCommentsCtrl.h/.cpp`, `Core/ToDoList/ToDoCtrl.h/.cpp`,
   `AfxLoadSysColorBitmap`.
 - The comments label is gone; the edit field is identified by its position and border.
 
+## Planned revision (recorded 2026-11-17)
+
+The comments content-format combo is planned to move back to its own toolbar above the
+text editor, as it was before this change. The three date/time command buttons are not part
+of that plan and remain on the main toolbar. The toolbar/command refactor that will carry
+this out is tracked in [CUST-019](CUST-019-toolbar-architecture.md); when it lands, the
+combo parts of the "What changed" and "Risks" sections above are superseded, while the
+date/time button and label-removal parts remain valid.
+
 ## Verification
 
 - `msbuild Core\ToDoList_Core.sln /t:Build /p:Configuration="Unicode Debug"

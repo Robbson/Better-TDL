@@ -1,4 +1,4 @@
-# CUST-021: Fixed per-tasklist cost when opening or activating a document
+# PERF-006: Fixed per-tasklist cost when opening or activating a document
 
 Status: **Proposed** (runtime analysis complete; instrumentation and fix not started)
 
@@ -7,8 +7,8 @@ Status: **Proposed** (runtime analysis complete; instrumentation and fix not sta
 Loading a document in an already running ToDoList takes roughly 2-3 s, and an 8 KB
 tasklist costs the same as a 1.7 MB tasklist. This note records the measured breakdown,
 the code paths responsible, and the next steps. It is the per-document counterpart to
-the startup work in [CUST-005](CUST-005-delayed-tasklist-window.md) and
-[CUST-006](CUST-006-no-throwaway-tasklist.md); `PERFORMANCE.md` P0-5 covers the
+the startup work in [PERF-004](PERF-004-delayed-tasklist-window.md) and
+[PERF-005](PERF-005-no-throwaway-tasklist.md); `PERFORMANCE.md` P0-5 covers the
 multi-document startup floor, not opening a single document while the app is running.
 
 No source changes were made for this analysis.
@@ -255,17 +255,17 @@ opening a 1.7 MB tasklist should differ only by the actual parse/build time.
   per-cell paths for this work.
 - Debug exaggeration is large and misleading; all acceptance measurements must be
   Release.
-- Do not regress the CUST-005 invariant: delay-loaded tabs intentionally have no window
+- Do not regress the PERF-004 invariant: delay-loaded tabs intentionally have no window
   until first activation. Any fix must keep `GetSafeHwnd()`/`IsLoaded()` guards valid.
 - Do not change parsing, file format or plugin contracts for this work.
 
 ## Related documents
 
-- [PERFORMANCE.md](../PERFORMANCE.md) - overall performance analysis; P0-5 startup and
+- [PERFORMANCE.md](../../PERFORMANCE.md) - overall performance analysis; P0-5 startup and
   remaining startup work.
-- [CUST-005-delayed-tasklist-window.md](CUST-005-delayed-tasklist-window.md) - the
+- [PERF-004-delayed-tasklist-window.md](PERF-004-delayed-tasklist-window.md) - the
   delay-loaded object/window split that this note builds on.
-- [CUST-006-no-throwaway-tasklist.md](CUST-006-no-throwaway-tasklist.md) - removed the
+- [PERF-005-no-throwaway-tasklist.md](PERF-005-no-throwaway-tasklist.md) - removed the
   throwaway startup tasklist.
-- [CUST-004-ui-perf-harness.md](CUST-004-ui-perf-harness.md) - existing interactive UI
+- [PERF-003-ui-perf-harness.md](PERF-003-ui-perf-harness.md) - existing interactive UI
   harness; not used here because it covers splitter/scroll, not document activation.

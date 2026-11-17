@@ -1,11 +1,11 @@
-# CUST-020 — Tri-state toolbar button for view layout (task list / editor / split)
+# UI-007 — Tri-state toolbar button for view layout (task list / editor / split)
 
 | Field | Value |
 |---|---|
 | Status | Proposed (design note; no code changes) |
 | Upstream baseline | ToDoList 9.3.DP7 |
 | Scope | `Core/ToDoList/TDLToolbar.*`, `Core/ToDoList/ToDoListWnd.*`, `Core/ToDoList/ToDoList.rc`, `Core/Shared/EnToolBar.*` |
-| Related | [index.md](index.md), [CUST-019](CUST-019-toolbar-architecture.md), [CUST-018](CUST-018-comments-display-toggles.md), [CUST-007](CUST-007-comments-toolbar-in-main-toolbar.md) |
+| Related | [index.md](../index.md), [UI-006](UI-006-toolbar-architecture.md), [TED-005](../text-editor/TED-005-comments-display-toggles.md), [TED-001](../text-editor/TED-001-comments-toolbar-in-main-toolbar.md) |
 
 ## Question
 
@@ -45,7 +45,7 @@ Different icons per state are optional but desirable.
 - Runtime icon swapping is supported by `CEnToolBar::SetItemImage`
   (`Core/Shared/EnToolBar.cpp:676-684`) using `TBIF_IMAGE`; the custom toolbar uses the
   same mechanism for image changes (`Core/ToDoList/TDLCustomToolbar.cpp:183-192`).
-- Toolbar tooltips come from `STRINGTABLE` entries keyed by command ID (see CUST-019).
+- Toolbar tooltips come from `STRINGTABLE` entries keyed by command ID (see UI-006).
 
 ## Option A — three check buttons (recommended)
 
@@ -128,7 +128,7 @@ its own tooltip and shortcut. Use Option B only if horizontal space is the prior
 - State is per active tasklist. Update handlers must read `m_nMaxState` (refreshed on tab
   switch) rather than caching a frame-only value.
 - Add a `STRINGTABLE` tooltip for every new command, otherwise debug builds assert in the
-  frame tooltip fallback (see CUST-019).
+  frame tooltip fallback (see UI-006).
 - The "split view" command must be enabled and checked in the normal state, unlike
   `ID_VIEW_UNMAXTASKLISTANDCOMMENTS`.
 

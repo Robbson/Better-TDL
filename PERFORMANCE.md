@@ -1,7 +1,7 @@
 # ToDoList Performance Analysis
 
 Status: **Phase 1 (static analysis) complete; UI paint and multi-document startup
-measured at runtime; first startup fix implemented and verified (CUST-005)**
+measured at runtime; first startup fix implemented and verified (PERF-004)**
 Scope: `Core/ToDoList`, `Core/Shared`, `Core/3rdParty/SimpleSplitter.*`
 Date: 2026-11-12
 
@@ -45,7 +45,7 @@ A fifth, unrelated cost explained why the application felt slow to start when se
 documents were restored: startup time grew by roughly 1.4–1.8 s per additional
 tasklist, almost entirely independent of file size and of the existing "delayed
 loading" option. Delayed loading deferred only the task data, not the per-tab window
-construction. This is now fixed (CUST-005): a delay-loaded tab creates its window on
+construction. This is now fixed (PERF-004): a delay-loaded tab creates its window on
 first activation, which reduces the marginal cost to ~85 ms per document. The remaining
 startup floor is still the largest single term. See P0-5.
 
@@ -54,7 +54,7 @@ Measured in Release, activating an 8 KB document took 3.7–4.2 s with `-g` logg
 (about 3 s without), independent of file size. Window creation was 0.8–1.0 s, preference
 application ~0.9 s, loading/restoring the task UI 0.8–1.3 s and showing/painting the tab
 about another 0.9 s; reading the 1.7 MB sample took only ~60 ms. This is tracked
-separately in [customized/CUST-021-tasklist-open-activation-cost.md](customized/CUST-021-tasklist-open-activation-cost.md).
+separately in [customized/performance/PERF-006-tasklist-open-activation-cost.md](customized/performance/PERF-006-tasklist-open-activation-cost.md).
 
 ---
 
@@ -340,7 +340,7 @@ the repeated-title artefact, so both changes were reverted. The evidence now poi
 to a listview scroll/blit + custom-draw interaction rather than task-ID lookup: the
 repeated title is always the first visible row, and page-down repeats it down the
 whole viewport. See
-[customized/CUST-002-list-view-stale-title.md](customized/CUST-002-list-view-stale-title.md)
+[customized/performance/PERF-001-list-view-stale-title.md](customized/performance/PERF-001-list-view-stale-title.md)
 for the attempted fixes and the next experiments (disable double buffering on the
 title list only; force a full redraw after the paired scroll; or use one list control
 for the title and columns).
@@ -449,18 +449,18 @@ Only **one** `CToDoCtrl::Load(` line appears in that run: the other 11 tabs real
 delay-loaded, so the remaining ~17 s produced no task data at all. The only logged
 per-tab work is 12 idle `RecalcUntrackedColumnWidths` passes of 15–47 ms (≈0.3 s).
 
-#### Why the window looked hung (before CUST-006)
+#### Why the window looked hung (before PERF-005)
 
 `RestoreVisibility()` showed the main window before the load loop, and the loop then ran
 synchronously inside `OnPostOnCreate` with no message pump. The frame was visible while
 the process was unresponsive, which made a 10+ document start look worse than it was.
-CUST-006 now shows the frame only once the first tasklist exists, and opens the
+PERF-005 now shows the frame only once the first tasklist exists, and opens the
 remaining documents after it is visible.
 
-#### Fix status: implemented (CUST-005)
+#### Fix status: implemented (PERF-004)
 
 **Done:** delay-loaded tabs no longer create a window until first activation.
-See [customized/CUST-005-delayed-tasklist-window.md](customized/CUST-005-delayed-tasklist-window.md).
+See [customized/performance/PERF-004-delayed-tasklist-window.md](customized/performance/PERF-004-delayed-tasklist-window.md).
 
 What was implemented, in the order the measurements pointed at:
 
@@ -508,7 +508,7 @@ descending measured value. The single active document still pays them once.
 inflate startup by roughly 0.7–0.9 s. Relative before/after comparisons are unaffected.
 
 1. **Do not create the throwaway "pristine" tasklist when a session is restored.**
-   **Implemented (CUST-006).** `OnCreate` created a complete tasklist before the
+   **Implemented (PERF-005).** `OnCreate` created a complete tasklist before the
    restore loop (`ToDoListWnd.cpp:1165`) and `CheckRemovePristineTasklist` deleted it as
    soon as the first real document opened. Measured for one document: `CreateToDoCtrl`
    1125 ms (Create 484, preferences 610, `AddToDoCtrl` 344). The tasklist is now created
@@ -521,7 +521,7 @@ inflate startup by roughly 0.7–0.9 s. Relative before/after comparisons are un
    | 3 | 5.16 / 5.28 s | **3.56 / 3.38 s** |
    | 12 | 5.00 / 5.05 s | **3.71 / 3.46 s** |
 
-   See [customized/CUST-006-no-throwaway-tasklist.md](customized/CUST-006-no-throwaway-tasklist.md).
+   See [customized/performance/PERF-005-no-throwaway-tasklist.md](customized/performance/PERF-005-no-throwaway-tasklist.md).
    Two follow-on hardening changes were needed because a frame can now briefly have no
    tasklist: `CN_UPDATE_COMMAND_UI` is ignored while empty (`OnCmdMsg`),
    `IDLETASKS::Process` and `UpdateTimeTrackerTasks` bail out, the `CToDoCtrlMgr`
@@ -539,7 +539,7 @@ inflate startup by roughly 0.7–0.9 s. Relative before/after comparisons are un
    (`ToDoCtrlMgr.cpp:994-996`) and the find-dialog update (`ToDoListWnd.cpp:4920`).
 4. **Make startup progressive.** Post each open (or the whole last-file loop) to the
    message queue so tabs appear one at a time instead of blocking `OnPostOnCreate`.
-   CUST-006 already shows the frame as soon as the first tasklist exists
+   PERF-005 already shows the frame as soon as the first tasklist exists
    (`ToDoListWnd.cpp:2603` and `ShowStartupWindow`), but the loop itself still runs
    synchronously, so the frame is briefly visible but unresponsive while the remaining
    documents open.
@@ -566,9 +566,9 @@ the bad-version warning and the per-plugin preferences. Not worth it; the pristi
 tasklist above is 8× larger. The timers are kept (they are once-per-process and gated
 on logging) so the number can be re-checked after plugin changes.
 
-#### Per-document cost outside startup (CUST-021)
+#### Per-document cost outside startup (PERF-006)
 
-CUST-005 moved the per-document window construction to first activation, but it did not
+PERF-004 moved the per-document window construction to first activation, but it did not
 make that activation cheap. Opening a document in a running app, or selecting a
 delay-loaded tab, still pays the full fixed UI bill: create the tab window, apply the
 runtime preferences, load the tasks into the tree/list and restore the per-file UI state,
@@ -576,9 +576,9 @@ then show and paint the tab. In Release an 8 KB and a 1.7 MB document both take 
 3 s without logging; the file read and XML parse is ~60 ms even for 1.7 MB.
 
 The measured breakdown and the instrumentation/profiling plan are in
-[customized/CUST-021-tasklist-open-activation-cost.md](customized/CUST-021-tasklist-open-activation-cost.md).
+[customized/performance/PERF-006-tasklist-open-activation-cost.md](customized/performance/PERF-006-tasklist-open-activation-cost.md).
 This is a separate follow-up from the startup work above: the remaining cost is
-per-activation, not per-process, and it is not addressed by CUST-005 or CUST-006.
+per-activation, not per-process, and it is not addressed by PERF-004 or PERF-005.
 
 ---
 
@@ -832,7 +832,7 @@ The code already has a logging facility and permanent timers in useful places:
 
 ### 7.4 Automated verification harness
 
-**Implemented:** `customized/CUST-004-ui-perf-harness.md` adds `CUIPerfTest` to
+**Implemented:** `customized/performance/PERF-003-ui-perf-harness.md` adds `CUIPerfTest` to
 `Core/TDLTest`, opt-in via `TDLTest.exe -ui`. It launches the app with generated
 tree/list fixtures (or `-tdl`), drives the splitter drag and list-wheel scroll with
 real `SendInput`, and compares on-screen `BitBlt` captures against a forced
@@ -841,9 +841,9 @@ tree/attribute scroll sync.
 
 First baseline on the unmodified build: the splitter drag reports stale pixels on
 every step (`artifactSteps == steps`, `maxDiff` about 59k–78k pixels, `cleanDiff=0`)
-— the CUST-003 artefact is reproduced automatically and the clean reference is
+— the PERF-002 artefact is reproduced automatically and the clean reference is
 stable. The settled list-scroll check is clean (`maxDiff≈529`, `artifactSteps=0`),
-but the fast-scroll sync check (`-record -notches 2 -delay 0`) reproduces CUST-002:
+but the fast-scroll sync check (`-record -notches 2 -delay 0`) reproduces PERF-001:
 `top1=0 top2=5 MISMATCH`, `syncErrors=1`, and the saved frame shows titles lagging
 the attribute columns. Generated fixtures are cached under `%TEMP%\TDLPerf\Cache\`
 (`-regenerate` to rebuild), but real samples from the sibling `ToDoList_Test`
@@ -855,9 +855,9 @@ optionally `-record` for manual JPEG capture), and `-nodrag` (window discovery
 only) are available for diagnosing the harness itself.
 
 Manual drag-and-eyeball testing is not sufficient for this class of change. Three
-CUST-003 iterations were built and tested by hand; two regressed repaint behaviour
+PERF-002 iterations were built and tested by hand; two regressed repaint behaviour
 and one (`WS_EX_COMPOSITED`) broke the attribute pane and scroll synchronisation.
-See [customized/CUST-003-splitter-paint-performance.md](customized/CUST-003-splitter-paint-performance.md).
+See [customized/performance/PERF-002-splitter-paint-performance.md](customized/performance/PERF-002-splitter-paint-performance.md).
 Build a repeatable harness before attempting more P0 changes.
 
 Goals:
@@ -903,7 +903,7 @@ Proposed design:
   as the baseline, then run each candidate change and compare both the artefact
   signal and the metrics.
 
-The harness itself is a `customized/` artefact (new `CUST-nnn`) because it adds
+The harness itself is a `customized/` artefact (a new `PERF-nnn` document) because it adds
 non-upstream test code.
 
 ### 7.5 Startup measurement (multi-document)
@@ -953,7 +953,7 @@ Acceptance targets for a fix:
 
 0. **Status:** the whole P0 implementation attempt is **deferred and reverted**;
    details in
-   [customized/CUST-003-splitter-paint-performance.md](customized/CUST-003-splitter-paint-performance.md).
+   [customized/performance/PERF-002-splitter-paint-performance.md](customized/performance/PERF-002-splitter-paint-performance.md).
    Findings:
    - Removing the per-move `UpdateWindow()` starves `WM_PAINT` while the mouse is
      captured, leaving stale scrollbar copies.
@@ -970,7 +970,7 @@ Acceptance targets for a fix:
    down, then resize panes once on `LButtonUp`. This removes all repeated child repaints
    and is the single biggest win for both artefacts and latency. The change is local to
    `CSimpleSplitter`, but it is a third-party file, so record it under `customized/` as
-   a new `CUST-nnn-*` entry per `AGENTS.md`.
+   a new `PERF-nnn-*` entry per `AGENTS.md`.
 2. If live resizing must be kept, wrap the whole move in
    `WM_SETREDRAW(FALSE)`/`BeginDeferWindowPos` and restore with a single invalidation
    of changed strips at the end. Do not call `UpdateWindow()` per mouse move.
@@ -1010,7 +1010,7 @@ Acceptance targets for a fix:
 
 ### P0-5 – startup with many documents
 
-**First step implemented** (CUST-005): no window is created for a delay-loaded tab
+**First step implemented** (PERF-004): no window is created for a delay-loaded tab
 until it is first activated, which removes the per-document cost (≈1.5 s → ≈85 ms for
 12 documents). See the "Fix status: implemented" section above for the code changes,
 measurements and verification.
@@ -1035,18 +1035,18 @@ measurement in 7.5, change one step at a time and compare the marginal cost.
       `LVN_GETDISPINFO`, plus forced item-rect resolution); both failed manual
       verification and were reverted.
 - [ ] Capture ETW/profiler data for the scenarios in section 7.
-- [ ] Test the listview scroll/blit hypotheses in CUST-002 (disable double buffering
+- [ ] Test the listview scroll/blit hypotheses in PERF-001 (disable double buffering
       on the title list only; force full redraw after the paired scroll; or use a
       single list control).
 - [ ] Confirm splitter z-order and update-region overlap with Spy++.
 - [x] Attempted the P0-2 to P0-6 changes three times; all iterations were built and
       manually tested and all were reverted. Results in
-      [customized/CUST-003-splitter-paint-performance.md](customized/CUST-003-splitter-paint-performance.md).
+      [customized/performance/PERF-002-splitter-paint-performance.md](customized/performance/PERF-002-splitter-paint-performance.md).
       Key results: deferring `UpdateWindow()` starves `WM_PAINT` during live drag;
       `WS_EX_COMPOSITED` hides the attribute table, desynchronises scrolling and is
       much slower.
 - [x] Build the automated harness described in section 7.4
-      ([customized/CUST-004-ui-perf-harness.md](customized/CUST-004-ui-perf-harness.md)).
+      ([customized/performance/PERF-003-ui-perf-harness.md](customized/performance/PERF-003-ui-perf-harness.md)).
 - [x] Run the harness on the unmodified tree and record the baseline (splitter
       artefacts reproduced; list scroll clean with the synthetic fixture).
 - [x] Identified the startup path for restored tasklists (`[Settings] LastFile<n>`), the
@@ -1056,7 +1056,7 @@ measurement in 7.5, change one step at a time and compare the marginal cost.
       loading) / 22.2 s (full loading); 12 × 7.7 KB ≈ 12 × 1.7 MB, so the cost is
       per-tab control creation, not file parsing.
 - [x] Implemented the first P0-5 step: delay-loaded tabs no longer create a window
-      until first activation ([customized/CUST-005-delayed-tasklist-window.md](customized/CUST-005-delayed-tasklist-window.md)).
+      until first activation ([customized/performance/PERF-004-delayed-tasklist-window.md](customized/performance/PERF-004-delayed-tasklist-window.md)).
       Measured: marginal cost per restored document ≈1.5 s → ≈85 ms; 12 documents
       26.4 s → 8.7 s. Debug and Release activation of all tabs verified; `TDLTest`
       unchanged.
@@ -1065,13 +1065,13 @@ measurement in 7.5, change one step at a time and compare the marginal cost.
       startup floor to the plugin scan was wrong (the 469/328 ms first figures were
       per-DLL log I/O). The next-largest fixed item is the pristine tasklist created at
       `OnCreate` and immediately thrown away when a document is restored (~1.1 s).
-- [x] Removed the throwaway pristine tasklist ([customized/CUST-006-no-throwaway-tasklist.md](customized/CUST-006-no-throwaway-tasklist.md)).
+- [x] Removed the throwaway pristine tasklist ([customized/performance/PERF-005-no-throwaway-tasklist.md](customized/performance/PERF-005-no-throwaway-tasklist.md)).
       The frame is now shown only once a tasklist exists. Measured (Release, polled
       until all tabs exist): 3 documents 5.22 s → 3.47 s; 12 documents 5.03 s → 3.59 s.
       Six startup variants (multi-document, missing file, no session, `-e`, reload
       disabled, `-f`) verified in Debug and Release with zero new assertions; `TDLTest`
       unchanged.
-- [x] Fixed the `0xC000041D` crash the first CUST-006 build produced when the first
+- [x] Fixed the `0xC000041D` crash the first PERF-005 build produced when the first
       restored document was delay-loaded: the frame was shown while the only tab had no
       window, so `Resize`/`ReposTaskList` used the never-created fallback control.
       `ShowStartupWindow`/`ReposTaskList`/`SelectToDoCtrl` now require a window, and

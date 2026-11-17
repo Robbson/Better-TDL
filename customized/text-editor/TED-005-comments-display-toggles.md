@@ -1,4 +1,4 @@
-# CUST-018: Comments editor display toggles in the main toolbar
+# TED-005: Comments editor display toggles in the main toolbar
 
 Status: **In progress (implemented/built; interactive check pending)**
 
@@ -19,7 +19,7 @@ the toolbar. Show All Characters is new.
   context-menu command, and saved `WordWrap` per tasklist under
   `FileStates\<tasklist>` (`Core/ToDoList/TDLSimpleTextContentCtrl.cpp`).
 - `IDR_APP_TOOLBAR` already ended with the comments date/time buttons
-  (`ID_COMMENTS_INSERTDATE/TIME/DATETIME`), appended by CUST-007.
+  (`ID_COMMENTS_INSERTDATE/TIME/DATETIME`), appended by TED-001.
 - `CToDoListWnd` handles the comments-specific commands and checks
   `HasFocus(TDCSF_COMMENTS)`.
 - RichEdit has no built-in whitespace display, so Show All Characters is painted by the
@@ -57,7 +57,7 @@ Files: `Core/ToDoList/TDLSimpleTextContentCtrl.h/.cpp`,
 7. `CTDCMenuIconMgr::Populate()` now maps the five comments-toolbar commands to their
    bitmap indices. This also makes the existing bitmap-width division land on 16 px
    (432 / 27) instead of 18 px (400 / 22).
-8. `app_toolbar.bmp` is intentionally left unchanged, following CUST-007: MFC's
+8. `app_toolbar.bmp` is intentionally left unchanged, following TED-001: MFC's
    `CToolBar::LoadToolBar` requires the original 16-colour bitmap and
    `CEnToolBar::SetImage` replaces it at runtime.
 

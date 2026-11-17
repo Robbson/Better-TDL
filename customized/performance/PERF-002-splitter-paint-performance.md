@@ -1,4 +1,4 @@
-# CUST-003 — Splitter paint performance (attempted, reverted)
+# PERF-002 — Splitter paint performance (attempted, reverted)
 
 | Field | Value |
 |---|---|
@@ -6,7 +6,7 @@
 | Upstream baseline | ToDoList 9.3.DP7 |
 | Scope | Outer splitter, host resize/repaint path, tasklist container |
 | Default | No behaviour change; no code retained |
-| Related | [index.md](index.md), [../PERFORMANCE.md](../PERFORMANCE.md) |
+| Related | [index.md](../index.md), [../PERFORMANCE.md](../../PERFORMANCE.md) |
 
 ## Goal
 
@@ -87,11 +87,11 @@ completely out of sync. Reverted immediately.
   the attribute pane and scroll synchronisation and is much slower.
 - The remaining ideas (per-move `WM_SETREDRAW` batching across splitter and task
   view, or limiting composition to a smaller window) must be evaluated with the
-  CUST-004 harness; see the retry protocol below.
+  PERF-003 harness; see the retry protocol below.
 
-## Retry protocol (using CUST-004)
+## Retry protocol (using PERF-003)
 
-The [CUST-004 harness](CUST-004-ui-perf-harness.md) now reproduces the splitter
+The [PERF-003 harness](PERF-003-ui-perf-harness.md) now reproduces the splitter
 artefact automatically. Baseline on the unmodified build (`-ui -steps 3/4/8`):
 
 ```text

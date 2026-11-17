@@ -1,4 +1,4 @@
-# CUST-010: Auto-indent in the comments editor
+# TED-004: Auto-indent in the comments editor
 
 Status: **In progress** (implemented and covered by `TDLTest`; interactive check pending)
 
@@ -340,7 +340,7 @@ The automated layer is implemented in `Core/TDLTest/TDLSimpleTextContentCtrlTest
   using `EM_LINEINDEX` / `EM_POSFROMCHAR`.
 
 No UIA or interactive desktop is needed. The optional UIA layer from
-[CUST-017](CUST-017-ui-automation-framework.md) remains useful for visible-caret, theme,
+[GEN-003](../general/GEN-003-ui-automation-framework.md) remains useful for visible-caret, theme,
 DPI and screenshot checks but is not required for the contract above.
 
 ## Behaviour specification
@@ -403,7 +403,7 @@ of hard-coded line breaks:
 1. The logical text (normalised) is unchanged by resizing or wrapping.
 2. For a **space-indented** paragraph, the left x of every wrapped continuation segment
    equals the left x of the paragraph's first non-whitespace character (tolerance ±1 px).
-   This is the `PARAFORMAT2.dxOffset` hanging indent in CUST-010.
+   This is the `PARAFORMAT2.dxOffset` hanging indent in TED-004.
 3. For a **tab-indented** paragraph, the continuation stays at the paragraph start and the
    tab is left untouched in the text. This is the documented RichEdit 4.1 limitation and
    also what keeps `Shift+Tab` working. Tab indentation is never rewritten to spaces.

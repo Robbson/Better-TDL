@@ -1,4 +1,4 @@
-# CUST-007: Comments editor controls in the main toolbar
+# TED-001: Comments editor controls in the main toolbar
 
 Status: **Done**
 
@@ -85,8 +85,8 @@ Files: `Core/ToDoList/TDLCommentsCtrl.h/.cpp`, `Core/ToDoList/ToDoCtrl.h/.cpp`,
   with the toolbar.
 - Any code that assumed `CTDLCommentsCtrl` always had a visible format combo must use
   the new `GetSelectedFormat`/`SetSelectedFormat` API instead of looking at the control.
-- The toolbar bitmaps: only `app_toolbar_std.bmp` is extended (now 432×16 after CUST-018);
-  `app_toolbar.bmp` remains 352×15. Since [CUST-019](CUST-019-toolbar-architecture.md) the
+- The toolbar bitmaps: only `app_toolbar_std.bmp` is extended (now 432×16 after TED-005);
+  `app_toolbar.bmp` remains 352×15. Since [UI-006](../ui/UI-006-toolbar-architecture.md) the
   main toolbar order lives in `TDLToolbar.cpp` (`MAIN_TOOLBAR_ITEMS`) and
   `IDR_APP_TOOLBAR` is no longer loaded, so adding a command with an existing icon no
   longer requires bitmap edits; adding a new icon still does.
@@ -97,7 +97,7 @@ Files: `Core/ToDoList/TDLCommentsCtrl.h/.cpp`, `Core/ToDoList/ToDoCtrl.h/.cpp`,
 The comments content-format combo is planned to move back to its own toolbar above the
 text editor, as it was before this change. The three date/time command buttons are not part
 of that plan and remain on the main toolbar. The toolbar/command refactor that will carry
-this out is tracked in [CUST-019](CUST-019-toolbar-architecture.md); when it lands, the
+this out is tracked in [UI-006](../ui/UI-006-toolbar-architecture.md); when it lands, the
 combo parts of the "What changed" and "Risks" sections above are superseded, while the
 date/time button and label-removal parts remain valid.
 

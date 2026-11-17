@@ -1,11 +1,11 @@
-# CUST-019 — Toolbar architecture: command tables, split bars and main-toolbar customization
+# UI-006 — Toolbar architecture: command tables, split bars and main-toolbar customization
 
 | Field | Value |
 |---|---|
 | Status | In progress (phase 1 implemented: data-driven main toolbar; remaining phases proposed) |
 | Upstream baseline | ToDoList 9.3.DP7 |
 | Scope | `Core/ToDoList/ToDoListWnd.*`, `Core/ToDoList/TDLToolbar.*`, `Core/ToDoList/TDLCustomToolbar.*`, `Core/ToDoList/TDCToolsHelper.*`, `Core/ToDoList/TDCMenuIconMgr.*`, `Core/ToDoList/TDCImageList.*`, `Core/Shared/EnToolBar.*`, `Core/Shared/MenuIconMgr.*`, `Core/ToDoList/ToDoList.rc` |
-| Related | [index.md](index.md), [CUST-007](CUST-007-comments-toolbar-in-main-toolbar.md), [CUST-018](CUST-018-comments-display-toggles.md), [CUST-020](CUST-020-tristate-view-toolbar-button.md) |
+| Related | [index.md](../index.md), [TED-001](../text-editor/TED-001-comments-toolbar-in-main-toolbar.md), [TED-005](../text-editor/TED-005-comments-display-toggles.md), [UI-007](UI-007-tristate-view-toolbar-button.md) |
 
 ## Goal
 
@@ -107,7 +107,7 @@ the remaining migration phases.
 - The bar hosts real child controls at command anchors:
   - Quick Find combo after `ID_EDIT_FINDTASKS` (`ToDoListWnd.cpp:1662-1683`);
   - comments content-format combo after `ID_COMMENTS_INSERTDATETIME`
-    (`ToDoListWnd.cpp:1694-1709`; introduced by [CUST-007](CUST-007-comments-toolbar-in-main-toolbar.md)).
+    (`ToDoListWnd.cpp:1694-1709`; introduced by [TED-001](../text-editor/TED-001-comments-toolbar-in-main-toolbar.md)).
 - Positions of those combos are recomputed by `ReposToolbars` using `CommandToIndex`
   (`ToDoListWnd.cpp:6855-6887`). The combos are children of the toolbar.
 - Layout is manual: `ReposToolbars` resizes the main and custom bars, decides whether they
@@ -183,7 +183,7 @@ Two planned UI changes remove the main toolbar's current anchors:
    merge must decide whether the combined field filters or navigates, and whether Quick
    Find history (`QuickFind` INI array, `ToDoListWnd.cpp:1684-1687`) is preserved.
 2. **The comments content-format combo moves back above the text editor**, reversing that
-   part of [CUST-007](CUST-007-comments-toolbar-in-main-toolbar.md). The three date/time
+   part of [TED-001](../text-editor/TED-001-comments-toolbar-in-main-toolbar.md). The three date/time
    **command buttons** are not part of this plan and remain ordinary toolbar commands
    unless decided otherwise.
 
@@ -300,7 +300,7 @@ slots:
 
 - Quick Find merges into `CTDLFilterBar` together with the existing title/comments filter;
 - the comments content-format combo returns to a toolbar above the text editor as before
-  CUST-007.
+  TED-001.
 
 Until those changes land, keep the current anchors (`CommandToIndex`) and either mark them
 non-removable or defer main-bar customization. Do not build a second anchoring mechanism
@@ -374,7 +374,7 @@ definition; persist user layout separately.
 | 1 | **Done (phase 1):** `TDCTOOLBARITEM`/`TDCTOOLBARSPEC` + `CTDLToolbarBuilder::Build` build the existing main bar from a spec using per-button indices from a `CTDCImageList`; combos and order preserved | `TDLToolbar.h/.cpp` (new), `ToDoListWnd.*`, project files | Medium: layout, tooltips, disabled states |
 | 2 | Replace the parallel command arrays with the spec; derive menu icons from the same source | `TDCMenuIconMgr.cpp`, `MenuIconMgr.*` | Medium: menu icons, source-control toggle icons |
 | 3 | Split specs into category bars; add View menu toggles and INI visibility flags; extend `ReposToolbars` | `ToDoListWnd.*`, `ToDoList.rc` | Medium-high: layout, DPI, wrapping |
-| 4 | Remove the combo anchors: merge Quick Find into `CTDLFilterBar`; move the comments-format combo back above the editor (partly reverts CUST-007) | `ToDoListWnd.*`, `TDLFilterBar.*`, `TDLCommentsCtrl.*`, `ToDoCtrl.*` | Medium: filtering semantics, focus/history, editor layout |
+| 4 | Remove the combo anchors: merge Quick Find into `CTDLFilterBar`; move the comments-format combo back above the editor (partly reverts TED-001) | `ToDoListWnd.*`, `TDLFilterBar.*`, `TDLCommentsCtrl.*`, `ToDoCtrl.*` | Medium: filtering semantics, focus/history, editor layout |
 | 5 | Unify the preference page across bars; symbolic image keys; reset and validation | `PreferencesUICustomToolbarPage.*`, `TDLCustomToolbar.*` | Medium: user prefs migration |
 | 6 | Optional: per-user drag customization for main bars | same | Deferred unless wanted |
 
@@ -399,7 +399,7 @@ the later toolbar work only deals with commands.
 - **Layout.** `ReposToolbars` encodes the current two-bar rules, end-separator width and
   bevel. Splitting bars requires reworking it, not just adding windows.
 - **Main-bar bitmap still exists for now.** Until phase 2, keep `app_toolbar_std.bmp` in
-  sync; note CUST-007's rule that `app_toolbar.bmp` stays 16-colour because
+  sync; note TED-001's rule that `app_toolbar.bmp` stays 16-colour because
   `CToolBar::LoadToolBar` uses `AfxLoadSysColorBitmap`.
 
 ## Verification

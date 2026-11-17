@@ -83,7 +83,7 @@ app or a window:
 | `CTDCCUSTOMATTRIBUTECALCULATIONTest` | custom-attribute calculation over `CToDoCtrlData` |
 | `CToDoCtrlDataTest` | data model creation, undo/save point, recurring-date adjustment, priority/risk/custom-date offsets; `-p` adds benchmarks |
 | `CToDoCtrlMgr::CreateBackup` (inside `CTDCFileBackupTest`) | tasklist backup/culling |
-| `CTDLSimpleTextContentCtrlTest` | real offscreen `RichEdit50W` comments editor: Return/Tab/Shift+Tab text + caret contract and wrapped-line alignment (CUST-010) |
+| `CTDLSimpleTextContentCtrlTest` | real offscreen `RichEdit50W` comments editor: Return/Tab/Shift+Tab text + caret contract and wrapped-line alignment (TED-004) |
 | `CWorkingWeek::CalculateDuration` | registered but currently runs no checks |
 
 These create real windows (the comments-editor suite uses a hidden host window and a
@@ -121,7 +121,7 @@ application:
 
 It covers two scenarios only: splitter drag and list-scroll sync. It is opt-in (`-ui`),
 requires an interactive desktop, and is described in
-[customized/CUST-004-ui-perf-harness.md](../customized/CUST-004-ui-perf-harness.md).
+[customized/performance/PERF-003-ui-perf-harness.md](../customized/performance/PERF-003-ui-perf-harness.md).
 
 Verdict:
 
@@ -233,7 +233,7 @@ Interpretation notes:
   [APPLICATION_STATE.md](APPLICATION_STATE.md): close tasklist → exit → reopen same path,
   delay-loaded tab close, and FileStates round-trip.
 - The proposed route for functional UI automation is
-  [CUST-017](../customized/CUST-017-ui-automation-framework.md): an out-of-process
+  [GEN-003](../customized/general/GEN-003-ui-automation-framework.md): an out-of-process
   UIA/FlaUI test project, starting with an accessibility spike. `CUIPerfTest` stays a
   rendering/performance harness.
 - Record and track a coverage baseline (the current local run is 10.9% lines) and gate on
@@ -252,6 +252,6 @@ Interpretation notes:
 | Debug auto-run post-build | `Core/TDLTest/TDLTest.vcxproj:154-160` |
 | No-op import/export suite | `Core/TDLTest/ImportExportMgrTest.cpp:31-34` |
 | Performance-only suites | `Core/TDLTest/XmlFileTest.cpp:42-59`, `Core/TDLTest/TDLTaskCtrlBaseTest.cpp:79-90` |
-| UI e2e harness | `Core/TDLTest/UIPerfTest.cpp:699-713`, `1013-1020`, `1106-1139`, `1600-1850`; [CUST-004](../customized/CUST-004-ui-perf-harness.md) |
+| UI e2e harness | `Core/TDLTest/UIPerfTest.cpp:699-713`, `1013-1020`, `1106-1139`, `1600-1850`; [PERF-003](../customized/performance/PERF-003-ui-perf-harness.md) |
 | Debug symbols/PDB | `Core/TDLTest/TDLTest.vcxproj:139-148`, `Core/ToDoListLib/ToDoListLib.vcxproj:67` |
 | Test documentation in build instructions | `AGENTS.md` (Build and test), `docs/ARCHITECTURE.md:102` |

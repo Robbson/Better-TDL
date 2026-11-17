@@ -1,4 +1,4 @@
-# CUST-013: Extended Window menu list and document count
+# UI-003: Extended Window menu list and document count
 
 ## Goal
 

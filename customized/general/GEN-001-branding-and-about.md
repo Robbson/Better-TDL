@@ -1,4 +1,4 @@
-# CUST-012 Branding and About dialog
+# GEN-001 Branding and About dialog
 
 ## Goal
 

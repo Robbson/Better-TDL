@@ -1,4 +1,4 @@
-# CUST-002 — Duplicated rows in List View while scrolling
+# PERF-001 — Duplicated rows in List View while scrolling
 
 | Field | Value |
 |---|---|
@@ -6,11 +6,11 @@
 | Upstream baseline | ToDoList 9.3.DP7 |
 | Scope | Task List View scrolling/repainting; related Task Tree history |
 | Default | No behaviour change; no code retained |
-| Related | [index.md](index.md), [../PERFORMANCE.md](../PERFORMANCE.md), [CUST-004](CUST-004-ui-perf-harness.md) |
+| Related | [index.md](../index.md), [../PERFORMANCE.md](../../PERFORMANCE.md), [PERF-003](PERF-003-ui-perf-harness.md) |
 
 ## Why the Task Tree has its own path
 
-See [ARCHITECTURE.md §4.2.1](../docs/ARCHITECTURE.md) for the comparison of the 6.9.6
+See [ARCHITECTURE.md §4.2.1](../../docs/ARCHITECTURE.md) for the comparison of the 6.9.6
 single-tree/gutter design and the current split tree + attribute-List design.
 
 The Task Tree is not special because it is a tree. It is special because
@@ -54,7 +54,7 @@ copy described above.
   the artefacts, but breaks the caret/selection behaviour in the current
   two-window design. The correct caret handling could not be restored without
   reintroducing the native scroll (and therefore the copies).
-- All code experiments are reverted. CUST-002 is deferred; a real fix requires
+- All code experiments are reverted. PERF-001 is deferred; a real fix requires
   replacing the controls' scroll-copy path (custom scroll/repaint or a
   non-native control), not post-scroll repainting.
 
@@ -178,7 +178,7 @@ So there are two valid layers for a fix:
 
 ## Reproducing
 
-The [CUST-004 harness](CUST-004-ui-perf-harness.md) drives the real UI and can
+The [PERF-003 harness](PERF-003-ui-perf-harness.md) drives the real UI and can
 record the transition at 20 or 60 fps:
 
 ```bat
@@ -374,11 +374,11 @@ Why the estimate is large:
   navigation.
 - Regression risk is high: the views are central to the application and are
   covered only partly by automated tests. A tree/List scroll scenario in
-  CUST-004 is a prerequisite for measuring progress.
+  PERF-003 is a prerequisite for measuring progress.
 
 A reasonable sequence would be:
 
-1. Add a tree-scroll and ListView-wheel scenario to CUST-004 (1–2 days).
+1. Add a tree-scroll and ListView-wheel scenario to PERF-003 (1–2 days).
 2. Prototype a custom-scrolled flat List View with selection and keyboard only
    (1–2 weeks), measure performance and visual result.
 3. Decide whether to continue to full parity or stop after the prototype.
@@ -411,10 +411,10 @@ were reverted:
 ## Verification
 
 - The reverted tree builds (`Unicode Debug|Win32`).
-- CUST-004 `ListScrollSync` (Page Down, real sample) still passes:
+- PERF-003 `ListScrollSync` (Page Down, real sample) still passes:
   `syncErrors=0`, `maxDiff=0`, `artifactSteps=0`.
 - `TDLTest`: 310240/310264 pass; the 24 failures are the pre-existing
-  `CTDCTaskMatcherTest::IndividualRules` failures already recorded in CUST-001.
+  `CTDCTaskMatcherTest::IndividualRules` failures already recorded in UI-001.
 - Tree Page Up/Down was validated manually only. There is no automated
-  tree-scroll scenario in CUST-004 yet; adding one is a prerequisite for any
+  tree-scroll scenario in PERF-003 yet; adding one is a prerequisite for any
   further attempt.

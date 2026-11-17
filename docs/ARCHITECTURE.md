@@ -235,7 +235,7 @@ available in the sibling `todolist_src.6.9.6` checkout for comparison.
 | Scrolling | One window owns the scroll position | Two windows must be scrolled and kept in step by `CTreeListSyncer` |
 | Scroll artefacts | Possible from the native tree scroll + custom drawing | Possible in both panes; the two-window sync adds a second copy source |
 | Selection | One control | Tree/list selection and the attribute list are synchronised |
-| Main cost | Custom column painting, header and hit-testing in the gutter | Cross-window synchronisation, splitter state and the scroll-paint issues in CUST-002 |
+| Main cost | Custom column painting, header and hit-testing in the gutter | Cross-window synchronisation, splitter state and the scroll-paint issues in PERF-001 |
 
 Why the current design was likely chosen (inferred from what the code enables):
 
@@ -250,7 +250,7 @@ Why the current design was likely chosen (inferred from what the code enables):
   reused instead of maintained twice.
 
 The trade-off is the two-window scroll-synchronisation and paint behaviour documented
-in CUST-002. The old single-window design did not have the cross-window mismatch, but
+in PERF-001. The old single-window design did not have the cross-window mismatch, but
 it still used the native tree scroll and custom drawing, so it was not inherently free
 of scroll-copy artefacts.
 
@@ -289,7 +289,7 @@ through `CTDLTaskDependencyEditDlg`. Time tracking is a frame-level modeless dia
 
 The attributes pane is `CTDLTaskAttributeCtrl`, which currently hosts the property-grid
 editor `CTDLTaskAttributeListCtrl`. It is the intended seam for the planned optional
-legacy (v8.2-style) attribute bar; see [customized/index.md](../customized/index.md), `CUST-001`.
+legacy (v8.2-style) attribute bar; see [customized/index.md](../customized/index.md), `UI-001`.
 
 ---
 
@@ -406,7 +406,7 @@ sequenceDiagram
 - Moves are replayed in two passes; a real action clears the redo stack.
 - Each action carries a serial. The serial of the top action at load/save time is the
   *save point*; `CToDoCtrl::IsModified()` is refreshed from it after undo/redo so returning
-  to the saved state clears the `*`. See [customized/CUST-015](customized/CUST-015-undo-redo-feedback.md).
+  to the saved state clears the `*`. See [customized/ui/UI-004](../customized/ui/UI-004-undo-redo-feedback.md).
 - The active control still owns a local undo stack while it has focus (plain edits only
   undo; the comments rich edit has undo and redo). Undo/redo enablement queries that local
   stack for its own direction and only falls back to the document stack when it cannot act.

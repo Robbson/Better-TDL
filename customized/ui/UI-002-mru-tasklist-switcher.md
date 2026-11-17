@@ -1,4 +1,4 @@
-# CUST-011: MRU tasklist switcher for Ctrl+Tab
+# UI-002: MRU tasklist switcher for Ctrl+Tab
 
 Status: **In progress** (implemented and built; manual Ctrl+Tab test pending)
 

@@ -1,4 +1,4 @@
-# CUST-001 — Legacy (v8.2-style) attribute editor
+# UI-001 — Legacy (v8.2-style) attribute editor
 
 | Field | Value |
 |---|---|
@@ -6,7 +6,7 @@
 | Upstream baseline | ToDoList 9.3.DP7 |
 | Scope | Attribute editor presentation |
 | Default | Keep the 9.x property grid as default |
-| Related | [index.md](index.md) |
+| Related | [index.md](../index.md) |
 
 ## Goal
 

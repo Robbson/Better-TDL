@@ -1,4 +1,4 @@
-# CUST-017 — Functional UI automation framework (proposed)
+# GEN-003 — Functional UI automation framework (proposed)
 
 | Field | Value |
 |---|---|
@@ -6,7 +6,7 @@
 | Upstream baseline | ToDoList 9.3.DP7 |
 | Scope | New test project only; production code unchanged unless test hooks/accessibility are added |
 | Default | Not part of the normal `TDLTest` run or build |
-| Related | [index.md](index.md), [CUST-004](CUST-004-ui-perf-harness.md), [../docs/TESTING.md](../docs/TESTING.md) §2.4, §4.1 |
+| Related | [index.md](../index.md), [PERF-003](../performance/PERF-003-ui-perf-harness.md), [../docs/TESTING.md](../../docs/TESTING.md) §2.4, §4.1 |
 
 ## Goal
 
@@ -14,7 +14,7 @@ Add automated **functional** UI tests that drive the real `ToDoList.exe` through
 user flows (open tasklist, add/edit/delete tasks, switch views, filter, undo/redo,
 dialogs, save/close/reopen), asserting both the UI state and the persisted `.tdl`.
 
-`CUIPerfTest` (CUST-004) remains what it is: an opt-in splitter/scroll rendering and
+`CUIPerfTest` (PERF-003) remains what it is: an opt-in splitter/scroll rendering and
 performance harness that moves the real mouse and compares pixels. It is not the
 foundation for functional UI tests.
 
@@ -36,7 +36,7 @@ foundation for functional UI tests.
   day one; the out-of-process driver also survives app crashes and can enforce timeouts.
 
 Expected gaps, confirmed by the probe below: the splitter and some custom-drawn regions
-have no UIA element (reuse CUST-004 geometry/`SendInput` logic for those), task-list rows
+have no UIA element (reuse PERF-003 geometry/`SendInput` logic for those), task-list rows
 use callback text and expose blank names, and only the first column of the owner-draw
 attribute grid is named.
 
@@ -79,7 +79,7 @@ product-facing customization).
 ### Phase 1 — Skeleton
 
 - New test project with launch/teardown helpers.
-- Reuse the CUST-004 fixture and isolation model: per-run temp folder, generated/copied
+- Reuse the PERF-003 fixture and isolation model: per-run temp folder, generated/copied
   `.tdl`, isolated `.ini` (`UIPerfTest.cpp:1280-1375`), launch with `/i <ini>` and the
   tasklist path, wait for the visible frame by process id (`UIPerfTest.cpp:699-713`).
 - One smoke flow: open a fixture, verify the task count, switch tree/list, close.
@@ -91,10 +91,10 @@ Cover the state paths that the in-process suite cannot reach:
 
 - add/edit/delete tasks and verify after save/close/reopen (`CTaskFile`/XML round-trip);
 - filter, view switching, maximize/restore, column show/hide;
-- undo/redo and saved-state feedback (CUST-015);
+- undo/redo and saved-state feedback (UI-004);
 - dialogs (Preferences pages, Add Task, Find Tasks) including validation and Cancel;
-- tasklist lifecycle: delayed-window close (CUST-005), MRU switcher (CUST-011), Window
-  menu (CUST-013).
+- tasklist lifecycle: delayed-window close (PERF-004), MRU switcher (UI-002), Window
+  menu (UI-003).
 
 Every test asserts UI state **and** persistence where a file write is involved.
 
@@ -104,7 +104,7 @@ Only if Phase 0/2 shows they are needed, add a test-only switch (for example `/t
 disables first-run wizards, reminders, tray icons, animations and update checks, and
 optionally fixes "today". Keep the hook documented and inert without the switch.
 
-## Comments editor behaviour (CUST-010 and future editing work)
+## Comments editor behaviour (TED-004 and future editing work)
 
 The plain-text comments editor is `CTDLSimpleTextContentCtrl`, a RichEdit created with
 `IDC_COMMENTS` (`Core/ToDoList/ToDoCtrl.cpp:577`; auto-indent lives in
@@ -128,13 +128,13 @@ Drive real keystrokes (`SendInput`/FlaUI `Keyboard.Type`), because auto-indent r
 - press Enter and assert the caret/selection and resulting text via UIA **TextPattern**
   (range text, selection ranges);
 - wait for the 50 ms `TIMER_AUTOINDENT` coalescing before asserting paragraph geometry;
-- exercise the edge cases from CUST-010: bullet continuation, empty bullet, no-text line,
+- exercise the edge cases from TED-004: bullet continuation, empty bullet, no-text line,
   Shift/Ctrl/Alt+Enter unchanged, paste, font change, multi-line selection + Enter,
   undo/redo (the formatting pass must not create undo entries), and save/close/reopen
   (stored text must keep the spaces; the visual offset is re-applied on load).
 
 The expected results are written as text-with-caret/selection tables in
-[CUST-010](CUST-010-comments-auto-indent.md#behaviour-specification); the same rows drive
+[TED-004](../text-editor/TED-004-comments-auto-indent.md#behaviour-specification); the same rows drive
 the unit and UIA layers, so the contract is defined once.
 
 RichEdit exposes TextPattern text/selection and, on current Windows, range bounding
@@ -146,7 +146,7 @@ check; do not make screenshot comparison the primary assertion.
 
 Probe result (2026-11-16): the comments editor is `RICHEDIT50W` with
 `AutomationId=1003`, and exposes `TextPattern` (document text, selection ranges and
-bounding rectangles) plus `ValuePattern`. This makes the CUST-010 typing/caret/alignment
+bounding rectangles) plus `ValuePattern`. This makes the TED-004 typing/caret/alignment
 tests viable without a test hook.
 
 ### 3. What not to automate first
@@ -171,7 +171,7 @@ Feasibility in this repo:
   UIA text/selection/geometry limitations do not apply to component tests.
 - `CTDLSimpleTextContentCtrl`/`CTDLCommentsCtrl` is a good first host: create it in a
   fixed-size frame, set the font/DPI, answer the `WM_ICC_*` parent messages with a minimal
-  stub (or reuse `CTDLCommentsCtrl`), then drive keys and assert the CUST-010 contract.
+  stub (or reuse `CTDLCommentsCtrl`), then drive keys and assert the TED-004 contract.
 
 Caveats:
 
@@ -250,4 +250,4 @@ Consequences for tests:
 - Phase 0 spike result recorded here.
 - Phase 1 smoke test passes repeatedly (at least 10 consecutive runs) on the target VM.
 - Phase 2 flows pass against the Debug build and produce clear artifacts on failure.
-- Normal `TDLTest`, `BuildDebug.bat` and the CUST-004 harness are unaffected.
+- Normal `TDLTest`, `BuildDebug.bat` and the PERF-003 harness are unaffected.

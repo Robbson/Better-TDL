@@ -1,4 +1,4 @@
-# CUST-016: Restore tree folding when a filter is cleared
+# UI-005: Restore tree folding when a filter is cleared
 
 Status: **In progress** (implemented and compiled; manual filter test pending)
 

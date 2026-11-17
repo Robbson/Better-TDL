@@ -1,4 +1,4 @@
-# CUST-008: Hide the mouse pointer while typing in text controls
+# TED-002: Hide the mouse pointer while typing in text controls
 
 Status: **Done**
 

@@ -227,7 +227,7 @@ selection queries used as business predicates (`SelectionHasDependencies`,
 variants wrap `CTreeCtrl`/`CListCtrl` and maintain `HTREEITEM`↔task-ID maps.
 
 `CTreeListSyncer` (`Core/Shared/TreeListSyncer.cpp`, 99 KB) is the two-window scroll,
-selection and splitter synchronisation engine. This is the CUST-002/CUST-003 hotspot.
+selection and splitter synchronisation engine. This is the PERF-001/PERF-002 hotspot.
 
 This is the **most expensive single rewrite** after the shell: a model/view task grid
 with hierarchical rows, frozen title column, attribute columns, grouping, sorting,

@@ -1,4 +1,4 @@
-# CUST-004 — Automated UI performance/artefact harness
+# PERF-003 — Automated UI performance/artefact harness
 
 | Field | Value |
 |---|---|
@@ -6,7 +6,7 @@
 | Upstream baseline | ToDoList 9.3.DP7 |
 | Scope | `Core/TDLTest` only; production code unchanged |
 | Default | Off unless `-ui` is passed; normal builds/tests are unaffected |
-| Related | [index.md](index.md), [../PERFORMANCE.md](../PERFORMANCE.md) §7.4 |
+| Related | [index.md](../index.md), [../PERFORMANCE.md](../../PERFORMANCE.md) §7.4 |
 
 ## Goal
 
@@ -20,8 +20,8 @@ repeatable harness that:
 4. Prints timing, GDI-object and paint-artefact metrics and saves mismatching
    frames as JPEGs (and mismatching settled frames as BMPs).
 
-It is intended for CUST-002 (list-view stale titles) as well as the splitter work
-in CUST-003.
+It is intended for PERF-001 (list-view stale titles) as well as the splitter work
+in PERF-002.
 
 ## What was added
 
@@ -55,7 +55,7 @@ No `Core/ToDoList` production file is changed.
 - Switches to List View via `ID_ACTIVATEVIEW_LISTVIEW`.
 - Finds the paired `SysListView32` controls and scrolls with real input: mouse
   wheel by default, or Page Down (`-keys`) after clicking the list to give it
-  focus. Page Down exposes the CUST-002 artefacts more reliably.
+  focus. Page Down exposes the PERF-001 artefacts more reliably.
 - `-size <WxH>` sets a taller/wider or smaller frame so more rows are visible and
   the stale region is more evident. It is clamped to the desktop work area.
 - Two checks:
@@ -65,7 +65,7 @@ No `Core/ToDoList` production file is changed.
   - **Fast-scroll sync check (`-record`):** scroll input is sent rapidly and
     `LVM_GETTOPINDEX` of the title list and column list are compared immediately.
     A mismatch means the title column is lagging the attribute columns, which is
-    CUST-002. A worker thread captures frames and encodes them to JPEG **in
+    PERF-001. A worker thread captures frames and encodes them to JPEG **in
     memory** (GDI+ worker thread, COM initialised) without disk I/O; the JPEGs are
     written as `frame_NNNNN_<tick>.jpg` after the run/thread stops.
 - `-capture task` crops recordings to the union of the two list views, so filter
@@ -194,12 +194,12 @@ First baseline (unmodified build):
   confirms two consecutive forced repaints are identical, so the diff is real
   stale content, not oracle noise. The saved frames show the task view's right
   edge/Tags column still painted at the previous splitter position, plus the old
-  bar strip. This is the CUST-003 artefact reproduced automatically.
+  bar strip. This is the PERF-002 artefact reproduced automatically.
 - `ListScroll` settled check: `top` advanced, `syncErrors=0`, `maxDiff≈529`,
   `artifactSteps=0`. The title list catches up when the scroll settles.
 - `ListScroll` fast check (`-record -notches 2 -delay 0`): `ListScroll[0]:
   top1=0 top2=5 MISMATCH`, `syncErrors=1`. the first recorded JPEG shows titles
-  `List task 5...` against IDs `11...`. This is CUST-002 reproduced automatically
+  `List task 5...` against IDs `11...`. This is PERF-001 reproduced automatically
   with the generated fixture.
 - Real sample (`ToDoList_Test\Tasklists\Commercial Construction.tdl`, `-keys
   -size 1200x1200 -record`):
@@ -215,7 +215,7 @@ First baseline (unmodified build):
   `Dependency`, `Due Date`, ...) still blank, while the forced repaint shows them
   populated. The pane next to the tree is affected too.
 - `SplitterDrag` fails until the artefact is fixed; pass is `artifactSteps == 0`
-  with `moved=1` and `cleanDiff == 0`. CUST-002 pass is `syncErrors == 0` in
+  with `moved=1` and `cleanDiff == 0`. PERF-001 pass is `syncErrors == 0` in
   fast-scroll mode and `artifactSteps == 0` in the settled key-scroll run.
 - Fixtures, isolated `.ini` and captured frames are written under
   `%TEMP%\TDLPerf\<Scenario>_<timestamp>\`.
@@ -240,6 +240,6 @@ First baseline (unmodified build):
 ## Next steps
 
 1. Run the harness on the unmodified tree and record the baseline output and frames.
-2. Add the same run as the acceptance check for any CUST-003 retry.
+2. Add the same run as the acceptance check for any PERF-002 retry.
 3. Optionally add `TDL_PERF_LOG` counters in the app for paint counts/durations.
 

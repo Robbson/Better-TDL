@@ -60,10 +60,10 @@ Core\TDLTest\Unicode_Debug\TDLTest.exe
 
 ```bat
 :: UI performance/artefact harness (interactive desktop; takes over the mouse)
-:: runs only CUIPerfTest; see customized/CUST-004-ui-perf-harness.md
+:: runs only CUIPerfTest; see customized/performance/PERF-003-ui-perf-harness.md
 Core\TDLTest\Unicode_Debug\TDLTest.exe -ui
 Core\TDLTest\Unicode_Debug\TDLTest.exe -ui -uiscroll   :: ListScrollSync only
-Core\TDLTest\Unicode_Debug\TDLTest.exe -ui -uiscroll -notches 2 -delay 0 -record :: fast CUST-002 check
+Core\TDLTest\Unicode_Debug\TDLTest.exe -ui -uiscroll -notches 2 -delay 0 -record :: fast PERF-001 check
 Core\TDLTest\Unicode_Debug\TDLTest.exe -ui -uisplitter :: SplitterDrag only
 Core\TDLTest\Unicode_Debug\TDLTest.exe -ui -uihold     :: leave app open for manual testing
 Core\TDLTest\Unicode_Debug\TDLTest.exe -ui -uiscroll -uihold -record :: manual + JPEG frames
@@ -208,8 +208,17 @@ The shell tool runs **PowerShell 7 (`pwsh`)** on Windows, not a POSIX shell.
 
 This repository is a customized fork. Before changing upstream behaviour:
 
-1. Add or update an entry under `customized/` (index plus `CUST-nnn-<keywords>.md`) with the goal,
-   the upstream starting point, files, risks and tests.
+1. Add or update an entry under `customized/` (index plus a category document) with the goal,
+   the upstream starting point, files, risks and tests. Pick one category by the primary
+   user-visible effect and use its prefix, folder and next free number (see
+   [customized/index.md](customized/index.md)):
+   - `GEN` → `customized/general/` — cross-cutting/non-visual behaviour, configuration, branding, tooling.
+   - `PERF` → `customized/performance/` — startup, open/activation cost, rendering and responsiveness.
+   - `TED` → `customized/text-editor/` — comments editor and text-control behaviour.
+   - `UI` → `customized/ui/` — windows, menus, toolbars, views, navigation and dialogs.
+   Name the file `<PREFIX>-nnn-<keywords>.md`, e.g.
+   `customized/performance/PERF-006-tasklist-open-activation-cost.md`; numbers are
+   per category and never reused.
 2. Prefer an isolated adapter/new class over editing giant upstream files; keep changes
    easy to re-apply after upstream merges.
 3. Mark the status (`Proposed`, `In progress`, `Done`, `Deferred`) and update it when the
@@ -227,7 +236,7 @@ When asked to analyze or document, prefer producing/updating the root docs and
 - `docs/APPLICATION_STATE.md` — INI/registry preferences, session and per-tasklist state, and persist timing.
 - `docs/TESTING.md` — test inventory, unit/integration/e2e classification, run limits and coverage feasibility.
 - `PROJECT_SCOPE.md` — included/excluded projects and dependencies.
-- `customized/index.md` + `customized/CUST-nnn-*.md` — all customized behaviour and its rationale.
+- `customized/index.md` + `customized/<category>/<PREFIX>-nnn-*.md` — all customized behaviour and its rationale.
 - `AGENTS.md` — this file.
 
 Include concrete `path:line` references for key claims. Keep raw file dumps out of

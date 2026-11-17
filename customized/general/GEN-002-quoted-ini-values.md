@@ -1,4 +1,4 @@
-# CUST-014: Quote-safe values in ToDoList.ini
+# GEN-002: Quote-safe values in ToDoList.ini
 
 Status: **Done**
 

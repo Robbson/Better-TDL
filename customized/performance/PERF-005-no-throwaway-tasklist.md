@@ -1,4 +1,4 @@
-# CUST-006: No throwaway tasklist at startup
+# PERF-005: No throwaway tasklist at startup
 
 Status: **Done**
 
@@ -7,7 +7,7 @@ Status: **Done**
 For anyone with saved documents, startup built a complete tasklist window that was
 destroyed again as soon as the first real document opened. It was visible as an
 "untitled" list with a sample task, then replaced. It cost about one full tasklist
-window construction, which after CUST-005 became the largest single startup item.
+window construction, which after PERF-004 became the largest single startup item.
 
 The placeholder only has a purpose when there is nothing to restore.
 
@@ -76,7 +76,7 @@ CToDoCtrlMgr::GetToDoCtrl (fallback control, no HWND)
 ```
 
 `ShowStartupWindow()` showed the frame as soon as *any* tab existed, but the first tab
-opened during a restore is normally delay-loaded and has no window (CUST-005). With no
+opened during a restore is normally delay-loaded and has no window (PERF-004). With no
 selection the single-argument `GetToDoCtrl()` returned the never-created fallback
 control, and `CDeferWndMove::MoveWindow` called `ScreenToClient` on the fallback's null
 parent.
@@ -144,7 +144,7 @@ ready, instead of showing and then replacing the placeholder.
   paths that reach into a tasklist during that window were audited for the startup
   cases above; new code should check `GetTDCCount()`/`GetSelToDoCtrl()` before using
   `GetToDoCtrl()` during startup.
-- A tasklist can also have no window until first activation (CUST-005). Any new code
+- A tasklist can also have no window until first activation (PERF-004). Any new code
   that moves, shows or focuses a tasklist must check `GetSafeHwnd()` first, and object
   lookups must not rely on the window handle
   (`CToDoCtrlMgr::FindToDoCtrl(const CFilteredToDoCtrl*)` now compares objects).

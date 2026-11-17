@@ -1,4 +1,4 @@
-# CUST-009: Highlight Quick Find matches in the comments editor
+# TED-003: Highlight Quick Find matches in the comments editor
 
 Status: **Done**
 

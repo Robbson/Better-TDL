@@ -11,17 +11,50 @@ reviewed, tested and re-applied after upstream updates.
 
 ## Folder layout
 
+Documents are grouped by the area they affect. Each category has its own ID prefix and
+its own number sequence.
+
 ```text
 customized/
-  index.md                       this file: conventions, status, change index
-  CUST-001-legacy-attribute-editor.md
-  CUST-002-<keywords>.md         one file per customization
+  index.md                        this file: conventions, status and change index
+  general/     GEN-001 ...        cross-cutting behaviour, configuration, branding, tooling
+  performance/ PERF-001 ...       startup, open/activation cost, rendering, responsiveness
+  text-editor/ TED-001 ...        comments editor, text controls, editing behaviour
+  ui/          UI-001 ...         windows, menus, toolbars, views, navigation, dialogs
 ```
+
+## Where a new document goes
+
+Pick exactly one category by the primary user-visible effect this change has:
+
+| Category | Prefix | Folder | Use for |
+|---|---|---|---|
+| General | `GEN` | `general/` | Cross-cutting or non-visual behaviour: configuration/INI handling, branding and version resources, build/test tooling, automation frameworks that are not tied to one UI area. If a change spans several categories and none dominates, use `GEN`. |
+| Performance | `PERF` | `performance/` | Changes whose main purpose is speed, startup cost, latency, memory or rendering performance. A performance-motivated fix that also touches the UI still belongs here. |
+| Text editor | `TED` | `text-editor/` | The comments editor and other text-editing controls: toolbar buttons that act on text, typing behaviour, formatting, Quick Find highlighting, display toggles. |
+| UI | `UI` | `ui/` | Windows, frames, menus, toolbars as UI structure, views, list/tree presentation, navigation, dialogs and theme. |
+
+Rules of thumb:
+
+- Judge by the **reason for the change**, not by the files touched. Fixing a repaint bug
+  because it is slow is `PERF`; adding a toolbar button for text formatting is `TED`.
+- A customization that changes only the comments editor is `TED`, even if its buttons live
+  in the main toolbar.
+- Do not create a new category without updating this file and `AGENTS.md`; keep the folder
+  name the kebab-case form of the category and the prefix short and unique.
 
 ## Conventions
 
-- Give every change an ID: `CUST-001`, `CUST-002`, …
-- Name files `CUST-nnn-<one-or-few-keywords>.md`.
+- Give every change an ID in the form `<PREFIX>-nnn`: `GEN-001`, `PERF-001`, `TED-001`,
+  `UI-001`, …
+- Number per category, starting at `001`. Never reuse or renumber an existing ID; a new
+  change takes the next free number in its category.
+- Name files `<PREFIX>-nnn-<one-or-few-keywords>.md` and place them in the matching
+  category folder, e.g. `performance/PERF-006-tasklist-open-activation-cost.md`.
+- Cross-reference other changes by ID and relative link, e.g.
+  `[PERF-004](performance/PERF-004-delayed-tasklist-window.md)` or, across categories,
+  `[TED-001](text-editor/TED-001-comments-toolbar-in-main-toolbar.md)`. Link back to
+  this index as `../index.md`.
 - Record: goal, upstream starting point, files touched, settings, risks, test notes.
 - Keep custom code in clearly marked blocks/files so future upstream merges remain
   possible.
@@ -41,27 +74,43 @@ customized/
 
 ## Change index
 
+### General (`GEN`)
+
 | ID | Title | Status | Document |
 |---|---|---|---|
-| CUST-001 | Legacy (v8.2-style) attribute editor, selectable | In progress (Phases 1–3 done; date painting pending) | [CUST-001-legacy-attribute-editor.md](CUST-001-legacy-attribute-editor.md) |
-| CUST-002 | Duplicated rows in List View while scrolling | Deferred (all targeted tree experiments reverted) | [CUST-002-list-view-stale-title.md](CUST-002-list-view-stale-title.md) |
-| CUST-003 | Splitter paint performance (attempted) | Deferred (three iterations tested; all reverted) | [CUST-003-splitter-paint-performance.md](CUST-003-splitter-paint-performance.md) |
-| CUST-004 | Automated UI performance/artefact harness | In progress (implemented/built; interactive baseline pending) | [CUST-004-ui-perf-harness.md](CUST-004-ui-perf-harness.md) |
-| CUST-005 | Deferred window creation for delay-loaded tasklists | Done | [CUST-005-delayed-tasklist-window.md](CUST-005-delayed-tasklist-window.md) |
-| CUST-006 | No throwaway tasklist at startup | Done | [CUST-006-no-throwaway-tasklist.md](CUST-006-no-throwaway-tasklist.md) |
-| CUST-007 | Comments editor controls moved to the main toolbar | Done (date/time buttons stay; format-combo move planned to be reverted — see CUST-019) | [CUST-007-comments-toolbar-in-main-toolbar.md](CUST-007-comments-toolbar-in-main-toolbar.md) |
-| CUST-008 | Hide mouse pointer while typing in text controls | Done | [CUST-008-comments-hide-pointer-while-typing.md](CUST-008-comments-hide-pointer-while-typing.md) |
-| CUST-009 | Highlight Quick Find matches in the comments editor | Done | [CUST-009-quickfind-comments-highlight.md](CUST-009-quickfind-comments-highlight.md) |
-| CUST-010 | Auto-indent (Return and wrapped lines) in the comments editor | In progress (implemented; covered by TDLTest) | [CUST-010-comments-auto-indent.md](CUST-010-comments-auto-indent.md) |
-| CUST-011 | IntelliJ-style MRU tasklist switcher for Ctrl+Tab | In progress (implemented/built; manual test pending) | [CUST-011-mru-tasklist-switcher.md](CUST-011-mru-tasklist-switcher.md) |
-| CUST-012 | Product name and release label from version resource; About layout | Done (built; manual About check pending) | [CUST-012-branding-and-about.md](CUST-012-branding-and-about.md) |
-| CUST-013 | Window menu lists up to 25 tasklists and shows the open count | In progress (implemented/built; manual check pending) | [CUST-013-window-menu-list.md](CUST-013-window-menu-list.md) |
-| CUST-014 | Quote-safe values in ToDoList.ini (Quick Find history) | Done | [CUST-014-quoted-ini-values.md](CUST-014-quoted-ini-values.md) |
-| CUST-015 | Undo/redo feedback, enablement and saved-state tracking | Done | [CUST-015-undo-redo-feedback.md](CUST-015-undo-redo-feedback.md) |
-| CUST-016 | Restore tree folding when a filter is cleared | In progress (implemented/built; manual filter test pending) | [CUST-016-filter-fold-restore.md](CUST-016-filter-fold-restore.md) |
-| CUST-017 | Functional UI automation framework (UIA/FlaUI proposal) | Proposed | [CUST-017-ui-automation-framework.md](CUST-017-ui-automation-framework.md) |
-| CUST-018 | Comments editor word-wrap and show-all-characters toolbar toggles | In progress (implemented/built; interactive check pending) | [CUST-018-comments-display-toggles.md](CUST-018-comments-display-toggles.md) |
-| CUST-019 | Toolbar architecture: command tables, split bars, main-toolbar customization | In progress (phase 1 done: data-driven main toolbar; later phases proposed) | [CUST-019-toolbar-architecture.md](CUST-019-toolbar-architecture.md) |
-| CUST-020 | Tri-state view toolbar button (task list / editor / split) | Proposed (design note) | [CUST-020-tristate-view-toolbar-button.md](CUST-020-tristate-view-toolbar-button.md) |
-| CUST-021 | Fixed per-tasklist open/activation cost in a running app | Proposed (runtime analysis complete; instrumentation next) | [CUST-021-tasklist-open-activation-cost.md](CUST-021-tasklist-open-activation-cost.md) |
+| GEN-001 | Product name and release label from version resource; About layout | Done (built; manual About check pending) | [GEN-001-branding-and-about.md](general/GEN-001-branding-and-about.md) |
+| GEN-002 | Quote-safe values in ToDoList.ini (Quick Find history) | Done | [GEN-002-quoted-ini-values.md](general/GEN-002-quoted-ini-values.md) |
+| GEN-003 | Functional UI automation framework (UIA/FlaUI proposal) | Proposed | [GEN-003-ui-automation-framework.md](general/GEN-003-ui-automation-framework.md) |
 
+### Performance (`PERF`)
+
+| ID | Title | Status | Document |
+|---|---|---|---|
+| PERF-001 | Duplicated rows in List View while scrolling | Deferred (all targeted tree experiments reverted) | [PERF-001-list-view-stale-title.md](performance/PERF-001-list-view-stale-title.md) |
+| PERF-002 | Splitter paint performance (attempted) | Deferred (three iterations tested; all reverted) | [PERF-002-splitter-paint-performance.md](performance/PERF-002-splitter-paint-performance.md) |
+| PERF-003 | Automated UI performance/artefact harness | In progress (implemented/built; interactive baseline pending) | [PERF-003-ui-perf-harness.md](performance/PERF-003-ui-perf-harness.md) |
+| PERF-004 | Deferred window creation for delay-loaded tasklists | Done | [PERF-004-delayed-tasklist-window.md](performance/PERF-004-delayed-tasklist-window.md) |
+| PERF-005 | No throwaway tasklist at startup | Done | [PERF-005-no-throwaway-tasklist.md](performance/PERF-005-no-throwaway-tasklist.md) |
+| PERF-006 | Fixed per-tasklist open/activation cost in a running app | Proposed (runtime analysis complete; instrumentation next) | [PERF-006-tasklist-open-activation-cost.md](performance/PERF-006-tasklist-open-activation-cost.md) |
+
+### Text editor (`TED`)
+
+| ID | Title | Status | Document |
+|---|---|---|---|
+| TED-001 | Comments editor controls moved to the main toolbar | Done (date/time buttons stay; format-combo move planned to be reverted — see UI-006) | [TED-001-comments-toolbar-in-main-toolbar.md](text-editor/TED-001-comments-toolbar-in-main-toolbar.md) |
+| TED-002 | Hide mouse pointer while typing in text controls | Done | [TED-002-comments-hide-pointer-while-typing.md](text-editor/TED-002-comments-hide-pointer-while-typing.md) |
+| TED-003 | Highlight Quick Find matches in the comments editor | Done | [TED-003-quickfind-comments-highlight.md](text-editor/TED-003-quickfind-comments-highlight.md) |
+| TED-004 | Auto-indent (Return and wrapped lines) in the comments editor | In progress (implemented; covered by TDLTest) | [TED-004-comments-auto-indent.md](text-editor/TED-004-comments-auto-indent.md) |
+| TED-005 | Comments editor word-wrap and show-all-characters toolbar toggles | In progress (implemented/built; interactive check pending) | [TED-005-comments-display-toggles.md](text-editor/TED-005-comments-display-toggles.md) |
+
+### UI (`UI`)
+
+| ID | Title | Status | Document |
+|---|---|---|---|
+| UI-001 | Legacy (v8.2-style) attribute editor, selectable | In progress (Phases 1–3 done; date painting pending) | [UI-001-legacy-attribute-editor.md](ui/UI-001-legacy-attribute-editor.md) |
+| UI-002 | IntelliJ-style MRU tasklist switcher for Ctrl+Tab | In progress (implemented/built; manual test pending) | [UI-002-mru-tasklist-switcher.md](ui/UI-002-mru-tasklist-switcher.md) |
+| UI-003 | Window menu lists up to 25 tasklists and shows the open count | In progress (implemented/built; manual check pending) | [UI-003-window-menu-list.md](ui/UI-003-window-menu-list.md) |
+| UI-004 | Undo/redo feedback, enablement and saved-state tracking | Done | [UI-004-undo-redo-feedback.md](ui/UI-004-undo-redo-feedback.md) |
+| UI-005 | Restore tree folding when a filter is cleared | In progress (implemented/built; manual filter test pending) | [UI-005-filter-fold-restore.md](ui/UI-005-filter-fold-restore.md) |
+| UI-006 | Toolbar architecture: command tables, split bars, main-toolbar customization | In progress (phase 1 done: data-driven main toolbar; later phases proposed) | [UI-006-toolbar-architecture.md](ui/UI-006-toolbar-architecture.md) |
+| UI-007 | Tri-state view toolbar button (task list / editor / split) | Proposed (design note) | [UI-007-tristate-view-toolbar-button.md](ui/UI-007-tristate-view-toolbar-button.md) |

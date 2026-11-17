@@ -23,6 +23,7 @@
 #include "tdlquickfindcombobox.h"
 #include "TDLThreadedExporterWnd.h"
 #include "TDLCustomToolbar.h"
+#include "TDLToolbar.h"
 #include "TDCMainMenu.h"
 #include "TDLStatusBar.h"
 #include "TDCFindFilterHelper.h"
@@ -140,7 +141,7 @@ protected:
 	CEnBrowserCtrl m_IE;
 	CEnImageList m_ilTabCtrl;
 	CEnRecentFileList m_mruList;
-	CEnToolBar m_toolbarMain;
+	CTDLToolbar m_toolbarMain;
 	CFont m_fontMain;
 	CFont m_fontTree, m_fontComments; // shared by all tasklists
 	CPreferencesDlg* m_pPrefs;

@@ -2,14 +2,14 @@
 
 | Field | Value |
 |---|---|
-| Status | Proposed (analysis and migration plan; no code changes) |
+| Status | In progress (phase 1 implemented: data-driven main toolbar; remaining phases proposed) |
 | Upstream baseline | ToDoList 9.3.DP7 |
-| Scope | `Core/ToDoList/ToDoListWnd.*`, `Core/ToDoList/TDLCustomToolbar.*`, `Core/ToDoList/TDCToolsHelper.*`, `Core/ToDoList/TDCMenuIconMgr.*`, `Core/ToDoList/TDCImageList.*`, `Core/Shared/EnToolBar.*`, `Core/Shared/MenuIconMgr.*`, `Core/ToDoList/ToDoList.rc` |
+| Scope | `Core/ToDoList/ToDoListWnd.*`, `Core/ToDoList/TDLToolbar.*`, `Core/ToDoList/TDLCustomToolbar.*`, `Core/ToDoList/TDCToolsHelper.*`, `Core/ToDoList/TDCMenuIconMgr.*`, `Core/ToDoList/TDCImageList.*`, `Core/Shared/EnToolBar.*`, `Core/Shared/MenuIconMgr.*`, `Core/ToDoList/ToDoList.rc` |
 | Related | [index.md](index.md), [CUST-007](CUST-007-comments-toolbar-in-main-toolbar.md), [CUST-018](CUST-018-comments-display-toggles.md) |
 
 ## Goal
 
-Record why the main toolbar is fixed and image-strip based, why the custom toolbar is
+Record why the main toolbar was fixed and image-strip based, why the custom toolbar is
 not, and how to migrate to a data-driven toolbar model without bitmap editing. The target
 is to:
 
@@ -20,22 +20,83 @@ is to:
 3. optionally let the user customize the main bar with the same machinery the custom bar
    already uses.
 
-This document is the reference for that migration. It does not change behaviour.
+This document is the reference for that migration. Phase 1 is implemented; later phases
+remain proposed. Phase 1 preserves the existing appearance, order, tooltips and command
+behaviour.
+
+## Phase 1 implementation (2026-11-17)
+
+Files added: `Core/ToDoList/TDLToolbar.h/.cpp`.
+Files changed: `Core/ToDoList/ToDoListWnd.h/.cpp`,
+`Core/ToDoListLib/ToDoListLib.vcxproj(.filters)`, `Core/ToDoList/ToDoList.rc` (comment and
+tooltip string entries).
+
+What it does:
+
+- `TDCTOOLBARITEM { UINT nCmdID; LPCTSTR szImageKey; }` and
+  `TDCTOOLBARSPEC { name, items, count }` define the bar.
+- `MAIN_TOOLBAR_ITEMS` in `TDLToolbar.cpp` is now the source of truth for the main
+  toolbar's order, separators and icons. It mirrors the previous `IDR_APP_TOOLBAR` order;
+  the `IDR_APP_TOOLBAR` `TOOLBAR` resource is no longer loaded (a comment in `ToDoList.rc`
+  says so).
+- `CTDLToolbar : CEnToolBar` adds `GetBackgroundColor()` and
+  `SetImageList(HIMAGELIST, cx, cy)`, which takes ownership of a list, sets the image and
+  button sizes, installs normal/hot lists and rebuilds the disabled list.
+- `CTDLToolbarBuilder::Build` loads `CTDCImageList::LoadDefaultImages(TRUE)` (the same
+  shared image source as the custom toolbar and menu icons), copies only the icons used by
+  the spec into a compact per-bar list and inserts one button per spec item with
+  `iBitmap = index in that list`.
+- `CToDoListWnd::InitMainToolbar` now calls the builder instead of
+  `LoadToolBar(IDR_APP_TOOLBAR)` + positional `SetImage(IDB_APP_TOOLBAR_STD)`.
+
+Consequences for developers:
+
+- Adding an existing command: add one `TDCTOOLBARITEM` line in the required position. Use
+  its image name from `CTDCImageList` (`"200".."226"` for `IDB_APP_TOOLBAR_STD`,
+  `"250"..` for `IDB_APP_EXTRA_STD`, task icon names, or a file name under `Icons\`).
+  No `.rc` or bitmap edit.
+- Reordering: move lines.
+- Adding a brand-new icon: add the image to the shared image source as before; only then is
+  a bitmap/icon edit needed.
+- The strip no longer defines toolbar order or button count; it is only an icon source.
+  The numeric keys `"200".."226"` still refer to its icon positions, so extending that
+  strip appends new names without shifting anything the toolbar table references.
+- Tooltips come from the `STRINGTABLE` entry whose ID equals the command ID
+  (`CToolbarHelper::GetResourceTip`, `Core/Shared/ToolbarHelper.cpp:587-605`); the text
+  after `\n` is shown and the shortcut is appended. Add an entry for every new toolbar
+  command. Without one, the helper declines the tooltip, the frame's
+  `OnNeedTooltipText` fallback runs, and `CTDCMainMenu::GetDynamicItemTooltip` asserts for
+  non-dynamic commands.
+- Debug builds assert if a spec item has no image key or the key does not resolve.
+
+Verification for phase 1:
+
+- `msbuild Core\ToDoList_Core.sln /t:Build /p:Configuration="Unicode Debug"
+  /p:Platform=Win32 /m` succeeds; `TDLTest` ran 310,419 tests successfully.
+- Debug `ToDoList.exe` launched against a temp copy of an example tasklist with
+  `TDL_ASSERT_LOG` set: no assertions, toolbar rendered with the expected buttons and the
+  Quick Find and comments-format combos in their existing anchors.
+- Interactive visual comparison at 100% DPI only; high-DPI and theme-change paths still
+  need a manual pass.
 
 ## Current architecture (facts)
 
-### Main toolbar
+### Main toolbar (state before phase 1)
+
+The phase 1 implementation above replaced the resource-loaded main toolbar. The facts below
+describe the previous design and remain relevant to the custom toolbar comparison and to
+the remaining migration phases.
 
 - `CToDoListWnd` derives from plain `CFrameWnd`, not `CFrameWndEx`
   (`Core/ToDoList/ToDoListWnd.h:71`), so no MFC Feature Pack (`CMFCToolBar`, Ribbon,
   visual manager).
-- `CEnToolBar m_toolbarMain` (`ToDoListWnd.h:160`); `CEnToolBar` derives from `CToolBar`
-  (`Core/Shared/EnToolBar.h:19`).
+- `CTDLToolbar m_toolbarMain` (`ToDoListWnd.h:144`; was `CEnToolBar` before phase 1);
+  `CEnToolBar` derives from `CToolBar` (`Core/Shared/EnToolBar.h:19`).
 - Created with the classic common-control styles
   `CreateEx(this, TBSTYLE_FLAT | TBSTYLE_WRAPABLE, WS_CHILD | CBRS_ALIGN_TOP | ...)`
-  (`ToDoListWnd.cpp:1642`).
+  (`ToDoListWnd.cpp:1646`).
 - Buttons and order come from the binary `IDR_APP_TOOLBAR` `TOOLBAR` resource
-  (`ToDoList.rc:2299`) via `LoadToolBar` (`ToDoListWnd.cpp:1645`).
+  (`ToDoList.rc:2299`) via `LoadToolBar` (removed in phase 1).
 - Icons come from one strip, `IDB_APP_TOOLBAR_STD` (`ToDoList.rc:2217`).
   `CEnToolBar::SetImage` slices it as `bitmapWidth / nonSeparatorButtonCount` and installs
   the whole strip as one image list (`Core/Shared/EnToolBar.cpp:181-198`). Image index is
@@ -44,15 +105,15 @@ This document is the reference for that migration. It does not change behaviour.
   `ASSERT` on the sizes (`Core/ToDoList/TDCMenuIconMgr.cpp:57-96`,
   `Core/Shared/MenuIconMgr.cpp:153-157`).
 - The bar hosts real child controls at command anchors:
-  - Quick Find combo after `ID_EDIT_FINDTASKS` (`ToDoListWnd.cpp:1660-1681`);
+  - Quick Find combo after `ID_EDIT_FINDTASKS` (`ToDoListWnd.cpp:1662-1683`);
   - comments content-format combo after `ID_COMMENTS_INSERTDATETIME`
-    (`ToDoListWnd.cpp:1692-1707`; introduced by [CUST-007](CUST-007-comments-toolbar-in-main-toolbar.md)).
+    (`ToDoListWnd.cpp:1694-1709`; introduced by [CUST-007](CUST-007-comments-toolbar-in-main-toolbar.md)).
 - Positions of those combos are recomputed by `ReposToolbars` using `CommandToIndex`
-  (`ToDoListWnd.cpp:6852-6885`). The combos are children of the toolbar.
+  (`ToDoListWnd.cpp:6855-6887`). The combos are children of the toolbar.
 - Layout is manual: `ReposToolbars` resizes the main and custom bars, decides whether they
   share a row, and adds the bevel (`ToDoListWnd.cpp:6846-6925`). There is no
   `EnableDocking`/`DockControlBar` anywhere.
-- Visibility is a `BOOL` plus `ShowWindow`/`EnableWindow` (`ToDoListWnd.cpp:8324-8343`) and
+- Visibility is a `BOOL` plus `ShowWindow`/`EnableWindow` (`ToDoListWnd.cpp:8322-8341`) and
   an INI setting (`ToDoListWnd.cpp:2682`, `:2981`).
 - On theme change in high-DPI mode, the toolbar and both combos are destroyed and
   recreated, and menu icons are cleared because the image lists are DPI/background scaled
@@ -63,7 +124,7 @@ This document is the reference for that migration. It does not change behaviour.
 ### Custom toolbar
 
 - `CTDLCustomToolbar : CEnToolBar` (`Core/ToDoList/TDLCustomToolbar.h:53`); created the
-  same way as the main bar (`ToDoListWnd.cpp:1728-1730`).
+  same way as the main bar (`ToDoListWnd.cpp:1730-1732`).
 - Built programmatically from `TDCCUSTOMTOOLBARBUTTON { UINT nMenuID; CString sImageID; }`
   (`TDLCustomToolbar.h:24-48`). Each button stores a command ID and an image **name**.
 - `InitialiseButtons` loads a `CTDCImageList`, resolves each `sImageID` to an image index
@@ -129,9 +190,12 @@ Two planned UI changes remove the main toolbar's current anchors:
 Consequences: the main toolbar loses both child controls, so it can become a pure
 spec-driven command bar without fixed anchor slots. This turns phase 4 below from a design
 choice into a prerequisite (or a parallel change), and the `ReposToolbars` combo positioning
-code (`ToDoListWnd.cpp:6852-6885`) disappears with it.
+code (`ToDoListWnd.cpp:6855-6887`) disappears with it.
 
 ## Problem statement
+
+The coupling described in the first point was resolved by phase 1 for the main toolbar; the
+remaining points still apply.
 
 - The main toolbar couples three independent lists: RC button order, strip icon order and
   the code command-ID array. Adding one button means keeping all three aligned.
@@ -153,13 +217,13 @@ Introduce a single table that is the source of truth for toolbar membership and 
 ```cpp
 struct TDCTOOLBARITEM
 {
-	UINT  nCmdID;      // command ID (persisted, must stay stable)
-	LPCSTR szImageKey; // name resolved by CTDCImageList, or NULL for a separator
+	UINT  nCmdID;        // command ID (persisted, must stay stable)
+	LPCTSTR szImageKey;  // name resolved by CTDCImageList, or NULL for a separator
 };
 
 struct TDCTOOLBARSPEC
 {
-	LPCSTR szName;              // "Task", "Comments", "View", "Tools"
+	LPCTSTR szName;              // "Task", "Comments", "View", "Tools"
 	const TDCTOOLBARITEM* pItems;
 	int nCount;
 };
@@ -175,23 +239,27 @@ Rules:
   (`CTDLCustomToolbar::RemapMenuItemIDs` already models this,
   `TDLCustomToolbar.cpp:209-237`).
 
-### 2. Toolbar factory
+### 2. Toolbar builder (implemented)
 
-Add one builder that does what `CTDLCustomToolbar::InitialiseButtons` already does:
+`CTDLToolbarBuilder::Build` does what `CTDLCustomToolbar::InitialiseButtons` already does:
 
-1. `CreateEx` with the existing styles;
-2. `SetImageSize` (default 16×16, DPI-scaled by `CEnToolBar`);
-3. for each item, `InsertButton` with `iBitmap = images.GetImageIndex(szImageKey)`;
-4. `SetImageList`;
-5. tooltips via `CToolbarHelper`.
+1. callers create the bar (same `CreateEx` styles) and set the theme colours;
+2. load the shared image source, copy the used icons into a compact per-bar list;
+3. attach it with `CTDLToolbar::SetImageList` (sets image/button sizes);
+4. for each item, `InsertButton` with the item's index in the per-bar list;
+5. tooltips via `CToolbarHelper` as before.
 
 This removes `LoadToolBar(IDR_APP_TOOLBAR)` and the positional `SetImage` from
-`InitMainToolbar` (`ToDoListWnd.cpp:1645-1654`). The existing strip can remain the icon
-**source** through `CTDCImageList`; it no longer defines order.
+`InitMainToolbar` (the resource-loaded implementation replaced in phase 1). The existing
+strip remains the icon **source** through `CTDCImageList`; it no longer defines order.
 
-### 3. Shared image list
+### 3. Shared image source
 
-Prefer one `CTDCImageList` owned by the frame or a small manager, shared by all bars:
+Phase 1 shares the *source* (`CTDCImageList::LoadDefaultImages`) and copies the used icons
+into each bar's own list. That keeps existing disabled-icon generation and ownership
+semantics unchanged.
+
+A later phase can share one `CTDCImageList` instance between bars:
 
 - avoids duplicating icons across bars and the menu icon map;
 - keeps command-to-icon resolution in one place;
@@ -303,7 +371,7 @@ definition; persist user layout separately.
 | Phase | Work | Files | Risk |
 |---|---|---|---|
 | 0 | Add validation for the current three-way sync; document the strip/count invariant | `TDCMenuIconMgr.cpp`, tests | None |
-| 1 | Add `TDCTOOLBARITEM`/`TDCTOOLBARSPEC` and `CTDCToolbarFactory`; build the **existing** main bar from a spec using per-button indices from a `CTDCImageList`; keep combos and current order | `ToDoListWnd.cpp`, `EnToolBar.*`, new helper | Medium: layout, tooltips, disabled states |
+| 1 | **Done (phase 1):** `TDCTOOLBARITEM`/`TDCTOOLBARSPEC` + `CTDLToolbarBuilder::Build` build the existing main bar from a spec using per-button indices from a `CTDCImageList`; combos and order preserved | `TDLToolbar.h/.cpp` (new), `ToDoListWnd.*`, project files | Medium: layout, tooltips, disabled states |
 | 2 | Replace the parallel command arrays with the spec; derive menu icons from the same source | `TDCMenuIconMgr.cpp`, `MenuIconMgr.*` | Medium: menu icons, source-control toggle icons |
 | 3 | Split specs into category bars; add View menu toggles and INI visibility flags; extend `ReposToolbars` | `ToDoListWnd.*`, `ToDoList.rc` | Medium-high: layout, DPI, wrapping |
 | 4 | Remove the combo anchors: merge Quick Find into `CTDLFilterBar`; move the comments-format combo back above the editor (partly reverts CUST-007) | `ToDoListWnd.*`, `TDLFilterBar.*`, `TDLCommentsCtrl.*`, `ToDoCtrl.*` | Medium: filtering semantics, focus/history, editor layout |

@@ -2298,6 +2298,8 @@ BEGIN
     BUTTON      ID_FIND_HELP
 END
 
+// NOTE: not loaded at runtime. The main toolbar is built from
+// MAIN_TOOLBAR_ITEMS in TDLToolbar.cpp (CUST-019).
 IDR_APP_TOOLBAR TOOLBAR 16, 15
 BEGIN
     BUTTON      ID_LOAD_NORMAL
@@ -3978,6 +3980,8 @@ BEGIN
     ID_NEWTASK_BEFORESELECTEDTASK "\tNew Task"
     ID_NEWSUBTASK_ATTOP     "\nNew Subtask"
     ID_EDIT_TASKTEXT        "\nEdit Task Title"
+    ID_EDIT_TASKCOLOR       "\nSet Task Colour"
+    ID_EDIT_CLEARTASKCOLOR  "\nClear Task Colour"
     ID_MOVE_TASKUP          "Move the Selected Task Up One Position"
     ID_MOVE_TASKDOWN        "Move the Selected Task Down One Position"
 END

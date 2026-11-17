@@ -86,9 +86,10 @@ Files: `Core/ToDoList/TDLCommentsCtrl.h/.cpp`, `Core/ToDoList/ToDoCtrl.h/.cpp`,
 - Any code that assumed `CTDLCommentsCtrl` always had a visible format combo must use
   the new `GetSelectedFormat`/`SetSelectedFormat` API instead of looking at the control.
 - The toolbar bitmaps: only `app_toolbar_std.bmp` is extended (now 432×16 after CUST-018);
-  `app_toolbar.bmp` remains 352×15. Adding future main-toolbar buttons still requires
-  appending images in the same order, and the normal bitmap must remain loadable by
-  `AfxLoadSysColorBitmap`.
+  `app_toolbar.bmp` remains 352×15. Since [CUST-019](CUST-019-toolbar-architecture.md) the
+  main toolbar order lives in `TDLToolbar.cpp` (`MAIN_TOOLBAR_ITEMS`) and
+  `IDR_APP_TOOLBAR` is no longer loaded, so adding a command with an existing icon no
+  longer requires bitmap edits; adding a new icon still does.
 - The comments label is gone; the edit field is identified by its position and border.
 
 ## Planned revision (recorded 2026-11-17)

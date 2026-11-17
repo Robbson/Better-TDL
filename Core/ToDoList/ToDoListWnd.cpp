@@ -1646,16 +1646,14 @@ BOOL CToDoListWnd::InitMainToolbar()
 	if (!m_toolbarMain.CreateEx(this, (TBSTYLE_FLAT | TBSTYLE_WRAPABLE), nStyle))
 		return FALSE;
 
-	if (!m_toolbarMain.LoadToolBar(IDR_APP_TOOLBAR))
-		return FALSE;
-	
 	m_toolbarMain.SetBorders(4, 2, 0, 0);
 
 	// initialise colors before setting image because the
 	// background colour may be needed for image scaling
 	UpdateToolbarColors(m_toolbarMain, m_theme);
-	
-	m_toolbarMain.SetImage(IDB_APP_TOOLBAR_STD, colorMagenta);
+
+	if (!CTDLToolbarBuilder::Build(m_toolbarMain, GetMainToolbarSpec()))
+		return FALSE;
 	
 	// resize the toolbar in one row so that our subsequent calculations work
 	m_toolbarMain.Resize(1000, CPoint(0, 2)); 

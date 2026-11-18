@@ -5,7 +5,7 @@
 | Status | In progress (phase 1 implemented: data-driven main toolbar; remaining phases proposed) |
 | Upstream baseline | ToDoList 9.3.DP7 |
 | Scope | `Core/ToDoList/ToDoListWnd.*`, `Core/ToDoList/TDLToolbar.*`, `Core/ToDoList/TDLCustomToolbar.*`, `Core/ToDoList/TDCToolsHelper.*`, `Core/ToDoList/TDCMenuIconMgr.*`, `Core/ToDoList/TDCImageList.*`, `Core/Shared/EnToolBar.*`, `Core/Shared/MenuIconMgr.*`, `Core/ToDoList/ToDoList.rc` |
-| Related | [index.md](../index.md), [TED-001](../text-editor/TED-001-comments-toolbar-in-main-toolbar.md), [TED-005](../text-editor/TED-005-comments-display-toggles.md), [UI-007](UI-007-tristate-view-toolbar-button.md) |
+| Related | [index.md](../index.md), [TED-001](../text-editor/TED-001-comments-toolbar-in-main-toolbar.md), [TED-005](../text-editor/TED-005-comments-display-toggles.md), [UI-007](UI-007-tristate-view-toolbar-button.md), [UI-008](UI-008-compact-filter-bar.md) |
 
 ## Goal
 

@@ -1469,9 +1469,8 @@ BOOL CTreeListSyncer::HandleEraseBkgnd(CDC* pDC)
 
 	if (GetHScrollDeadSpace(rDead))
 	{
-#ifdef _DEBUG
-		pDC->FillSolidRect(rDead, RGB(128, 128, 128));
-#else
+		// Paint this the same in all builds: it's a normal layout gap
+		// beside one pane's horizontal scrollbar, not an error
 		CThemed th;
 		
 		if (th.IsNonClientThemed() && th.Open(hwndPrimary, _T("SCROLLBAR")))
@@ -1485,7 +1484,6 @@ BOOL CTreeListSyncer::HandleEraseBkgnd(CDC* pDC)
 		{	
 			pDC->FillSolidRect(rDead, ::GetSysColor(COLOR_SCROLLBAR));
 		}
-#endif
 		
 		pDC->ExcludeClipRect(rDead);
 		bHandled = TRUE;

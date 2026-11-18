@@ -2906,6 +2906,8 @@
 #define IDC_PATHTOHOMEFOLDER            1605
 #define IDS_PREFTIP_GEN_HOMEFOLDER      51951
 #define IDS_HOMEFOLDER_VIEWUNSUPPORTED  51952
+#define IDS_SPLITTER_TIP_AUTOFIT        51953
+#define IDS_SPLITTER_TIP_FIXED          51954
 
 // Next default values for new objects
 // 

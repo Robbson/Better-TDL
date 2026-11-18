@@ -21,6 +21,7 @@
 #include "..\shared\wndprompt.h"
 #include "..\shared\webmisc.h"
 #include "..\shared\enbitmap.h"
+#include "..\shared\enstring.h"
 #include "..\shared\msoutlookhelper.h"
 #include "..\shared\ScopedTimer.h"
 #include "..\shared\FileIcons.h"
@@ -58,6 +59,7 @@ const COLORREF COMMENTSCOLOR	= RGB(98, 98, 98);
 const COLORREF ALTCOMMENTSCOLOR = RGB(164, 164, 164);
 
 const UINT TIMER_BOUNDINGSEL	= 100;
+const int SPLITTER_TOOLTIP_ID	= 0x10000;
 
 const LPCTSTR APP_ICON			= _T("TDL_APP_ICON");
 
@@ -257,6 +259,8 @@ CTDLTaskCtrlBase::CTDLTaskCtrlBase(const CTDCImageList& ilIcons,
 			s_mapColumns[tdcc.nColumnID] = &tdcc;
 		}
 	}
+
+	SetSplitterHitPadding(GraphicsMisc::ScaleByDPIFactor(4));
 }
 
 CTDLTaskCtrlBase::~CTDLTaskCtrlBase()
@@ -372,6 +376,35 @@ LRESULT CTDLTaskCtrlBase::OnSetFont(WPARAM wp, LPARAM lp)
 
 int CTDLTaskCtrlBase::OnToolHitTest(CPoint point, TOOLINFO * pTI) const
 {
+	CRect rSplitter;
+
+	if (GetSplitterHitRect(rSplitter) && rSplitter.PtInRect(point))
+	{
+		CPoint ptScreen(point);
+		CWnd::ClientToScreen(&ptScreen);
+
+		// The hit band extends over the adjacent panes so the tool must
+		// be registered against the window actually under the cursor,
+		// otherwise relayed mouse messages won't match the tool.
+		HWND hwndHit = ::WindowFromPoint(ptScreen);
+
+		if ((hwndHit != GetSafeHwnd()) && !::IsChild(GetSafeHwnd(), hwndHit))
+			hwndHit = GetSafeHwnd();
+
+		CRect rTool(rSplitter);
+
+		if (hwndHit != GetSafeHwnd())
+			::MapWindowPoints(GetSafeHwnd(), hwndHit, (LPPOINT)&rTool, 2);
+
+		UINT nTipID = (m_bAutoFitSplitter ? IDS_SPLITTER_TIP_AUTOFIT : IDS_SPLITTER_TIP_FIXED);
+
+		// Include the hit window so the tooltip framework re-registers
+		// the tool when the cursor crosses into an adjacent pane
+		int nToolID = (SPLITTER_TOOLTIP_ID + (int)((UINT_PTR)hwndHit & 0xFFFF));
+
+		return CToolTipCtrlEx::SetToolInfo(*pTI, hwndHit, CEnString(nTipID), nToolID, &rTool);
+	}
+
 	CWnd::ClientToScreen(&point);
 
 	CString sTooltip;
@@ -4004,7 +4037,7 @@ LRESULT CTDLTaskCtrlBase::WindowProc(HWND hRealWnd, UINT msg, WPARAM wp, LPARAM 
 			CPoint ptCursor(lp);
 			CRect rSplitter;
 			
-			if (GetSplitterRect(rSplitter) && rSplitter.PtInRect(ptCursor))
+			if (GetSplitterHitRect(rSplitter) && rSplitter.PtInRect(ptCursor))
 			{
 				AdjustSplitterToFitAttributeColumns();
 				m_bAutoFitSplitter = TRUE;

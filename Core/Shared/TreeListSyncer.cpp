@@ -215,6 +215,7 @@ CTreeListSyncer::CTreeListSyncer(DWORD dwFlags)
 	m_bSplitting(FALSE),
 	m_nSplitPos(INITIAL_SPLIT_POS),
 	m_nSplitBarWidth(MAX_SPLITBAR_WIDTH),
+	m_nSplitterHitPadding(0),
 	m_crSplitBar(GetSysColor(COLOR_3DFACE)),
 	m_nHidden(TLSH_NONE),
 	m_bSavingToImage(FALSE),
@@ -2746,7 +2747,55 @@ LRESULT CTreeListSyncer::ScWindowProc(HWND hRealWnd, UINT msg, WPARAM wp, LPARAM
 		}
 		break;
 		
+	case WM_SETCURSOR:
+		{
+			CPoint ptCursor;
+
+			if (m_bSplittingEnabled && ::GetCursorPos(&ptCursor) && PtInSplitter(ptCursor, TRUE))
+			{
+				GraphicsMisc::SetAfxCursor(AFX_IDC_HSPLITBAR);
+				return TRUE;
+			}
+		}
+		break;
+
+	case WM_LBUTTONDBLCLK:
+		if (m_bSplittingEnabled)
+		{
+			CPoint ptParent(lp);
+			::ClientToScreen(hRealWnd, &ptParent);
+			::ScreenToClient(GetHwnd(), &ptParent);
+
+			if (PtInSplitter(ptParent))
+			{
+				::SendMessage(GetHwnd(), WM_LBUTTONDBLCLK, wp, MAKELPARAM(ptParent.x, ptParent.y));
+				return 0L;
+			}
+		}
+		break;
+
 	case WM_LBUTTONDOWN:
+		if (m_bSplittingEnabled)
+		{
+			CPoint ptParent(lp);
+			::ClientToScreen(hRealWnd, &ptParent);
+			::ScreenToClient(GetHwnd(), &ptParent);
+
+			if (PtInSplitter(ptParent))
+			{
+				CPoint ptScreen(lp);
+				::ClientToScreen(hRealWnd, &ptScreen);
+
+				if (::DragDetect(hRealWnd, ptScreen))
+				{
+					::SetCapture(GetHwnd());
+					m_bSplitting = TRUE;
+
+					return 0L;
+				}
+			}
+		}
+
 		if (IsList(hRealWnd) && IsTree(OtherWnd(hRealWnd)))
 		{
 			lr = ScDefault(hRealWnd);
@@ -3153,13 +3202,24 @@ BOOL CTreeListSyncer::GetSplitterRect(CRect& rSplitter) const
 	return FALSE;
 }
 
+BOOL CTreeListSyncer::GetSplitterHitRect(CRect& rSplitter) const
+{
+	if (GetSplitterRect(rSplitter))
+	{
+		rSplitter.InflateRect(m_nSplitterHitPadding, 0);
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
 BOOL CTreeListSyncer::PtInSplitter(const CPoint& pt, BOOL bScreen) const
 {
 	if (HasFlag(TLSF_SPLITTER) && !IsHiding())
 	{
 		CRect rSplitter;
 
-		if (GetSplitterRect(rSplitter))
+		if (GetSplitterHitRect(rSplitter))
 		{
 			if (bScreen)
 				ClientToScreen(rSplitter);
@@ -3725,6 +3785,11 @@ void CTreeListSyncer::SetSplitBarWidth(int nWidth)
 		m_nSplitBarWidth = nNewWidth;
 		RefreshSize();
 	}
+}
+
+void CTreeListSyncer::SetSplitterHitPadding(int nPadding)
+{
+	m_nSplitterHitPadding = max(0, nPadding);
 }
 
 void CTreeListSyncer::GetBoundingRect(CRect& rect) const

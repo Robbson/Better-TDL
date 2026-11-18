@@ -4297,6 +4297,8 @@ BEGIN
     IDS_ANONYMIZETASKTIMELOG_FAIL 
                             "The active task log file could not be anonymised"
     IDS_FIND_SELECTALL      "Select &All"
+    IDS_SPLITTER_TIP_AUTOFIT "Drag to set a fixed width\nDouble-click to auto-fit"
+    IDS_SPLITTER_TIP_FIXED  "Width is fixed\nDouble-click to auto-fit"
 END
 
 STRINGTABLE

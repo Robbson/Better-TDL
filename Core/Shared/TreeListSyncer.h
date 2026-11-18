@@ -138,6 +138,7 @@ public:
 	void SetSplitPos(int nPos);
 	int GetSplitBarWidth() const { return m_nSplitBarWidth; }
 	void SetSplitBarWidth(int nWidth);
+	void SetSplitterHitPadding(int nPadding);
 	void SetSplitBarColor(COLORREF crSplitBar);
 
 	BOOL SetHidden(TLS_HIDE nHide);
@@ -182,6 +183,7 @@ protected:
 
 private:
 	int m_nSplitPos, m_nSplitBarWidth;
+	int m_nSplitterHitPadding;
 	BOOL m_bNeedInitItemHeight;
 	BOOL m_bResyncing, m_bResyncPending, m_bResizePending;
 	BOOL m_bResyncEnabled;
@@ -306,6 +308,7 @@ protected:
 	void GetBoundingRect(HWND hwnd, CRect& rect) const;
 	BOOL GetHeaderRect(HWND hwnd, CRect& rect, LPCRECT prcBounds) const;
 	BOOL GetSplitterRect(CRect& rSplitter) const;
+	BOOL GetSplitterHitRect(CRect& rSplitter) const;
 	BOOL GetHScrollDeadSpace(CRect& rDead) const;
 	void AdjustForBorder(CRect& rLeft, CRect& rRight) const;
 	BOOL PtInSplitter(const CPoint& pt, BOOL bScreen = FALSE) const;

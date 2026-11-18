@@ -122,3 +122,4 @@ Rules of thumb:
 | UI-009 | Menu actions for the comments position | Done (built; tests pass; interactive check pending) | [UI-009-comments-position-menu-actions.md](ui/UI-009-comments-position-menu-actions.md) |
 | UI-010 | Preferences dialog setting tooltips | Done (built; interactive check pending) | [UI-010-preferences-tooltips.md](ui/UI-010-preferences-tooltips.md) |
 | UI-011 | Preferences dialog Apply button with Cancel rollback | Proposed | [UI-011-preferences-apply-button.md](ui/UI-011-preferences-apply-button.md) |
+| UI-012 | Tooltip and wider hit band for the attribute/title splitter | Done (built; TDLTest passes; widened-band interactive check pending) | [UI-012-attribute-splitter-tooltip.md](ui/UI-012-attribute-splitter-tooltip.md) |

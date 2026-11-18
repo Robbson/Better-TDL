@@ -730,6 +730,23 @@ BOOL CTDLTaskTreeCtrl::PreTranslateMessage(MSG* pMsg)
 
 BOOL CTDLTaskTreeCtrl::HandleClientColumnClick(const CPoint& pt, BOOL bDblClk)
 {
+	if (bDblClk && IsReadOnly() && Misc::ModKeysArePressed(0))
+	{
+		UINT nHitFlags = 0;
+		HTREEITEM htiHit = HitTestItem(pt, &nHitFlags);
+
+		if (htiHit && (nHitFlags & (TVHT_ONITEMLABEL | TVHT_ONITEMRIGHT)))
+		{
+			DWORD dwTaskID = GetTaskID(htiHit);
+
+			if (!m_data.GetTaskCustomAttributeData(dwTaskID, TDC_CUSTOMATTRIB_HOMEFOLDERFULLPATH).IsEmpty())
+			{
+				CWnd::GetParent()->SendMessage(WM_TDCN_ACTIVATETASK, (WPARAM)GetSafeHwnd(), dwTaskID);
+				return TRUE;
+			}
+		}
+	}
+
 	if (!IsReadOnly() && Misc::ModKeysArePressed(0))
 	{
 		UINT nHitFlags = 0;

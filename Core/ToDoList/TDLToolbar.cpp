@@ -30,6 +30,7 @@ static const TDCTOOLBARITEM MAIN_TOOLBAR_ITEMS[] =
 {	
 	{ ID_VIEW_PREV_SEL,				_T("213") },
 	{ ID_VIEW_NEXT_SEL,				_T("214") },
+	{ ID_FILE_HOME,					_T("86") },
 	{},
 	//{ ID_LOAD_NORMAL,				_T("200") },
 	{ ID_SAVE_NORMAL,				_T("201") },

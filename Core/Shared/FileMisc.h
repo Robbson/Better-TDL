@@ -288,6 +288,7 @@ namespace FileMisc
 	
 	CString GetRelativePath(const CString& sFilePath, const CString& sRelativeToFolder, BOOL bFolder);
 	CString& MakeRelativePath(CString& sFilePath, const CString& sRelativeToFolder, BOOL bFolder);
+	BOOL IsPathInFolder(const CString& sFilePath, const CString& sFolder);
 	CString GetFullPath(const CString& sFilePath, const CString& sRelativeToFolder = GetCwd());
 	CString& MakeFullPath(CString& sFilePath, const CString& sRelativeToFolder = GetCwd());
 

@@ -148,6 +148,7 @@ public:
 	BOOL MergeTasks(const CTaskFile& tasks, BOOL bMergeByID);
 
 	void SetReadonly(BOOL bReadOnly);
+	BOOL LoadVirtualTasks(const CTaskFile& tasks) { return LoadTasks(tasks); }
 	BOOL IsReadOnly() const { return HasStyle(TDCS_READONLY); }
 
 	BOOL ModifyStyles(const CTDCStyleMap& styles);
@@ -264,6 +265,7 @@ public:
 
 	CString GetTaskPath(DWORD dwTaskID, int nMaxLen = -1) const { return m_formatter.GetTaskPath(dwTaskID, nMaxLen); }
 	CString GetTaskTitle(DWORD dwTaskID) const { return m_data.GetTaskTitle(dwTaskID); }
+	CString GetTaskCustomAttributeData(DWORD dwTaskID, const CString& sAttribID) const { return m_data.GetTaskCustomAttributeData(dwTaskID, sAttribID); }
 	CString GetTaskComments(DWORD dwTaskID) const { return m_data.GetTaskComments(dwTaskID); }
 	CString GetParentTaskTitle(DWORD dwTaskID) const { return m_data.GetTaskTitle(m_data.GetTaskParentID(dwTaskID)); }
 	DWORD GetParentTaskID(DWORD dwTaskID) const { return m_data.GetTaskParentID(dwTaskID); }
@@ -455,6 +457,8 @@ public:
 	static BOOL ParseTaskLink(const CString& sLink, BOOL bURL, const CString& sFolder, DWORD& dwTaskID, CString& sFile);
 	
 	void SetAlternatePreferencesKey(const CString& sKey) { m_sAltPrefsKey = sKey; }
+	void SetHomeFolderView(BOOL bHomeFolder) { m_bHomeFolderView = bHomeFolder; }
+	BOOL IsHomeFolderView() const { return m_bHomeFolderView; }
 	CString GetPreferencesKey(const CString& sSubKey = _T("")) const;
 
 	virtual void NotifyBeginPreferencesUpdate() { /* do nothing */ }
@@ -559,6 +563,7 @@ protected:
 
 	BOOL m_bModified;
 	BOOL m_bArchive;
+	BOOL m_bHomeFolderView;
 	BOOL m_bDragDropSubtasksAtTop;
 	BOOL m_bDelayLoaded;
 	BOOL m_bDeletingTasks;
@@ -615,6 +620,7 @@ protected:
 	afx_msg LRESULT OnTDCGetLinkTooltip(WPARAM wp, LPARAM lp);
 	afx_msg LRESULT OnTDCNotifyTaskAttributeEdited(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnTDCNotifyColumnEditClick(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnTDCNotifyActivateTask(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnTDCEditTaskAttribute(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnTDCEditTaskReminder(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnTDCClearTaskReminder(WPARAM wParam, LPARAM lParam);

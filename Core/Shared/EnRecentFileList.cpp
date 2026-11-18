@@ -105,7 +105,7 @@ void CEnRecentFileList::RemoveAll(BOOL bClearProfile)
 		CRecentFileList::WriteList();
 }
 
-void CEnRecentFileList::WriteList(IPreferences* pPrefs, BOOL bRelativeToExe) const
+void CEnRecentFileList::WriteList(IPreferences* pPrefs, BOOL bRelativeToExe, LPCTSTR szHomeFolder) const
 {
 	// always delete the MRU and then rebuild it
 	pPrefs->DeleteProfileSection(_T("MRU"));
@@ -120,14 +120,16 @@ void CEnRecentFileList::WriteList(IPreferences* pPrefs, BOOL bRelativeToExe) con
 		CString sItem;
 		sItem.Format(m_strEntryFormat, nFile + 1);
 
-		if (bRelativeToExe)
+		if (!Misc::IsEmpty(szHomeFolder) && FileMisc::IsPathInFolder(sFile, szHomeFolder))
+			FileMisc::MakeRelativePath(sFile, szHomeFolder, FALSE);
+		else if (bRelativeToExe)
 			FileMisc::MakeRelativePath(sFile, FileMisc::GetAppFolder(), FALSE);
 
 		pPrefs->WriteProfileString(_T("MRU"), sItem, sFile);
 	}
 }
 
-void CEnRecentFileList::ReadList(const IPreferences* pPrefs)
+void CEnRecentFileList::ReadList(const IPreferences* pPrefs, LPCTSTR szHomeFolder)
 {
 	RemoveAll(FALSE);
 
@@ -141,7 +143,21 @@ void CEnRecentFileList::ReadList(const IPreferences* pPrefs)
 		if (sFile.IsEmpty())
 			break;
 
-		sFile = FileMisc::GetFullPath(sFile, FileMisc::GetAppFolder());
+		BOOL bResolved = FALSE;
+
+		if (!Misc::IsEmpty(szHomeFolder) && ::PathIsRelative(sFile))
+		{
+			CString sHomePath = FileMisc::GetFullPath(sFile, szHomeFolder);
+
+			if (FileMisc::FileExists(sHomePath))
+			{
+				sFile = sHomePath;
+				bResolved = TRUE;
+			}
+		}
+
+		if (!bResolved)
+			sFile = FileMisc::GetFullPath(sFile, FileMisc::GetAppFolder());
 
 		// MFC 4.2 can throw an exception if this is an inaccessible network drive
 		try

@@ -157,62 +157,64 @@ BEGIN
     EDITTEXT        IDC_DUETASKPERSON,18,352,182,13,ES_AUTOHSCROLL
 END
 
-IDD_PREFGEN_PAGE DIALOG 0, 0, 400, 470
+IDD_PREFGEN_PAGE DIALOG 0, 0, 400, 505
 STYLE DS_SETFONT | WS_CHILD
 FONT 8, "Tahoma"
 BEGIN
-    LTEXT           "&Display Language",IDC_STATIC,7,10,376,10
-    COMBOBOX        IDC_LANGUAGE,7,23,194,30,CBS_DROPDOWNLIST | CBS_OWNERDRAWFIXED | CBS_HASSTRINGS | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "&Edit...",IDC_EDIT_DISPLAYLANGUAGE,206,22,50,14
+    LTEXT           "&Home Folder",IDC_STATIC,7,10,376,10
+    EDITTEXT        IDC_PATHTOHOMEFOLDER,7,23,279,14,ES_AUTOHSCROLL
+    LTEXT           "&Display Language",IDC_STATIC,7,45,376,10
+    COMBOBOX        IDC_LANGUAGE,7,58,194,30,CBS_DROPDOWNLIST | CBS_OWNERDRAWFIXED | CBS_HASSTRINGS | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "&Edit...",IDC_EDIT_DISPLAYLANGUAGE,206,57,50,14
     CONTROL         "Enable support for Right-to-Left (RTL) user input",IDC_ENABLERTLINPUT,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,40,369,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,75,369,10
     CONTROL         "&Keep ToDoList on top when visible",IDC_ALWAYSONTOP,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,55,386,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,90,386,10
     CONTROL         "&Always show ToDoList when it starts up",IDC_SHOWONSTARTUP,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,70,386,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,105,386,10
     CONTROL         "&Restore previously open tasklists on startup",IDC_RELOADTASKLISTS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,85,387,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,120,387,10
     CONTROL         "&Minimise ToDoList to the 'System Tray' when",IDC_USESYSTRAY,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,100,386,10
-    COMBOBOX        IDC_SYSTRAYOPTION,18,113,183,56,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,135,386,10
+    COMBOBOX        IDC_SYSTRAYOPTION,18,148,183,56,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     CONTROL         "&Toggle visibility on clicking the tray icon",IDC_TOGGLETRAYVISIBILITY,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,131,386,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,166,386,10
     CONTROL         "&Minimise ToDoList when [Escape] is pressed",IDC_ESCAPEMINIMIZES,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,145,386,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,180,386,10
     CONTROL         "&Display save confirmation dialog on exit, otherwise the tasklist will be auto-saved",IDC_CONFIRMSAVEONEXIT,
-                    "Button",BS_AUTOCHECKBOX | BS_TOP | WS_TABSTOP,7,160,386,10
+                    "Button",BS_AUTOCHECKBOX | BS_TOP | WS_TABSTOP,7,195,386,10
     CONTROL         "Di&splay delete confirmation dialog",IDC_CONFIRMDELETE,
-                    "Button",BS_AUTOCHECKBOX | BS_TOP | WS_TABSTOP,7,175,386,10
+                    "Button",BS_AUTOCHECKBOX | BS_TOP | WS_TABSTOP,7,210,386,10
     CONTROL         "Allo&w multiple instances of ToDoList",IDC_MULTIINSTANCE,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,190,386,10
-    CONTROL         "&Global hotkey",IDC_SPECIFYGLOBALHOTKEY,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,205,386,10
-    CONTROL         "HotKey1",IDC_GLOBALHOTKEY,"msctls_hotkey32",WS_BORDER | WS_TABSTOP,18,217,183,13
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,225,386,10
+    CONTROL         "&Global hotkey",IDC_SPECIFYGLOBALHOTKEY,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,240,386,10
+    CONTROL         "HotKey1",IDC_GLOBALHOTKEY,"msctls_hotkey32",WS_BORDER | WS_TABSTOP,18,252,183,13
     CONTROL         "E&nable '.tdl' as a file extension for tasklists",IDC_ENABLETDLEXTENSION,
-                    "Button",BS_AUTOCHECKBOX | BS_TOP | WS_TABSTOP,7,235,387,10
-    LTEXT           "",IDC_TDLEXTENSIONHANDLER,19,247,375,8,WS_DISABLED
+                    "Button",BS_AUTOCHECKBOX | BS_TOP | WS_TABSTOP,7,270,387,10
+    LTEXT           "",IDC_TDLEXTENSIONHANDLER,19,282,375,8,WS_DISABLED
     CONTROL         "&Enable 'tdl://' as a url protocol",IDC_ENABLETDLPROTOCOL,
-                    "Button",BS_AUTOCHECKBOX | BS_TOP | WS_TABSTOP,7,260,387,10
-    LTEXT           "",IDC_TDLPROTOCOLHANDLER,19,272,375,8,WS_DISABLED
+                    "Button",BS_AUTOCHECKBOX | BS_TOP | WS_TABSTOP,7,295,387,10
+    LTEXT           "",IDC_TDLPROTOCOLHANDLER,19,307,375,8,WS_DISABLED
     CONTROL         "En&able delayed loading of tasklists",IDC_ENABLEDELAYEDLOADING,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,287,386,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,322,386,10
     CONTROL         "&Keep track of most recently used (MRU) tasklists",IDC_ADDFILESTOMRU,
-                    "Button",BS_AUTOCHECKBOX | BS_TOP | WS_TABSTOP,7,303,386,10
-    PUSHBUTTON      "Clear M&RU",IDC_CLEARMRU,17,314,62,14
+                    "Button",BS_AUTOCHECKBOX | BS_TOP | WS_TABSTOP,7,338,386,10
+    PUSHBUTTON      "Clear M&RU",IDC_CLEARMRU,17,349,62,14
     CONTROL         "&Automatically check for updates on startup",IDC_CHECKFORUPDATES,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,337,386,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,372,386,10
     CONTROL         "&Save passwords between sessions, for tasklists stored in other repositories (Open From..., Save To...)",IDC_SAVEOTHERPASSWORDS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,352,386,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,387,386,10
     CONTROL         "Minimise ToDoList after the following period of inactivity",IDC_MINIMIZEONNOEDIT,
-                    "Button",BS_AUTOCHECKBOX | BS_TOP | WS_TABSTOP,7,367,375,10
-    COMBOBOX        IDC_NOCHANGETIME,18,379,183,111,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+                    "Button",BS_AUTOCHECKBOX | BS_TOP | WS_TABSTOP,7,402,375,10
+    COMBOBOX        IDC_NOCHANGETIME,18,414,183,111,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     CONTROL         "Display &reminders using 'Stickies' (by Zhorn Software)",IDC_USESTICKIES,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,397,387,10
-    LTEXT           "Path to Stickies executable",IDC_STICKIESPATHLABEL,18,409,376,8
-    EDITTEXT        IDC_PATHTOSTICKIESEXE,18,420,183,13,ES_AUTOHSCROLL
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,432,387,10
+    LTEXT           "Path to Stickies executable",IDC_STICKIESPATHLABEL,18,444,376,8
+    EDITTEXT        IDC_PATHTOSTICKIESEXE,18,455,183,13,ES_AUTOHSCROLL
     CONTROL         "Show &full task path in Sticky",IDC_SHOWFULLPATHINSTICKY,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,437,104,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,472,104,10
     CONTROL         "Only 'flash' the Reminder window for new (or reshown) reminders",IDC_REDUCEREMINDERDLGFLASHING,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,452,387,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,487,387,10
 END
 
 IDD_PREFMULTIUSER_PAGE DIALOG 0, 0, 400, 236
@@ -2324,6 +2326,7 @@ BEGIN
     SEPARATOR
     BUTTON      ID_VIEW_PREV_SEL
     BUTTON      ID_VIEW_NEXT_SEL
+    BUTTON      ID_FILE_HOME
     SEPARATOR
     BUTTON      ID_EDIT_FINDTASKS
     SEPARATOR
@@ -2421,6 +2424,7 @@ BEGIN
         MENUITEM "&New Tasklist",               ID_NEW
         MENUITEM SEPARATOR
         MENUITEM "&Open Tasklist...",           ID_LOAD_NORMAL
+        MENUITEM "Open &Home Folder",           ID_FILE_HOME
         MENUITEM "&Reload Tasklist",            ID_OPEN_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "Open Archi&ve",               ID_FILE_OPENARCHIVE
@@ -4018,6 +4022,8 @@ END
 STRINGTABLE
 BEGIN
     IDS_PREFTIP_TODO        "TODO: description missing"
+    IDS_PREFTIP_GEN_HOMEFOLDER "The folder whose files and sub-folders will be shown in the Home view. Tasklist files opened from this folder are stored as relative paths."
+    IDS_HOMEFOLDER_VIEWUNSUPPORTED "The Home Folder can only be displayed in Task Tree or List View."
     IDS_PREFTIP_GEN_LANGUAGE "Select the language you want for displaying ToDoList's user interface. You will be prompted to restart ToDoList after you close the Preferences Dialog."
     IDS_PREFTIP_GEN_RTL     "If you have selected an RTL language (currently only 'Hebrew') this option will be automatically selected to give you the best experience when entering RTL text. If this is not wanted you can deselect the option manually."
     IDS_PREFTIP_GEN_ALWAYSONTOP "Keeps ToDoList above other windows when it is not minimized. To avoid possible confusion ToDoList is made non-topmost whilst it is maximized, else it would prevent you accessing any windows beneath it."
@@ -4914,6 +4920,7 @@ STRINGTABLE
 BEGIN
     ID_VIEW_PREV_SEL        "\nNavigate Back"
     ID_VIEW_NEXT_SEL        "\nNavigate Forward"
+    ID_FILE_HOME            "\nOpen Home Folder"
 END
 
 STRINGTABLE

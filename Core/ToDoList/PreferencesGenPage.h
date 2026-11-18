@@ -55,6 +55,7 @@ public:
 	BOOL GetEnableTDLProtocol() const { return m_bEnableTDLProtocol; }
 	BOOL GetEnableDelayedLoading() const { return m_bEnableDelayedLoading; }
 	CString GetLanguageFile() const { return m_cbLanguages.GetSelectedLanguageFile(); }
+	CString GetHomeFolder() const { return m_sHomeFolder; }
 	BOOL GetSaveStoragePasswords() const { return m_bSaveStoragePasswords; }
 	UINT GetAutoMinimizeFrequency() const { return (m_bMinimizeNoChange ? m_nMinimizeNoEditTime : 0); }
 	BOOL GetUseStickies(CString& sStickiesPath, BOOL& bShowFullTaskPath) const;
@@ -93,10 +94,12 @@ public:
 	CString	m_sTDLProtocolHandler;
 	//}}AFX_DATA
 	CFileEdit	m_eStickiesPath;
+	CFileEdit	m_eHomeFolder;
 	DWORD	m_dwGlobalHotkey;
 	int		m_nMinimizeNoEditTime;
 	BOOL	m_bShowFullTaskPathInSticky;
 	BOOL	m_bReduceReminderDialogFlashing;
+	CString	m_sHomeFolder;
 
 // Overrides
 	// ClassWizard generate virtual function overrides
@@ -106,6 +109,7 @@ public:
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	virtual BOOL OnInitDialog();
+	virtual BOOL OnSetActive();
 	virtual void OnFirstShow();
 	virtual void InitTooltips();
 

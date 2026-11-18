@@ -947,7 +947,19 @@ CString CTabbedToDoCtrl::GetExtensionPrefsSubKey(const IUIExtensionWindow* pExtW
 LRESULT CTabbedToDoCtrl::OnPreTabViewChange(WPARAM nOldTab, LPARAM nNewTab) 
 {
 	EndLabelEdit(FALSE);
-	
+
+	if (IsHomeFolderView())
+	{
+		FTC_VIEW nNewView = (FTC_VIEW)nNewTab;
+
+		if ((nNewView != FTCV_UNSET) &&
+			(nNewView != FTCV_TASKTREE) && (nNewView != FTCV_TASKLIST))
+		{
+			GetParent()->SendMessage(WM_TDCN_VIEWUNSUPPORTED);
+			return 1L; // prevent tab change
+		}
+	}
+
 	if (!HandleUnsavedComments())
 		return 1L; // prevent tab change
 

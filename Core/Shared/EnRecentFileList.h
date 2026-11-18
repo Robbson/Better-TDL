@@ -27,8 +27,8 @@ public:
 	void RemoveAll(BOOL bClearProfile = TRUE);
   	virtual void UpdateMenu(CCmdUI* pCmdUI);
 
-	void ReadList(const IPreferences* pPrefs);
-	void WriteList(IPreferences* pPrefs, BOOL bRelativeToExe = FALSE) const;
+	void ReadList(const IPreferences* pPrefs, LPCTSTR szHomeFolder = NULL);
+	void WriteList(IPreferences* pPrefs, BOOL bRelativeToExe = FALSE, LPCTSTR szHomeFolder = NULL) const;
 
 	int GetFilePaths(CStringArray& aFilePaths) const;
 	int GetFileNames(CStringArray& aFileNames) const;

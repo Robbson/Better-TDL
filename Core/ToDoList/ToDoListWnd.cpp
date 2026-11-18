@@ -39,6 +39,7 @@
 #include "tdlshowreminderdlg.h"
 #include "TDLTasklistSaveAsDlg.h"
 #include "TDLTasklistSwitcher.h"
+#include "TDLHomeFolder.h"
 #include "tdlToolsUserInputDlg.h"
 #include "tdltransformdialog.h"
 #include "tdlwelcomewizard.h"
@@ -552,6 +553,7 @@ BEGIN_MESSAGE_MAP(CToDoListWnd, CFrameWnd)
 	ON_COMMAND(ID_EXIT, OnExit)
 	ON_COMMAND(ID_FILE_CHANGEPASSWORD, OnFileChangePassword)
 	ON_COMMAND(ID_FILE_ENCRYPT, OnFileEncrypt)
+	ON_COMMAND(ID_FILE_HOME, OnFileHome)
 	ON_COMMAND(ID_FILE_OPENARCHIVE, OnFileOpenarchive)
 	ON_COMMAND(ID_FILE_RESETVERSION, OnFileResetversion)
 	ON_COMMAND(ID_HELP_KEYBOARDSHORTCUTS, OnShowKeyboardshortcuts)
@@ -733,6 +735,7 @@ BEGIN_MESSAGE_MAP(CToDoListWnd, CFrameWnd)
 	ON_REGISTERED_MESSAGE(WM_TDCM_EDITTASKREMINDER, OnToDoCtrlEditTaskReminder)
 	ON_REGISTERED_MESSAGE(WM_TDCM_CLEARTASKREMINDER, OnToDoCtrlClearTaskReminder)
 	ON_REGISTERED_MESSAGE(WM_TDCN_LISTCHANGE, OnToDoCtrlNotifyListChange)
+	ON_REGISTERED_MESSAGE(WM_TDCN_ACTIVATETASK, OnTDCNotifyActivateTask)
 	ON_REGISTERED_MESSAGE(WM_TDCN_MODIFY, OnToDoCtrlNotifyMod)
 	ON_REGISTERED_MESSAGE(WM_TDCN_FILTERCHANGE, OnToDoCtrlNotifyFilterChange)
 	ON_REGISTERED_MESSAGE(WM_TDCN_RECREATERECURRINGTASK, OnToDoCtrlNotifyRecreateRecurringTask)
@@ -743,6 +746,7 @@ BEGIN_MESSAGE_MAP(CToDoListWnd, CFrameWnd)
 	ON_REGISTERED_MESSAGE(WM_TDCN_TIMETRACK, OnToDoCtrlNotifyTimeTrack)
 	ON_REGISTERED_MESSAGE(WM_TDCN_TIMETRACKREMINDER, OnToDoCtrlNotifyTimeTrackReminder)
 	ON_REGISTERED_MESSAGE(WM_TDCN_VIEWPOSTCHANGE, OnToDoCtrlNotifyViewChange)
+	ON_REGISTERED_MESSAGE(WM_TDCN_VIEWUNSUPPORTED, OnTDCNotifyViewUnsupported)
 	ON_REGISTERED_MESSAGE(WM_TDLKS_MODIFYSHORTCUTS, OnModifyKeyboardShortcuts)
 	ON_REGISTERED_MESSAGE(WM_TDLTE_EXPORTTHREADFINISHED, OnExportThreadFinished)
 	ON_REGISTERED_MESSAGE(WM_TDLTTN_LOADDELAYEDTASKLIST, OnTimeTrackerLoadDelayedTasklist)
@@ -2650,8 +2654,14 @@ void CToDoListWnd::SaveSettings()
 	
 	if (nCount) // but don't overwrite files saved in OnQueryEndSession() or OnClose()
 	{
-		for (int nTDC = 0, nItem = 0; nTDC < nCount; nTDC++)
+		int nSaved = 0;
+
+		for (int nTDC = 0; nTDC < nCount; nTDC++)
 		{
+			// The home folder view is virtual and has no file path
+			if (GetToDoCtrl(nTDC).IsHomeFolderView())
+				continue;
+
 			CString sFilePath = m_mgrToDoCtrls.GetFilePath(nTDC);
 
 			TSM_TASKLISTINFO storageInfo;
@@ -2665,19 +2675,19 @@ void CToDoListWnd::SaveSettings()
 			}
 			else // make file paths relative
 			{
-				FileMisc::MakeRelativePath(sFilePath, FileMisc::GetAppFolder(), FALSE);
+				sFilePath = CTDLHomeFolder::GetStoredPath(sFilePath);
 			}
 
-			CString sKey = Misc::MakeKey(_T("LastFile%d"), nItem);
+			CString sKey = Misc::MakeKey(_T("LastFile%d"), nSaved);
 			prefs.WriteProfileString(SETTINGS_KEY, sKey, sFilePath);
 			
 			if (nSel == nTDC)
 				prefs.WriteProfileString(SETTINGS_KEY, _T("LastActiveFile"), sFilePath);
 
-			nItem++;
+			nSaved++;
 		}
 		
-		prefs.WriteProfileInt(SETTINGS_KEY, _T("NumLastFiles"), nCount);
+		prefs.WriteProfileInt(SETTINGS_KEY, _T("NumLastFiles"), nSaved);
 	}
 
 	// other settings
@@ -2694,7 +2704,7 @@ void CToDoListWnd::SaveSettings()
 	prefs.WriteProfileString(SETTINGS_KEY, _T("TaskViewImageExt"), m_sTaskViewImageExt);
 	
 	if (Prefs().GetAddFilesToMRU())
-		m_mruList.WriteList(prefs, TRUE);
+		m_mruList.WriteList(prefs, TRUE, CTDLHomeFolder::GetFolder());
 
 	// quick find items
 	CStringArray aItems;
@@ -2739,13 +2749,225 @@ TDC_PREPAREPATH CToDoListWnd::PrepareFilePath(CString& sFilePath, TSM_TASKLISTIN
 	// if it starts with a colon then we need to find the removable drive it's stored on
 	else if (!sFilePath.IsEmpty())
 	{
-		FileMisc::MakeFullPath(sFilePath, FileMisc::GetAppFolder());
+		sFilePath = CTDLHomeFolder::ResolveStoredPath(sFilePath);
 
 		// Don't check for existence
 		nType = TDCPP_FILE;
 	}
 	
 	return nType;
+}
+
+int CToDoListWnd::FindHomeFolderView() const
+{
+	for (int nTDC = 0; nTDC < GetTDCCount(); nTDC++)
+	{
+		if (GetToDoCtrl(nTDC).IsHomeFolderView())
+			return nTDC;
+	}
+
+	return -1;
+}
+
+void CToDoListWnd::GetOpenTasklistPaths(CStringArray& aOpenFiles, CStringArray& aModifiedFiles) const
+{
+	aOpenFiles.RemoveAll();
+	aModifiedFiles.RemoveAll();
+
+	for (int nTDC = 0; nTDC < GetTDCCount(); nTDC++)
+	{
+		TSM_TASKLISTINFO storageInfo;
+
+		if (m_mgrToDoCtrls.GetStorageDetails(nTDC, storageInfo))
+			continue;
+
+		CString sFilePath = m_mgrToDoCtrls.GetFilePath(nTDC);
+
+		if (sFilePath.IsEmpty())
+			continue;
+
+		aOpenFiles.Add(sFilePath);
+
+		if (m_mgrToDoCtrls.IsModified(nTDC) && !m_mgrToDoCtrls.GetReadOnlyStatus(nTDC))
+			aModifiedFiles.Add(sFilePath);
+	}
+}
+
+void CToDoListWnd::SetHomeFolderViewStyles(CFilteredToDoCtrl& tdc)
+{
+	CTDCStyleMap styles;
+
+	if (tdc.HasStyle(TDCS_COLORTEXTBYNONE))
+		styles[TDCS_COLORTEXTBYNONE] = FALSE;
+
+	if (tdc.HasStyle(TDCS_COLORTEXTBYPRIORITY))
+		styles[TDCS_COLORTEXTBYPRIORITY] = FALSE;
+
+	if (tdc.HasStyle(TDCS_COLORTEXTBYATTRIBUTE))
+		styles[TDCS_COLORTEXTBYATTRIBUTE] = FALSE;
+
+	if (tdc.HasStyle(TDCS_TASKCOLORISBACKGROUND))
+		styles[TDCS_TASKCOLORISBACKGROUND] = FALSE;
+
+	tdc.ModifyStyles(styles);
+}
+
+void CToDoListWnd::SetHomeFolderViewColumns(CFilteredToDoCtrl& tdc)
+{
+	TDCCOLEDITFILTERVISIBILITY vis;
+	vis.Clear();
+
+	vis.SetColumnVisible(TDCC_LASTMODDATE, TRUE);
+
+	CTDCCustomAttribDefinitionArray aAttribDefs;
+	tdc.GetCustomAttributeDefs(aAttribDefs);
+
+	for (int nDef = 0; nDef < aAttribDefs.GetSize(); nDef++)
+	{
+		const TDCCUSTOMATTRIBUTEDEFINITION& def = aAttribDefs[nDef];
+
+		if ((def.sUniqueID == TDC_CUSTOMATTRIB_HOMEFOLDERSIZE) ||
+			(def.sUniqueID == TDC_CUSTOMATTRIB_HOMEFOLDERTYPE) ||
+			(def.sUniqueID == TDC_CUSTOMATTRIB_HOMEFOLDERPATH))
+		{
+			vis.SetColumnVisible(def.GetColumnID(), TRUE);
+		}
+	}
+
+	tdc.SetColumnFieldVisibility(vis);
+}
+
+BOOL CToDoListWnd::RefreshHomeFolderView(CFilteredToDoCtrl* pTDC)
+{
+	if (!pTDC)
+	{
+		int nTDC = FindHomeFolderView();
+
+		if (nTDC == -1)
+			return FALSE;
+
+		pTDC = &GetToDoCtrl(nTDC);
+	}
+
+	CString sFolder = CTDLHomeFolder::GetFolder();
+
+	if (sFolder.IsEmpty() || !FileMisc::FolderExists(sFolder))
+		return FALSE;
+
+	CStringArray aOpenFiles, aModifiedFiles;
+	GetOpenTasklistPaths(aOpenFiles, aModifiedFiles);
+
+	CTaskFile tasks;
+
+	if (!CTDLHomeFolder::BuildTaskFile(tasks, sFolder, aOpenFiles, aModifiedFiles))
+		return FALSE;
+
+	if (!pTDC->LoadVirtualTasks(tasks))
+		return FALSE;
+
+	pTDC->SetReadonly(TRUE);
+	SetHomeFolderViewStyles(*pTDC);
+	SetHomeFolderViewColumns(*pTDC);
+
+	FTC_VIEW nView = pTDC->GetActiveTaskView();
+
+	if ((nView != FTCV_TASKTREE) && (nView != FTCV_TASKLIST))
+		pTDC->ActivateTaskView(FTCV_TASKTREE);
+
+	pTDC->SetModified(FALSE);
+
+	return TRUE;
+}
+
+void CToDoListWnd::OnFileHome()
+{
+	CString sFolder = CTDLHomeFolder::GetFolder();
+
+	if (sFolder.IsEmpty() || !FileMisc::FolderExists(sFolder))
+	{
+		DoPreferences(PREFPAGE_GEN, IDC_PATHTOHOMEFOLDER);
+
+		sFolder = CTDLHomeFolder::GetFolder();
+
+		if (sFolder.IsEmpty() || !FileMisc::FolderExists(sFolder))
+			return;
+	}
+
+	int nExisting = FindHomeFolderView();
+
+	if (nExisting != -1)
+	{
+		if (RefreshHomeFolderView(&GetToDoCtrl(nExisting)))
+			SelectToDoCtrl(nExisting, TRUE);
+
+		Resize();
+		Invalidate();
+		return;
+	}
+
+	CFilteredToDoCtrl* pTDC = NewToDoCtrl();
+
+	if (!pTDC)
+		return;
+
+	pTDC->SetAlternatePreferencesKey(_T("HomeFolder"));
+	pTDC->SetHomeFolderView(TRUE);
+
+	if (!RefreshHomeFolderView(pTDC))
+	{
+		if (pTDC->GetSafeHwnd())
+			pTDC->DestroyWindow();
+
+		delete pTDC;
+		return;
+	}
+
+	int nTDC = AddToDoCtrl(pTDC);
+
+	if (nTDC == -1)
+	{
+		pTDC->DestroyWindow();
+		delete pTDC;
+		return;
+	}
+
+	SelectToDoCtrl(nTDC, TRUE);
+	Resize();
+	Invalidate();
+
+	m_idleTasks.UpdateCaption();
+	m_idleTasks.UpdateStatusBar();
+}
+
+LRESULT CToDoListWnd::OnTDCNotifyActivateTask(WPARAM wp, LPARAM lp)
+{
+	int nTDC = m_mgrToDoCtrls.FindToDoCtrl((HWND)wp);
+
+	if (nTDC == -1)
+		return 0L;
+
+	CFilteredToDoCtrl& tdc = GetToDoCtrl(nTDC);
+
+	if (!tdc.IsHomeFolderView())
+		return 0L;
+
+	CString sFilePath = tdc.GetTaskCustomAttributeData((DWORD)lp, TDC_CUSTOMATTRIB_HOMEFOLDERFULLPATH);
+
+	if (sFilePath.IsEmpty())
+		return 0L;
+
+	if (FileMisc::HasExtension(sFilePath, _T("tdl")))
+	{
+		OpenTaskList(sFilePath);
+		RefreshHomeFolderView();
+	}
+	else
+	{
+		FileMisc::Run(GetSafeHwnd(), sFilePath, NULL, SW_SHOWNORMAL,
+					  FileMisc::GetFolderFromFilePath(sFilePath));
+	}
+
+	return 0L;
 }
 
 LRESULT CToDoListWnd::OnPostOnCreate(WPARAM /*wp*/, LPARAM /*lp*/)
@@ -3008,7 +3230,7 @@ void CToDoListWnd::LoadSettings()
 
 	// MRU
 	if (userPrefs.GetAddFilesToMRU())
-		m_mruList.ReadList(prefs);
+		m_mruList.ReadList(prefs, CTDLHomeFolder::GetFolder());
 	
 	// note: we do not restore visibility until OnPostOnCreate
 
@@ -3787,6 +4009,12 @@ LRESULT CToDoListWnd::OnToDoCtrlNotifyViewChange(WPARAM wp, LPARAM lp)
 		}
 	}
 
+	return 0L;
+}
+
+LRESULT CToDoListWnd::OnTDCNotifyViewUnsupported(WPARAM /*wp*/, LPARAM /*lp*/)
+{
+	CMessageBox::AfxShow(IDS_HOMEFOLDER_VIEWUNSUPPORTED);
 	return 0L;
 }
 
@@ -9217,8 +9445,12 @@ BOOL CToDoListWnd::CloseToDoCtrl(int nIndex)
 	
 	// remove any references to this tasklist
 	m_dlgFindTasks.DeleteResults(&tdc);
-	m_dlgTimeTracker.RemoveTasklist(&tdc);
-	m_dlgReminders.RemoveToDoCtrl(&tdc);
+
+	if (!tdc.IsHomeFolderView())
+	{
+		m_dlgTimeTracker.RemoveTasklist(&tdc);
+		m_dlgReminders.RemoveToDoCtrl(&tdc);
+	}
 	
 	CWaitCursor cursor;
 
@@ -13922,8 +14154,12 @@ void CToDoListWnd::OnCloseallbutthis()
 			const CFilteredToDoCtrl& tdc = GetToDoCtrl(nCtrl);
 
 			m_dlgFindTasks.DeleteResults(&tdc);
-			m_dlgTimeTracker.RemoveTasklist(&tdc);
-			m_dlgReminders.RemoveToDoCtrl(&tdc);
+
+			if (!tdc.IsHomeFolderView())
+			{
+				m_dlgTimeTracker.RemoveTasklist(&tdc);
+				m_dlgReminders.RemoveToDoCtrl(&tdc);
+			}
 
 			m_mgrToDoCtrls.DeleteToDoCtrl(nCtrl);
 		}
@@ -14950,7 +15186,7 @@ void CToDoListWnd::OnToolsCleanupIniPreferences()
 		
 	if (dialog.DoModal(CMDICON(ID_TOOLS_CLEANUPINIPREFERENCES)) == IDOK)
 	{
-		m_mruList.ReadList(CPreferences());
+		m_mruList.ReadList(CPreferences(), CTDLHomeFolder::GetFolder());
 		ResetPrefs();
 	}
 }

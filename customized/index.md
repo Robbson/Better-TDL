@@ -82,6 +82,7 @@ Rules of thumb:
 | GEN-002 | Quote-safe values in ToDoList.ini (Quick Find history) | Done | [GEN-002-quoted-ini-values.md](general/GEN-002-quoted-ini-values.md) |
 | GEN-003 | Functional UI automation framework (UIA/FlaUI proposal) | Proposed | [GEN-003-ui-automation-framework.md](general/GEN-003-ui-automation-framework.md) |
 | GEN-004 | Web-technology extensions: WebView2 for task views and text editors | Proposed (feasibility study; no implementation) | [GEN-004-webview-based-ui-extensions.md](general/GEN-004-webview-based-ui-extensions.md) |
+| GEN-005 | Home Folder view over a filesystem tree | Done (built; TDLTest passes; basic flow manually verified) | [GEN-005-home-folder-view.md](general/GEN-005-home-folder-view.md) |
 
 ### Performance (`PERF`)
 

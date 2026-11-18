@@ -12,6 +12,9 @@
 #include "..\shared\fileregister.h"
 #include "..\shared\localizer.h"
 
+#include "TDLHomeFolder.h"
+
+#include "..\Interfaces\Preferences.h"
 #include "..\3rdParty\OSVersion.h"
 
 #ifdef _DEBUG
@@ -42,7 +45,8 @@ CPreferencesGenPage::CPreferencesGenPage()
 	CPreferencesPageBase(IDD_PREFGEN_PAGE),
 	m_hkGlobal(TRUE),
 	m_cbLanguages(_T("*.csv")),
-	m_eStickiesPath(0, CEnString(IDS_STICKIESEXEFILTER))
+	m_eStickiesPath(0, CEnString(IDS_STICKIESEXEFILTER)),
+	m_eHomeFolder(FES_FOLDERS)
 {
 	//{{AFX_DATA_INIT(CPreferencesGenPage)
 	//}}AFX_DATA_INIT
@@ -77,6 +81,8 @@ void CPreferencesGenPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_RELOADTASKLISTS, m_bReloadTasklists);
 	DDX_Check(pDX, IDC_ENABLERTLINPUT, m_bEnableRTLInput);
 	DDX_Control(pDX, IDC_PATHTOSTICKIESEXE, m_eStickiesPath);
+	DDX_Control(pDX, IDC_PATHTOHOMEFOLDER, m_eHomeFolder);
+	DDX_Text(pDX, IDC_PATHTOHOMEFOLDER, m_sHomeFolder);
 	DDX_Text(pDX, IDC_TDLEXTENSIONHANDLER, m_sTDLExtensionHandler);
 	DDX_Text(pDX, IDC_TDLPROTOCOLHANDLER, m_sTDLProtocolHandler);
 	//}}AFX_DATA_MAP
@@ -121,7 +127,11 @@ END_MESSAGE_MAP()
 
 BOOL CPreferencesGenPage::OnInitDialog() 
 {
+	m_sHomeFolder = CTDLHomeFolder::GetFolder();
+
 	CPreferencesPageBase::OnInitDialog();
+
+	UpdateData(FALSE);
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 	              // EXCEPTION: OCX Property Pages should return FALSE
@@ -129,6 +139,7 @@ BOOL CPreferencesGenPage::OnInitDialog()
 
 void CPreferencesGenPage::InitTooltips()
 {
+	AddTooltip(IDC_PATHTOHOMEFOLDER, IDS_PREFTIP_GEN_HOMEFOLDER);
 	AddTooltip(IDC_LANGUAGE, IDS_PREFTIP_GEN_LANGUAGE);
 	AddTooltip(IDC_ENABLERTLINPUT, IDS_PREFTIP_GEN_RTL);
 	AddTooltip(IDC_ALWAYSONTOP, IDS_PREFTIP_GEN_ALWAYSONTOP);
@@ -157,6 +168,18 @@ void CPreferencesGenPage::InitTooltips()
 	AddTooltip(IDC_STICKIESPATHLABEL, IDS_PREFTIP_GEN_STICKIES);
 }
 
+BOOL CPreferencesGenPage::OnSetActive()
+{
+	BOOL bResult = CPropertyPage::OnSetActive();
+
+	// The home folder is application state and may change while the
+	// preferences dialog exists, so refresh it each time this page is shown.
+	m_sHomeFolder = CTDLHomeFolder::GetFolder();
+	SetDlgItemText(IDC_PATHTOHOMEFOLDER, m_sHomeFolder);
+
+	return bResult;
+}
+
 void CPreferencesGenPage::OnFirstShow()
 {
 	CPreferencesPageBase::OnFirstShow();
@@ -170,6 +193,10 @@ void CPreferencesGenPage::OnFirstShow()
 	
 	if (m_sTDLProtocolHandler.IsEmpty())
 		m_sTDLProtocolHandler = CEnString(IDS_HANDLERNOTINSTALLED);
+
+	// The home folder is application state, not a keyed preference
+	CPreferences prefs;
+	m_sHomeFolder = CTDLHomeFolder::GetFolder((const IPreferences*)prefs);
 
 	UpdateData(FALSE);
 
@@ -273,6 +300,8 @@ void CPreferencesGenPage::LoadPreferences(const IPreferences* pPrefs, LPCTSTR sz
 	m_bEnableTDLProtocol = pPrefs->GetProfileInt(szKey, _T("EnableTDLProtocol"), FALSE);
 	m_bReduceReminderDialogFlashing = pPrefs->GetProfileInt(szKey, _T("ReduceReminderDialogFlashing"), FALSE);
 
+	m_sHomeFolder = CTDLHomeFolder::GetFolder(pPrefs);
+
 	CString sLangFile = pPrefs->GetProfileString(szKey, _T("LanguageFile"), _T(""));
 	m_cbLanguages.SelectLanguageFile(sLangFile);
 
@@ -307,6 +336,11 @@ void CPreferencesGenPage::SavePreferences(IPreferences* pPrefs, LPCTSTR szKey) c
 	pPrefs->WriteProfileInt(szKey, _T("EnableTDLExtension"), m_bEnableTDLExtension);
 	pPrefs->WriteProfileInt(szKey, _T("EnableTDLProtocol"), m_bEnableTDLProtocol);
 	pPrefs->WriteProfileInt(szKey, _T("ReduceReminderDialogFlashing"), m_bReduceReminderDialogFlashing);
+
+	CTDLHomeFolder::SetFolder(pPrefs, m_sHomeFolder);
+
+	CPreferences prefs;
+	CTDLHomeFolder::SetFolder((IPreferences*)prefs, m_sHomeFolder);
 
 	pPrefs->WriteProfileInt(szKey, _T("UseStickies"), m_bUseStickies);
 	pPrefs->WriteProfileInt(szKey, _T("ShowFullTaskPathInSticky"), m_bShowFullTaskPathInSticky);

@@ -334,6 +334,7 @@ protected:
 	afx_msg void OnExport();
 	afx_msg void OnFileChangePassword();
 	afx_msg void OnFileEncrypt();
+	afx_msg void OnFileHome();
 	afx_msg void OnFileOpenFromUserStorage(UINT nCmdID);
 	afx_msg void OnFileOpenarchive();
 	afx_msg void OnFileResetversion();
@@ -641,6 +642,7 @@ protected:
 	afx_msg LRESULT OnPreferencesClearMRU(WPARAM wp, LPARAM lp);
 	afx_msg LRESULT OnPreferencesEditLanguageFile(WPARAM wp, LPARAM lp);
 	afx_msg LRESULT OnPreferencesTestTool(WPARAM wp, LPARAM lp);
+	afx_msg LRESULT OnTDCNotifyActivateTask(WPARAM wp, LPARAM lp);
 	afx_msg LRESULT OnReminderCompleteTask(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnSessionStatusChange(WPARAM wp, LPARAM lp);
 	afx_msg LRESULT OnTimeTrackerGoToTasklist(WPARAM wParam, LPARAM lParam);
@@ -666,6 +668,7 @@ protected:
 	afx_msg LRESULT OnToDoCtrlNotifyTimeTrack(WPARAM wp, LPARAM lp);
 	afx_msg LRESULT OnToDoCtrlNotifyTimeTrackReminder(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnToDoCtrlNotifyViewChange(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnTDCNotifyViewUnsupported(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnToDoCtrlSelectTask(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnToDoListIsClosing(WPARAM /*wp*/, LPARAM /*lp*/) { return m_bClosing; }
 	afx_msg LRESULT OnToDoListPasswordRestore(WPARAM wp, LPARAM lp);
@@ -715,6 +718,12 @@ protected:
 	TDC_FILE OpenTaskList(CFilteredToDoCtrl* pCtrl, LPCTSTR szFilePath = NULL, TSM_TASKLISTINFO* pInfo = NULL);
 
 	TDC_PREPAREPATH PrepareFilePath(CString& sFilePath, TSM_TASKLISTINFO* pInfo = NULL);
+
+	int FindHomeFolderView() const;
+	BOOL RefreshHomeFolderView(CFilteredToDoCtrl* pTDC = NULL);
+	void GetOpenTasklistPaths(CStringArray& aOpenFiles, CStringArray& aModifiedFiles) const;
+	void SetHomeFolderViewStyles(CFilteredToDoCtrl& tdc);
+	void SetHomeFolderViewColumns(CFilteredToDoCtrl& tdc);
 
 	BOOL ReloadTaskList(int nIndex, BOOL bNotifyDueTasks = TRUE, BOOL bNotifyError = TRUE, LPCTSTR szFilePath = NULL);
 	BOOL VerifyTaskListOpen(int nIndex, BOOL bWantNotifyDueTasks, BOOL bNotifyError = TRUE);

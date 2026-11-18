@@ -9,6 +9,11 @@
 //
 
 // notification messages
+const LPCTSTR TDC_CUSTOMATTRIB_HOMEFOLDERFULLPATH	= _T("HomeFolder.FullPath");
+const LPCTSTR TDC_CUSTOMATTRIB_HOMEFOLDERPATH		= _T("HomeFolder.Path");
+const LPCTSTR TDC_CUSTOMATTRIB_HOMEFOLDERSIZE		= _T("HomeFolder.Size");
+const LPCTSTR TDC_CUSTOMATTRIB_HOMEFOLDERTYPE		= _T("HomeFolder.Type");
+
 const UINT WM_TDCN_MODIFY					= ::RegisterWindowMessage(_T("WM_TDCN_MODIFY"));				// lParam = TDCNOTIFYMOD*
 const UINT WM_TDCN_SORT						= ::RegisterWindowMessage(_T("WM_TDCN_SORT")); 
 const UINT WM_TDCN_TIMETRACK				= ::RegisterWindowMessage(_T("WM_TDCN_TIMETRACK"));				// wParam = hwnd, lParam = 0/TaskID => stop/start
@@ -18,6 +23,8 @@ const UINT WM_TDCN_SELECTIONCHANGE			= ::RegisterWindowMessage(_T("WM_TDCN_SELEC
 const UINT WM_TDCN_SCROLLCHANGE				= ::RegisterWindowMessage(_T("WM_TDCN_SCROLLCHANGE"));
 const UINT WM_TDCN_RECREATERECURRINGTASK	= ::RegisterWindowMessage(_T("WM_TDCN_RECREATERECURRINGTASK"));
 const UINT WM_TDCN_COLUMNEDITCLICK			= ::RegisterWindowMessage(_T("WM_TDCN_COLUMNEDITCLICK"));		// lParam == <TDC_COLUMN>
+const UINT WM_TDCN_ACTIVATETASK				= ::RegisterWindowMessage(_T("WM_TDCN_ACTIVATETASK"));			// wParam = hwnd, lParam = TaskID
+const UINT WM_TDCN_VIEWUNSUPPORTED			= ::RegisterWindowMessage(_T("WM_TDCN_VIEWUNSUPPORTED"));
 const UINT WM_TDCN_TIMETRACKREMINDER		= ::RegisterWindowMessage(_T("WM_TDCN_TIMETRACKREMINDER"));		// wParam = hwnd, lParam = TaskID
 const UINT WM_TDCN_LISTCHANGE				= ::RegisterWindowMessage(_T("WM_TDCN_LISTCHANGE"));			// lParam == <TDC_ATTRIBUTE>
 const UINT WM_TDCN_SOURCECONTROLSAVE		= ::RegisterWindowMessage(_T("WM_TDCN_SOURCECONTROLSAVE"));	

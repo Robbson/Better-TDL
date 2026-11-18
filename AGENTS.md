@@ -4,6 +4,7 @@ Starting point for agents working in this repository. Read this first, then
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Detailed references:
 [PROJECT_SCOPE.md](PROJECT_SCOPE.md), [docs/DATA_MODEL.md](docs/DATA_MODEL.md),
 [docs/UI_DECOUPLING_ANALYSIS.md](docs/UI_DECOUPLING_ANALYSIS.md),
+[docs/DATA_SOURCE_COUPLING_ANALYSIS.md](docs/DATA_SOURCE_COUPLING_ANALYSIS.md),
 [docs/APPLICATION_STATE.md](docs/APPLICATION_STATE.md),
 [docs/TESTING.md](docs/TESTING.md) and
 [customized/index.md](customized/index.md) (all intentional divergences from upstream).
@@ -233,6 +234,7 @@ When asked to analyze or document, prefer producing/updating the root docs and
 - `docs/ARCHITECTURE.md` — system structure, flows, invariants.
 - `docs/DATA_MODEL.md` — task/attribute/persistence details.
 - `docs/UI_DECOUPLING_ANALYSIS.md` — business-logic ↔ MFC view coupling and UI-replacement feasibility.
+- `docs/DATA_SOURCE_COUPLING_ANALYSIS.md` — task-view ↔ data-model coupling, virtual/in-memory documents and alternative data sources.
 - `docs/APPLICATION_STATE.md` — INI/registry preferences, session and per-tasklist state, and persist timing.
 - `docs/TESTING.md` — test inventory, unit/integration/e2e classification, run limits and coverage feasibility.
 - `PROJECT_SCOPE.md` — included/excluded projects and dependencies.

@@ -2625,6 +2625,20 @@ CString& FileMisc::MakeRelativePath(CString& sFilePath, const CString& sRelative
 	return sFilePath;
 }
 
+BOOL FileMisc::IsPathInFolder(const CString& sFilePath, const CString& sFolder)
+{
+	if (sFilePath.IsEmpty() || sFolder.IsEmpty())
+		return FALSE;
+
+	CString sFullFile = GetFullPath(sFilePath);
+	CString sFullFolder = TerminatePath(GetFullPath(sFolder), FALSE);
+
+	if (sFullFile.GetLength() < sFullFolder.GetLength())
+		return FALSE;
+
+	return (sFullFile.Left(sFullFolder.GetLength()).CompareNoCase(sFullFolder) == 0);
+}
+
 BOOL FileMisc::IsSamePath(const CString& sPath1, const CString& sPath2, BOOL bFileNameOnly)
 {
 	if (bFileNameOnly)

@@ -211,6 +211,7 @@ CToDoCtrl::CToDoCtrl(const CTDCContentMgr& mgrContent,
 					 const TDCCOLEDITFILTERVISIBILITY& visDefault) 
 	: 
 	m_bArchive(FALSE),
+	m_bHomeFolderView(FALSE),
 	m_bDelayLoaded(FALSE),
 	m_bDeletingTasks(FALSE),
 	m_bDragDropSubtasksAtTop(TRUE),
@@ -379,6 +380,7 @@ BEGIN_MESSAGE_MAP(CToDoCtrl, CRuntimeDlg)
 	ON_REGISTERED_MESSAGE(WM_TDCM_CANPASTETASKATTRIBUTE, OnTDCCanPasteAttributeValue)
 
 	ON_REGISTERED_MESSAGE(WM_TDCN_COLUMNEDITCLICK, OnTDCNotifyColumnEditClick)
+	ON_REGISTERED_MESSAGE(WM_TDCN_ACTIVATETASK, OnTDCNotifyActivateTask)
 	ON_REGISTERED_MESSAGE(WM_TDCN_ATTRIBUTEEDITED, OnTDCNotifyTaskAttributeEdited)
 	ON_REGISTERED_MESSAGE(WM_TDCN_AUTOITEMADDEDDELETED, OnTDCNotifyAutoComboAddDelete)
 
@@ -5253,7 +5255,7 @@ BOOL CToDoCtrl::IsModified() const
 
 BOOL CToDoCtrl::IsPristine() const 
 { 
-	return (!HasFilePath() && !IsModified());
+	return (!m_bHomeFolderView && !HasFilePath() && !IsModified());
 }
 
 void CToDoCtrl::SetModified(TDC_ATTRIBUTE nAttribID, const CDWordArray& aModTaskIDs)
@@ -6811,6 +6813,13 @@ void CToDoCtrl::OnTreeClick(NMHDR* pNMHDR, LRESULT* pResult)
 		TDC_ATTRIBUTE nAttribID = TDC::MapColumnToAttribute((TDC_COLUMN)pNMIA->iSubItem);
 		m_ctrlAttributes.SelectValue(nAttribID);
 	}
+}
+
+LRESULT CToDoCtrl::OnTDCNotifyActivateTask(WPARAM /*wParam*/, LPARAM lParam)
+{
+	// Forward to the shell which owns the home folder view
+	GetParent()->SendMessage(WM_TDCN_ACTIVATETASK, (WPARAM)GetSafeHwnd(), lParam);
+	return 0L;
 }
 
 LRESULT CToDoCtrl::OnTDCNotifyColumnEditClick(WPARAM wParam, LPARAM lParam)

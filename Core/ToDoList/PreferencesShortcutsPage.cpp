@@ -72,6 +72,15 @@ BOOL CPreferencesShortcutsPage::OnInitDialog()
 	return TRUE;
 }
 
+void CPreferencesShortcutsPage::InitTooltips()
+{
+	AddTooltip(IDC_CURHOTKEY, IDS_PREFTIP_SC_CURRENT);
+	AddTooltip(IDC_NEWHOTKEY, IDS_PREFTIP_SC_NEW);
+	AddTooltip(IDC_ASSIGNSHORTCUT, IDS_PREFTIP_SC_ASSIGN);
+	AddTooltip(IDC_COPYALL, IDS_PREFTIP_SC_COPYALL);
+	AddTooltip(IDC_SHOWCMDIDS, IDS_PREFTIP_SC_SHOWIDS);
+}
+
 void CPreferencesShortcutsPage::OnFirstShow()
 {
 	CPreferencesPageBase::OnFirstShow();

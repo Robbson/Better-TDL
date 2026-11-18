@@ -9,6 +9,8 @@
 #include "winclasses.h"
 #include "wclassdefines.h"
 #include "CtrlTextHighlighter.h"
+#include "enstring.h"
+#include "ToolTipCtrlEx.h"
 
 #include "..\3rdParty\OSVersion.h"
 
@@ -126,7 +128,8 @@ CPreferencesPageBase::CPreferencesPageBase(UINT nDlgTemplateID)
 	m_brBack(NULL), 
 	m_crBack(CLR_NONE), 
 	m_bFirstShow(TRUE), 
-	m_nHelpID(nDlgTemplateID)
+	m_nHelpID(nDlgTemplateID),
+	m_bEnableTooltips(FALSE)
 {
 }
 
@@ -160,6 +163,9 @@ BOOL CPreferencesPageBase::OnInitDialog()
 	else
 		SetBackgroundColor(GetSysColor(COLOR_WINDOW));
 
+	InitTooltips();
+	EnableTooltips(m_bEnableTooltips);
+
 	return TRUE;
 }
 
@@ -168,6 +174,72 @@ void CPreferencesPageBase::OnDestroy()
 	m_bFirstShow = TRUE;
 
 	CPropertyPage::OnDestroy();
+}
+
+BOOL CPreferencesPageBase::AddTooltip(UINT nIDCtrl, UINT nIDTip)
+{
+	CString sTip = CEnString(nIDTip);
+
+	if (sTip.IsEmpty())
+		return FALSE;
+
+	m_mapTooltips[nIDCtrl] = sTip;
+	m_bEnableTooltips = TRUE;
+
+	return TRUE;
+}
+
+void CPreferencesPageBase::EnableTooltips(BOOL bEnable)
+{
+	m_bEnableTooltips = bEnable;
+	EnableToolTips(bEnable);
+}
+
+static CString WrapTooltipText(const CString& sText)
+{
+	const int MAX_TIPLINE_CHARS = 60;
+
+	CStringArray aLines;
+	Misc::SplitLines(sText, aLines, MAX_TIPLINE_CHARS);
+
+	CString sWrapped;
+
+	for (int nLine = 0; nLine < aLines.GetSize(); nLine++)
+	{
+		if (nLine > 0)
+			sWrapped += _T("\n");
+
+		sWrapped += aLines[nLine];
+	}
+
+	return sWrapped;
+}
+
+int CPreferencesPageBase::OnToolHitTest(CPoint point, TOOLINFO* pTI) const
+{
+	if (!m_bEnableTooltips || m_mapTooltips.IsEmpty())
+		return -1;
+
+	// find the control under the point, walking up to the nearest
+	// child with a registered tooltip
+	HWND hWnd = ::ChildWindowFromPointEx(GetSafeHwnd(), point, CWP_ALL);
+
+	while (hWnd && (hWnd != GetSafeHwnd()))
+	{
+		UINT nCtrlID = (UINT)::GetDlgCtrlID(hWnd);
+		CString sTip;
+
+		if (m_mapTooltips.Lookup(nCtrlID, sTip) && !sTip.IsEmpty())
+		{
+			CWnd* pChild = CWnd::FromHandle(hWnd);
+			CToolTipCtrlEx::EnableMultilineTips(AfxGetTooltipCtrl());
+			return CToolTipCtrlEx::SetToolInfo(*pTI, pChild, WrapTooltipText(sTip), nCtrlID);
+		}
+
+		hWnd = ::GetParent(hWnd);
+	}
+
+	return -1;
 }
 
 CWnd* CPreferencesPageBase::GetDlgItem(UINT nID) const

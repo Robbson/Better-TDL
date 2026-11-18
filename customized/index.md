@@ -116,3 +116,4 @@ Rules of thumb:
 | UI-007 | Tri-state view toolbar button (task list / editor / split) | Proposed (design note) | [UI-007-tristate-view-toolbar-button.md](ui/UI-007-tristate-view-toolbar-button.md) |
 | UI-008 | Filter bar: integrated text filter and Quick Find | Proposed (revised scope: combined control first) | [UI-008-compact-filter-bar.md](ui/UI-008-compact-filter-bar.md) |
 | UI-009 | Menu actions for the comments position | Done (built; tests pass; interactive check pending) | [UI-009-comments-position-menu-actions.md](ui/UI-009-comments-position-menu-actions.md) |
+| UI-010 | Preferences dialog setting tooltips | Done (built; interactive check pending) | [UI-010-preferences-tooltips.md](ui/UI-010-preferences-tooltips.md) |

@@ -94,6 +94,7 @@ protected:
 	virtual void OnOK();
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	virtual void OnFirstShow();
+	virtual void InitTooltips();
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 
 protected:

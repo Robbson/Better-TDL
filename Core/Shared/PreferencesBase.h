@@ -62,10 +62,20 @@ protected:
 	CGroupLineManager m_mgrGroupLines;
 	CWndPromptManager m_mgrPrompts;
 
+	CMap<UINT, UINT, CString, CString&> m_mapTooltips;
+	BOOL m_bEnableTooltips;
+
 protected:
 	virtual BOOL OnInitDialog();
 	virtual void OnFirstShow();
-	
+
+	// Called from OnInitDialog after the page controls exist.
+	virtual void InitTooltips() {}
+	BOOL AddTooltip(UINT nIDCtrl, UINT nIDTip);
+	void EnableTooltips(BOOL bEnable = TRUE);
+
+	virtual int OnToolHitTest(CPoint point, TOOLINFO* pTI) const;
+
 protected:
 	afx_msg void OnControlChange(UINT nID = -1);
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);

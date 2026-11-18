@@ -102,6 +102,7 @@ protected:
 	virtual void DoDataExchange(CDataExchange* pDX);
 	virtual BOOL OnInitDialog();
 	virtual void OnFirstShow();
+	virtual void InitTooltips();
 
 protected:
 	afx_msg void OnShowcomments();

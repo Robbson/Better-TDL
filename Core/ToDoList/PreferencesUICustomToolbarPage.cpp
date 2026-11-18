@@ -61,6 +61,15 @@ BOOL CPreferencesUICustomToolbarPage::OnInitDialog()
 	              // EXCEPTION: OCX Property Pages should return FALSE
 }
 
+void CPreferencesUICustomToolbarPage::InitTooltips()
+{
+	AddTooltip(IDC_BUTTONLIST, IDS_PREFTIP_TB_MENUITEMCOL);
+	AddTooltip(IDC_MOVEUP, IDS_PREFTIP_TB_MOVEUP);
+	AddTooltip(IDC_MOVEDOWN, IDS_PREFTIP_TB_MOVEDOWN);
+	AddTooltip(IDC_DUPLICATE, IDS_PREFTIP_TB_DUPLICATE);
+	AddTooltip(IDC_DELETE, IDS_PREFTIP_TB_DELETE);
+}
+
 void CPreferencesUICustomToolbarPage::OnFirstShow()
 {
 	CPreferencesPageBase::OnFirstShow();

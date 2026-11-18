@@ -132,6 +132,19 @@ BOOL CPreferencesToolPage::OnInitDialog()
 	return TRUE;
 }
 
+void CPreferencesToolPage::InitTooltips()
+{
+	AddTooltip(IDC_TOOLLIST, IDS_PREFTIP_TOOL_NAME);
+	AddTooltip(IDC_DISPLAYUDTSINTOOLBAR, IDS_PREFTIP_TOOL_SHOWTOOLBAR);
+	AddTooltip(IDC_IMPORT, IDS_PREFTIP_TOOL_IMPORT);
+	AddTooltip(IDC_TOOLPATH, IDS_PREFTIP_TOOL_PATH);
+	AddTooltip(IDC_CMDLINE, IDS_PREFTIP_TOOL_ARGS);
+	AddTooltip(IDC_ARGMENUBTN, IDS_PREFTIP_TOOL_ARGS);
+	AddTooltip(IDC_ICONPATH, IDS_PREFTIP_TOOL_ICON);
+	AddTooltip(IDC_RUNMINIMIZED, IDS_PREFTIP_TOOL_RUNMIN);
+	AddTooltip(IDC_TESTTOOL, IDS_PREFTIP_TOOL_TEST);
+}
+
 void CPreferencesToolPage::SetCustomAttributeDefs(const CTDCCustomAttribDefinitionArray& aAttribDefs)
 {
 	m_aCustomAttribDefs.Copy(aAttribDefs);

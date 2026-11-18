@@ -57,6 +57,14 @@ BOOL CPreferencesUIVisibilityPage::OnInitDialog()
 	return TRUE;
 }
 
+void CPreferencesUIVisibilityPage::InitTooltips()
+{
+	AddTooltip(IDC_VISIBILITY, IDS_PREFTIP_VIS_SHOWASCOLUMN);
+	AddTooltip(IDC_SHOWALLATTRIB, IDS_PREFTIP_VIS_SHOWALL);
+	AddTooltip(IDC_SHOWATTRIBASCOLUMN, IDS_PREFTIP_VIS_SHOWASCOLUMN);
+	AddTooltip(IDC_SHOWANYATTRIB, IDS_PREFTIP_VIS_SHOWEACH);
+}
+
 void CPreferencesUIVisibilityPage::OnFirstShow()
 {
 	CPreferencesPageBase::OnFirstShow();

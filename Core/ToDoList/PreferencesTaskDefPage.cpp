@@ -109,6 +109,11 @@ END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
 
+void CPreferencesTaskDefPage::InitTooltips()
+{
+	AddTooltip(IDC_DEFGROUP, IDS_PREFTIP_DEF_DEFAULTS);
+}
+
 void CPreferencesTaskDefPage::OnFirstShow()
 {
 	CPreferencesPageBase::OnFirstShow();

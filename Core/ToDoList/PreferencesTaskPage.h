@@ -87,6 +87,7 @@ protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	virtual BOOL OnInitDialog();
 	virtual void OnFirstShow();
+	virtual void InitTooltips();
 	virtual void OnOK();
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 

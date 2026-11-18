@@ -92,6 +92,7 @@ Rules of thumb:
 | PERF-004 | Deferred window creation for delay-loaded tasklists | Done | [PERF-004-delayed-tasklist-window.md](performance/PERF-004-delayed-tasklist-window.md) |
 | PERF-005 | No throwaway tasklist at startup | Done | [PERF-005-no-throwaway-tasklist.md](performance/PERF-005-no-throwaway-tasklist.md) |
 | PERF-006 | Fixed per-tasklist open/activation cost in a running app | Proposed (runtime analysis complete; instrumentation next) | [PERF-006-tasklist-open-activation-cost.md](performance/PERF-006-tasklist-open-activation-cost.md) |
+| PERF-007 | Preferences search slow on first use | Proposed (root cause identified; measurement next) | [PERF-007-preferences-search-first-use-cost.md](performance/PERF-007-preferences-search-first-use-cost.md) |
 
 ### Text editor (`TED`)
 
@@ -117,3 +118,4 @@ Rules of thumb:
 | UI-008 | Filter bar: integrated text filter and Quick Find | Proposed (revised scope: combined control first) | [UI-008-compact-filter-bar.md](ui/UI-008-compact-filter-bar.md) |
 | UI-009 | Menu actions for the comments position | Done (built; tests pass; interactive check pending) | [UI-009-comments-position-menu-actions.md](ui/UI-009-comments-position-menu-actions.md) |
 | UI-010 | Preferences dialog setting tooltips | Done (built; interactive check pending) | [UI-010-preferences-tooltips.md](ui/UI-010-preferences-tooltips.md) |
+| UI-011 | Preferences dialog Apply button with Cancel rollback | Proposed | [UI-011-preferences-apply-button.md](ui/UI-011-preferences-apply-button.md) |

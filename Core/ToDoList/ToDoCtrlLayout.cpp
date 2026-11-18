@@ -165,20 +165,31 @@ void CToDoCtrlLayout::SetAttributesFixedSize(BOOL bFixed, int nSize)
 
 	if (FindAttributesSplitter(pSplitter, nPane))
 	{
-		pSplitter->SetResizable(!bFixed);
+		// The splitter must stay resizable so that bars not adjacent to the
+		// attributes pane can still be dragged
+		pSplitter->SetResizable(TRUE);
 
 		int nPanes = pSplitter->GetPaneCount();
 
 		for (int nBar = 0; nBar < (nPanes - 1); nBar++)
-			pSplitter->SetBarVisible(nBar, !bFixed);
-
-		if (bFixed)
 		{
-			if (nPane > 0)
-				pSplitter->SetBarVisible(nPane - 1, FALSE);
+			BOOL bVisible = !bFixed;
 
-			if (nPane < (nPanes - 1))
-				pSplitter->SetBarVisible(nPane, FALSE);
+			if (bFixed)
+			{
+				// Keep the bar between the attributes and comments panes when a
+				// third pane (tasks) can absorb the size change, so the comments
+				// editor can still be resized
+				if (nPanes > 2)
+				{
+					if ((nBar == (nPane - 1)) && (pSplitter->GetPane(nPane - 1) == m_pComments))
+						bVisible = TRUE;
+					else if ((nBar == nPane) && (pSplitter->GetPane(nPane + 1) == m_pComments))
+						bVisible = TRUE;
+				}
+			}
+
+			pSplitter->SetBarVisible(nBar, bVisible);
 		}
 	}
 
@@ -269,6 +280,17 @@ BOOL CToDoCtrlLayout::GetAttributesRect(CRect& r, const CWnd* pRelativeTo) const
 	return TRUE;
 }
 
+BOOL CToDoCtrlLayout::IsAttributesSplitterHorz() const
+{
+	CSimpleSplitter* pSplitter = NULL;
+	int nPane = -1;
+
+	if (!FindAttributesSplitter(pSplitter, nPane))
+		return FALSE;
+
+	return pSplitter->IsHorz();
+}
+
 void CToDoCtrlLayout::EnforceAttributesSize()
 {
 	if (!m_bAttributesFixed || (m_nAttributesFixedSize <= 0))
@@ -311,7 +333,36 @@ void CToDoCtrlLayout::EnforceAttributesSize()
 	if (aSizes[nPane] == nTarget)
 		return;
 
+	int nDelta = (nTarget - aSizes[nPane]);
 	aSizes[nPane] = nTarget;
+
+	// Absorb the whole change in one pane so the attributes pane keeps its
+	// exact requested size and a dragged adjacent splitter follows the mouse
+	// instead of being scaled back
+	int nAbsorb = -1;
+
+	for (int nPaneSize = 0; nPaneSize < nPanes; nPaneSize++)
+	{
+		if ((nPaneSize != nPane) && (pSplitter->GetPane(nPaneSize) == NULL))
+		{
+			nAbsorb = nPaneSize;
+			break;
+		}
+	}
+
+	if (nAbsorb == -1)
+	{
+		// No tasks pane, use the largest other pane
+		for (int nPaneSize = 0; nPaneSize < nPanes; nPaneSize++)
+		{
+			if ((nPaneSize != nPane) && ((nAbsorb == -1) || (aSizes[nPaneSize] > aSizes[nAbsorb])))
+				nAbsorb = nPaneSize;
+		}
+	}
+
+	if (nAbsorb != -1)
+		aSizes[nAbsorb] = max(30, (aSizes[nAbsorb] - nDelta));
+
 	pSplitter->SetRelativePaneSizes(aSizes, TRUE);
 }
 
@@ -390,6 +441,12 @@ void CToDoCtrlLayout::RebuildLayout(BOOL bRecalcLayout)
 
 	m_splitterVert.DestroyWindow();
 	m_splitterVert.ClearPanes();
+
+	// Reset interaction state because the splitter objects are reused for a
+	// different arrangement and would otherwise retain state from the previous
+	// legacy attributes pane layout
+	m_splitterHorz.SetResizable(TRUE);
+	m_splitterVert.SetResizable(TRUE);
 
 	// Scoped to exclude the updates right at the end
 	{

@@ -254,6 +254,12 @@ int CTDLTaskAttributeCtrl::GetRequiredWidth(int cy) const
 	return (IsLegacyEditor() && m_pLegacyBar) ? m_pLegacyBar->GetRequiredWidth(cy) : 0;
 }
 
+void CTDLTaskAttributeCtrl::SetAttributesColumnLayout(BOOL bColumnLayout)
+{
+	if (IsLegacyEditor() && m_pLegacyBar)
+		m_pLegacyBar->SetColumnLayout(bColumnLayout);
+}
+
 void CTDLTaskAttributeCtrl::ShowActiveEditor()
 {
 	if (!GetSafeHwnd())

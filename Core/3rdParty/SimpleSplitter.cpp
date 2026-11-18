@@ -429,11 +429,19 @@ void CSimpleSplitter::RecalcLayout()
 
 void CSimpleSplitter::ResizePaneWindows()
 {
-	CRect rClient;
-	GetClientRect(rClient);
+	// Resize child windows and splitters first so nested layouts have applied
+	// the new geometry before the parent is notified about panes we do not own
+	for (int i = 0; i < m_aPanes.GetSize(); i++)
+	{
+		if (m_aPanes[i])
+			ResizePaneWindow(i);
+	}
 
 	for (int i = 0; i < m_aPanes.GetSize(); i++)
-		ResizePaneWindow(i);
+	{
+		if (!m_aPanes[i])
+			ResizePaneWindow(i);
+	}
 
 	Invalidate(TRUE);
 }

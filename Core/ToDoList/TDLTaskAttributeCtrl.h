@@ -106,6 +106,7 @@ public:
 	BOOL GetRecurrence(TDCRECURRENCE& tr) const;
 	int GetRequiredHeight(int cx) const;
 	int GetRequiredWidth(int cy) const;
+	void SetAttributesColumnLayout(BOOL bColumnLayout);
 
 	BOOL GetCustomAttributeData(const CString& sAttribID, TDCCADATA& data, BOOL bFormatted = FALSE) const;
 	int GetCustomAttributeAutoListData(const CString& sAttribID, CStringArray& aItems) const;

@@ -46,6 +46,7 @@ public:
 	void EnforceAttributesSize();
 	BOOL GetAttributesRect(CRect& r, const CWnd* pRelativeTo = NULL) const;
 	BOOL GetTasksRect(CRect& r, const CWnd* pRelativeTo = NULL) const;
+	BOOL IsAttributesSplitterHorz() const;
 
 	TDC_MAXSTATE GetMaximiseState() const { return m_nMaxState; }
 	TDC_UILOCATION GetAttributesPosition() const { return m_nAttribsPos; }

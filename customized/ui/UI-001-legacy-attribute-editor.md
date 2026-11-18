@@ -367,8 +367,10 @@ Layout and appearance fixes:
   - `CTDLTaskAttributeBarCtrl::GetRequiredHeight/Width()` calculate the space needed for
     the visible fields.
   - `CToDoCtrl::UpdateAttributesPaneSize()` applies that size to `CToDoCtrlLayout`.
-  - `CSimpleSplitter::SetResizable(FALSE)` disables dragging for the splitter that owns
-    the attributes pane in legacy mode; it is restored in grid mode.
+  - Bars directly adjacent to the attributes pane are hidden in legacy mode. When the
+    splitter also contains a third pane (the tasks) and the comments pane is adjacent to
+    the attributes, that bar stays interactive so the comments editor can still be
+    resized. Grid mode restores all bars.
   - Visibility changes and tasklist resizes re-apply the required size.
 - Static labels are transparent/themed via `WM_CTLCOLORSTATIC` and a background brush.
 - The percent spin control is shown/hidden and enabled with the percent field.
@@ -391,9 +393,11 @@ Interaction fixes:
   `DTN_DROPDOWN` auto-check was removed because it interfered with unchecking. Checkbox
   painting when the calendar is closed remains a known issue.
 - The splitter bars adjacent to the attributes pane are hidden in legacy mode, but their
-  width/height is still reserved. `CSimpleSplitter` gained per-bar visibility
-  (`SetBarVisible`/`IsBarVisible`); hidden bars are not painted or hit-tested, and
-  `CToDoCtrlLayout` applies this to the bars either side of the attributes pane.
+  width/height is still reserved. When a third pane can absorb the change, the bar between
+  the attributes and comments panes is kept visible and draggable. `CSimpleSplitter`
+  gained per-bar visibility (`SetBarVisible`/`IsBarVisible`); hidden bars are not painted
+  or hit-tested, and `CToDoCtrlLayout` applies this to the bars either side of the
+  attributes pane.
 - Hidden-bar areas are filled with the tasklist theme background
   (`SetBarBackgroundColor`) during painting, preventing stale pixels and resize artifacts
   where the bar used to be drawn.
@@ -476,10 +480,77 @@ Locked tasks:
   completion on parent tasks or time fields without a date. Custom controls use the same
   test.
 
-Verification: `ToDoListLib` and `TDLTest` build in `Unicode Debug|Win32`; `TDLTest`
-reports 310240/310264 passing, with the same 24 pre-existing
-`CTDCTaskMatcherTest::IndividualRules` failures. `ToDoList.exe` relinking was blocked by
-the two running app instances holding the output file.
+Splitter state across layout rebuilds:
+
+- Changing the comments position destroys and recreates the splitter windows, but the
+  `CSimpleSplitter` objects are reused. The splitter that held the attributes pane could
+  retain hidden-bar and non-resizable state from the previous arrangement. When the new
+  layout placed the attributes pane in a different splitter, the previously disabled
+  splitter (for example the tasks/editor splitter) stayed non-interactive, even after
+  switching the comments position back.
+- `CToDoCtrlLayout::RebuildLayout()` now resets both splitters to resizable before
+  assigning the new pane arrangement; `UpdateAttributesPaneSize()` then re-applies the
+  fixed-size and bar-visibility state to whichever splitter holds the attributes pane in
+  the new layout.
+
+Splitter bars next to the fixed attributes pane:
+
+- When comments stacking is off (tasks above attributes above comments in one vertical
+  splitter), `SetAttributesFixedSize()` used to disable the whole splitter and hide every
+  bar, leaving no interactive splitter at all. It now keeps the splitter resizable, hides
+  only bars that directly bound the attributes pane, and leaves the bar between the
+  attributes pane and the comments pane visible when the tasks pane can absorb the size
+  change. The fixed attributes height is re-enforced while dragging.
+
+Fixed-size axis with stacked comments:
+
+- With comments and attributes both at the bottom and stacking enabled, each occupies one
+  side of a horizontal splitter. `UpdateAttributesPaneSize()` used the user's attributes
+  position (bottom) rather than the splitter orientation, so it set the pane *width* to
+  the bar's required *height*. `GetRequiredHeight()` depends on the current width, so each
+  enforcement fed back into the next one and the width oscillated between two values while
+  dragging. The fixed dimension now follows the splitter that holds the attributes pane:
+  width for a horizontal splitter, height for a vertical one.
+
+Reflow into columns when height is constrained:
+
+- `GetRequiredWidth()` calculated `cols * ctrlW + (cols - 1) * spacing`, but
+  `ReposControls()` derived the column count from `width / (ctrlW + spacing)`. The
+  required width was therefore one spacing short, so the bar always rendered one column
+  fewer than requested. When vertical space was tight, the pane widened but the expected
+  extra column never appeared. Column layouts now use a column-count formula that includes
+  the trailing spacing; row layouts keep their original row-packing formula.
+- `CSimpleSplitter::ResizePaneWindows()` previously sent the placeholder-pane
+  notification before moving child splitters. With the attributes pane inside a nested
+  splitter that meant `UpdateAttributesPaneSize()` measured the *old* height, so a splitter
+  drag only adapted the column count on the next event. Child windows and splitters are
+  now resized first, then the parent is notified, so the bar reflows immediately while
+  dragging.
+
+Splitter drag responsiveness with a fixed attributes pane:
+
+- `EnforceAttributesSize()` used to set the attributes size and then normalise all panes
+  proportionally. Dragging the attributes/comments bar therefore only moved a fraction of
+  the mouse distance per event and the bar appeared to creep towards the cursor while
+  every intermediate position was repainted. The size change is now absorbed entirely by
+  one pane (the tasks pane where present, otherwise the largest other pane), so the fixed
+  attributes pane keeps its exact size and the dragged bar follows the mouse 1:1.
+
+Right-edge alignment:
+
+- `ReposControls()` left-aligned fixed-width cells, so the last column could end before
+  the right edge while the expanding file-link control filled the remaining width. In
+  column layouts (the attributes pane sits beside another pane, e.g. stacked with the
+  comments editor) leftover width is absorbed into the inter-column spacing so the right
+  padding is minimal and the last column lines up with the file link. Row layouts keep
+  their fixed spacing and only add/remove rows as before; there the file link still
+  extends to the window edge but leaves a gap equal to the inter-control spacing so it
+  does not touch the border. Control widths are unchanged, and custom controls use the
+  same spacing.
+
+Verification: `3rdParty` and `ToDoListLib` build in `Unicode Debug|Win32`. `TDLTest`
+behaviour is unchanged because this only affects the interactive layout; interactive
+splitter checks still need manual verification.
 
 Remaining limitations:
 

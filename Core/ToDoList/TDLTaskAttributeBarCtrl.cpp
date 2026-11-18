@@ -134,6 +134,7 @@ CTDLTaskAttributeBarCtrl::CTDLTaskAttributeBarCtrl(const CToDoCtrlData& data,
 	m_nNumPriorityRiskLevels(10),
 	m_dwTimeTrackTaskID(0),
 	m_bRefreshing(FALSE),
+	m_bColumnLayout(FALSE),
 	m_crBack(CLR_NONE),
 	m_nPriority(FM_NOPRIORITYORRISK),
 	m_nRisk(FM_NOPRIORITYORRISK),
@@ -711,7 +712,24 @@ void CTDLTaskAttributeBarCtrl::ReposControls()
 	if (!nVisible)
 		return;
 
-	int nCols = max(1, rClient.Width() / (nCtrlW + nHSpacing));
+	int nCols = max(1, m_bColumnLayout ? ((rClient.Width() + nHSpacing) / (nCtrlW + nHSpacing))
+									   : (rClient.Width() / (nCtrlW + nHSpacing)));
+
+	// In column layouts absorb leftover width into the spacing so the right
+	// padding is minimal and the last column aligns with the file link control.
+	// Row layouts keep their fixed spacing.
+	int nColSpacing = nHSpacing;
+
+	if (m_bColumnLayout && (nCols > 1))
+	{
+		int nRemaining = (rClient.Width() - (nCols * nCtrlW));
+		nColSpacing = max(nHSpacing, (nRemaining / (nCols - 1)));
+	}
+
+	// Row layouts let the file link extend to the right edge but leave the same
+	// gap as between controls so it does not touch the border
+	int nFileLinkRight = (m_bColumnLayout ? rClient.right : (rClient.right - nHSpacing));
+
 	int nRow = 0, nCol = 0, nCell = 0;
 
 	for (int nCtrl = 0; nCtrl < NUM_LEGACYCTRLITEMS; nCtrl++)
@@ -721,7 +739,7 @@ void CTDLTaskAttributeBarCtrl::ReposControls()
 		if (!m_vis.IsEditFieldVisible(ctrl.nAttributeID))
 			continue;
 
-		int nX = (nCol * (nCtrlW + nHSpacing));
+		int nX = (nCol * (nCtrlW + nColSpacing));
 		int nY = (nRow * nCellH);
 
 		CWnd* pLabel = GetDlgItem(ctrl.nLabelID);
@@ -743,7 +761,7 @@ void CTDLTaskAttributeBarCtrl::ReposControls()
 			}
 			else if ((ctrl.nCtrlID == IDC_TDLAB_FILEPATH) && (GetVisibleCustomControlCount() == 0))
 			{
-				pCtrl->MoveWindow(nX, nY + nLabelH, (rClient.right - nX), nCtrlH);
+				pCtrl->MoveWindow(nX, nY + nLabelH, (nFileLinkRight - nX), nCtrlH);
 			}
 			else
 			{
@@ -760,7 +778,7 @@ void CTDLTaskAttributeBarCtrl::ReposControls()
 		nCell++;
 	}
 
-	ReposCustomControls(nCell, nCols, nCellH, nCtrlW, nLabelH, nCtrlH, nHSpacing, rClient);
+	ReposCustomControls(nCell, nCols, nCellH, nCtrlW, nLabelH, nCtrlH, nColSpacing, rClient);
 }
 
 int CTDLTaskAttributeBarCtrl::GetRequiredHeight(int cx) const
@@ -819,6 +837,15 @@ int CTDLTaskAttributeBarCtrl::GetRequiredWidth(int cy) const
 	int nCols = ((nVisible + nRows - 1) / nRows);
 
 	return ((nCols * nCtrlW) + ((nCols - 1) * nHSpacing));
+}
+
+void CTDLTaskAttributeBarCtrl::SetColumnLayout(BOOL bColumnLayout)
+{
+	if (m_bColumnLayout == bColumnLayout)
+		return;
+
+	m_bColumnLayout = bColumnLayout;
+	ReposControls();
 }
 
 void CTDLTaskAttributeBarCtrl::SetCtrlDate(CDateTimeCtrl& ctrl, const COleDateTime& date)

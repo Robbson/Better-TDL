@@ -110,6 +110,7 @@ public:
 
 	int GetRequiredHeight(int cx) const;
 	int GetRequiredWidth(int cy) const;
+	void SetColumnLayout(BOOL bColumnLayout);
 
 	// ITDCAttributeEditor
 	void SetDefaultAutoListData(const TDCAUTOLISTDATA& tldDefault) override;
@@ -193,6 +194,7 @@ protected:
 	DWORD m_dwTimeTrackTaskID;
 
 	BOOL m_bRefreshing;
+	BOOL m_bColumnLayout;
 	COLORREF m_crBack;
 	CBrush m_brBack;
 

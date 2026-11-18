@@ -770,18 +770,18 @@ void CToDoCtrl::UpdateAttributesPaneSize()
 		return;
 
 	int nSize = 0;
+	BOOL bColumnLayout = m_layout.IsAttributesSplitterHorz();
 
-	switch (m_layout.GetAttributesPosition())
-	{
-	case TDCUIL_BOTTOM:
-		nSize = m_ctrlAttributes.GetRequiredHeight(rAttribs.Width());
-		break;
+	m_ctrlAttributes.SetAttributesColumnLayout(bColumnLayout);
 
-	case TDCUIL_LEFT:
-	case TDCUIL_RIGHT:
+	// The fixed dimension follows the splitter that holds the attributes pane,
+	// not the user's position preference: with comments stacking, a 'bottom'
+	// attributes pane is actually laid out beside the comments pane and must be
+	// sized by width
+	if (bColumnLayout)
 		nSize = m_ctrlAttributes.GetRequiredWidth(rAttribs.Height());
-		break;
-	}
+	else
+		nSize = m_ctrlAttributes.GetRequiredHeight(rAttribs.Width());
 
 	m_layout.SetAttributesFixedSize(TRUE, nSize);
 }

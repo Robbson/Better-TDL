@@ -81,6 +81,7 @@ Rules of thumb:
 | GEN-001 | Product name and release label from version resource; About layout | Done (built and manually verified) | [GEN-001-branding-and-about.md](general/GEN-001-branding-and-about.md) |
 | GEN-002 | Quote-safe values in ToDoList.ini (Quick Find history) | Done | [GEN-002-quoted-ini-values.md](general/GEN-002-quoted-ini-values.md) |
 | GEN-003 | Functional UI automation framework (UIA/FlaUI proposal) | Proposed | [GEN-003-ui-automation-framework.md](general/GEN-003-ui-automation-framework.md) |
+| GEN-004 | Web-technology extensions: WebView2 for task views and text editors | Proposed (feasibility study; no implementation) | [GEN-004-webview-based-ui-extensions.md](general/GEN-004-webview-based-ui-extensions.md) |
 
 ### Performance (`PERF`)
 

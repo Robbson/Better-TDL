@@ -51,26 +51,31 @@ alphabetical, hidden/system/reparse-point entries skipped) and fills a `CTaskFil
 | Last modified | built-in `TDCA_LASTMODDATE` (Unix `time64_t`, converted from `FILETIME`) |
 | Size | custom attribute `HomeFolder.Size` (integer, bytes); blank for folders |
 | Type | custom attribute `HomeFolder.Type` (extension) |
+| Status | custom attribute `HomeFolder.Status`: `Opened`, `Modified` or blank when closed |
 | Content preview | text files up to 128 KB are loaded into the task comments |
 | Path | custom attribute `HomeFolder.Path`; blank for home entries, reserved for future external files |
 | Absolute path | disabled custom attribute `HomeFolder.FullPath` (internal, no column) |
 | `.tdl` icon | `tdl` (open) or `tdlclosed` (pale, not open), mapped to `IDR_MAINFRAME` |
 | text icon | task icon `93` for `.txt`, `.md`, `.log`, `.ini`, `.csv`, `.json`, `.xml`, `.yml`, `.yaml` |
 
-Visible columns are fixed to Title, Last Modified, Size, Type and Path. `Size` is an
-integer and has no value for folder rows. The internal absolute path is stored in a
-**disabled** custom attribute so it does not appear as a column or editor field. `.tdl`
-rows use the application icon; closed tasklists use a 50%-blended pale copy, while open
+Visible columns are fixed to Title, Last Modified, Size, Type, Status and Path. `Size` is
+an integer and has no value for folder rows. The Status column is sortable and shows
+`Opened`, `Modified` or nothing for closed files. The internal absolute path is stored in
+a **disabled** custom attribute so it does not appear as a column or editor field. `.tdl`
+rows use the application icon; closed tasklists use a 50%-alpha pale copy, while open
 tasklists use the normal icon. Text files use task icon 93 and display their content in
-the comments control (up to 128 KB). Top-level rows remain bold because the tree renderer
+the comments control (up to 128 KB); BOM/UTF-8 is auto-detected, and files that fail UTF-8
+conversion are retried as ANSI. Top-level rows remain bold because the tree renderer
 always bolds tasks whose parent is the root (`TDLTaskCtrlBase.cpp:2368`); this is existing
 upstream behaviour, not a Home setting.
 
-Row colouring is text-only and mirrors the MRU tasklist switcher:
+Row colouring is text-only and mirrors the MRU tasklist switcher, except that closed
+files use a lighter gray (`RGB(150,150,150)`) so they remain distinguishable from bold
+open titles:
 
 | State | Text colour |
 |---|---|
-| Closed file | `COLOR_GRAYTEXT` |
+| Closed file | `RGB(150,150,150)` |
 | Open, unmodified tasklist | default window text |
 | Open, modified and unsaved tasklist | `COLOR_HOTLIGHT` |
 | Folder | default window text |
@@ -99,15 +104,25 @@ active filter would otherwise be restored on the next creation and make the view
 empty. A newly created Home document therefore calls `ClearFilter()` once after loading;
 the filter bar remains usable for the current session.
 
+Home status is refreshed lazily. Opening, closing or modifying a tasklist sets
+`m_bHomeFolderNeedsRefresh`; if Home is not active it is rebuilt when the user next
+selects the Home tab. This avoids reloading the virtual document while it is hidden and
+keeps multiple-open and edited-document states correct.
+
+Home is omitted from the Window menu (commands still map by manager index); the tab
+remains because it is the only way to navigate back to the virtual document.
+
 ### Activation
 
-Double-clicking a read-only task with a `HomeFolder.FullPath` value sends the new
-`WM_TDCN_ACTIVATETASK` notification. The shell opens `.tdl` files with the existing
-`CToDoListWnd::OpenTaskList` path and refreshes the home view; other files are launched
-through `FileMisc::Run`. The Home task context menu is replaced with just **Open**,
-**Close** (enabled only when the selected `.tdl` is already open) and **Show in
-Explorer**; Open behaves like double-click. `Tools → Select in Explorer` also uses the
-selected Home item.
+Double-clicking or pressing **Enter** on a read-only task with a `HomeFolder.FullPath`
+value sends the new `WM_TDCN_ACTIVATETASK` notification. The shell opens `.tdl` files
+with the existing `CToDoListWnd::OpenTaskList` path and refreshes the home view; other
+files are launched through `FileMisc::Run`. The Home task context menu is replaced with
+**Open**, **Open & Replace**, **Close** (enabled when any selected `.tdl` is already open)
+and **Show in Explorer**; Open handles all selected items, and opening a folder
+recursively opens every `.tdl` beneath it. Open & Replace first closes every open
+non-home tasklist (prompting to save modified documents) and then opens the selection.
+`Tools → Select in Explorer` also uses the selected Home item.
 
 ### Relative paths
 
@@ -128,8 +143,8 @@ file exists there, otherwise against the application folder (preserving old sess
 - `Core/ToDoList/ToDoList.rc`, `resource.h` — command, dialog row, menu, tooltip string.
 - `Core/ToDoList/TDCMsg.h` — `WM_TDCN_ACTIVATETASK`, `WM_TDCN_VIEWUNSUPPORTED`,
   home-folder attribute IDs.
-- `Core/ToDoList/TDLTaskTreeCtrl.cpp` — read-only double-click activation.
-- `Core/ToDoList/TDCImageList.cpp/.h` — normal/pale application icon for `.tdl` files.
+- `Core/ToDoList/TDLTaskTreeCtrl.cpp` — read-only double-click and Enter activation.
+- `Core/ToDoList/TDCImageList.cpp/.h` — 32-bit alpha application icon for `.tdl` files.
 - `Core/Shared/FileMisc.cpp/.h` — `IsPathInFolder`; Unix-based `GetFileLastModified`.
 - `Core/Shared/EnRecentFileList.cpp/.h` — optional home-relative MRU storage.
 - `Core/ToDoListLib/ToDoListLib.vcxproj(.filters)` — new source files.
@@ -146,9 +161,16 @@ file exists there, otherwise against the application folder (preserving old sess
 - Idle processing with Home active produces no time-tracker assertion.
 - Dragging a Home row does not start a drag operation and does not assert.
 - Last-modified dates match the filesystem dates (not 1601-based values).
-- `.tdl` rows show the application icon, pale when closed and normal when open; text
-  files show icon 93 and their content appears in the comments control.
-- Right-clicking a Home row shows only Open, Close and Show in Explorer.
+- `.tdl` rows show a smooth 50%-alpha application icon when closed and the normal icon
+  when open; text files show icon 93 and their content appears in the comments control.
+- ANSI text files with non-ASCII characters display correctly (UTF-8 first, ANSI retry).
+- Right-clicking a Home row shows Open, Open & Replace, Close and Show in Explorer; Open
+  handles a multiple selection and recursively opens all `.tdl` files in a selected
+  folder.
+- Opening/closing/editing tasklists updates the Home Status column when Home is next
+  shown; multiple opens are reflected too.
+- Home is absent from the Window menu but remains available as a tab.
+- Pressing Enter on a selected Home row opens it like double-click.
 - `[HomeFolders]`, `LastFileN`, `LastActiveFile` and `MRU` use the machine key and
   home-relative paths.
 - Preferences shows the configured folder and closes/saves without assertions.

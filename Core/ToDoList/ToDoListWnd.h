@@ -196,6 +196,8 @@ protected:
 	BOOL m_bClosing;
 	BOOL m_bEndingSession;
 	BOOL m_bFindShowing;
+	BOOL m_bHomeFolderNeedsRefresh;
+	BOOL m_bRefreshingHomeFolder;
 	BOOL m_bFirstEraseBkgnd;
 	BOOL m_bIgnoreResize;
 	BOOL m_bInNewTask;
@@ -338,6 +340,7 @@ protected:
 	afx_msg void OnHomeOpen();
 	afx_msg void OnHomeClose();
 	afx_msg void OnHomeShowInExplorer();
+	afx_msg void OnHomeOpenReplace();
 	afx_msg void OnFileOpenFromUserStorage(UINT nCmdID);
 	afx_msg void OnFileOpenarchive();
 	afx_msg void OnFileResetversion();
@@ -725,8 +728,11 @@ protected:
 	int FindHomeFolderView() const;
 	int FindTasklistByPath(const CString& sFilePath) const;
 	CString GetHomeSelectedPath() const;
+	void GetHomeSelectedPaths(CStringArray& aPaths) const;
 	void ShowHomeContextMenu(CPoint point, BOOL bHasSelection);
 	void OpenHomeItem(DWORD dwTaskID);
+	void OpenHomeSelection();
+	void MarkHomeFolderDirty();
 	BOOL RefreshHomeFolderView(CFilteredToDoCtrl* pTDC = NULL);
 	void GetOpenTasklistPaths(CStringArray& aOpenFiles, CStringArray& aModifiedFiles) const;
 	void SetHomeFolderViewStyles(CFilteredToDoCtrl& tdc);

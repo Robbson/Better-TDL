@@ -31,6 +31,8 @@ public:
 	static BOOL BuildTaskFile(CTaskFile& tasks, const CStringArray& aOpenFiles, const CStringArray& aModifiedFiles);
 	static BOOL BuildTaskFile(CTaskFile& tasks, const CString& sFolder, const CStringArray& aOpenFiles, const CStringArray& aModifiedFiles);
 
+	static void CollectTasklistPaths(const CString& sFolder, CStringArray& aPaths);
+
 protected:
 	static BOOL AddFolderContents(CTaskFile& tasks, void* hParent, DWORD dwParentID, const CString& sFolder,
 								  DWORD& dwNextID, const CStringArray& aOpenFiles, const CStringArray& aModifiedFiles, int nDepth);

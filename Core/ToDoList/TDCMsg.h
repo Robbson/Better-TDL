@@ -13,6 +13,7 @@ const LPCTSTR TDC_CUSTOMATTRIB_HOMEFOLDERFULLPATH	= _T("HomeFolder.FullPath");
 const LPCTSTR TDC_CUSTOMATTRIB_HOMEFOLDERPATH		= _T("HomeFolder.Path");
 const LPCTSTR TDC_CUSTOMATTRIB_HOMEFOLDERSIZE		= _T("HomeFolder.Size");
 const LPCTSTR TDC_CUSTOMATTRIB_HOMEFOLDERTYPE		= _T("HomeFolder.Type");
+const LPCTSTR TDC_CUSTOMATTRIB_HOMEFOLDERSTATUS		= _T("HomeFolder.Status");
 
 const UINT WM_TDCN_MODIFY					= ::RegisterWindowMessage(_T("WM_TDCN_MODIFY"));				// lParam = TDCNOTIFYMOD*
 const UINT WM_TDCN_SORT						= ::RegisterWindowMessage(_T("WM_TDCN_SORT")); 

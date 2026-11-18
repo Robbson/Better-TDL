@@ -1052,6 +1052,18 @@ LRESULT CTDLTaskTreeCtrl::ScWindowProc(HWND hRealWnd, UINT msg, WPARAM wp, LPARA
 
 		case WM_KEYDOWN:
 			{
+				// Enter activates read-only home items
+				if ((wp == VK_RETURN) && IsReadOnly())
+				{
+					DWORD dwTaskID = GetSelectedTaskID();
+
+					if (dwTaskID && !m_data.GetTaskCustomAttributeData(dwTaskID, TDC_CUSTOMATTRIB_HOMEFOLDERFULLPATH).IsEmpty())
+					{
+						CWnd::GetParent()->SendMessage(WM_TDCN_ACTIVATETASK, (WPARAM)GetSafeHwnd(), dwTaskID);
+						return 0L;
+					}
+				}
+
 				// Update the selection
 				BOOL bSelChange = FALSE;
 				TSH().OnTreeKeyDown(wp, lp, bSelChange);

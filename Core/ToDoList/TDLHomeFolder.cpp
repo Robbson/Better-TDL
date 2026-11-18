@@ -11,6 +11,7 @@
 #include "..\Interfaces\Preferences.h"
 #include "..\Shared\FileMisc.h"
 #include "..\Shared\Misc.h"
+#include "..\3rdParty\StdioFileEx.h"
 
 #include <afx.h>
 #include <shlwapi.h>
@@ -46,6 +47,28 @@ static BOOL IsTextFile(LPCTSTR szExtension)
 	}
 
 	return FALSE;
+}
+
+static BOOL LoadTextFile(const CString& sPath, CString& sText)
+{
+	CStdioFileEx file;
+
+	if (!file.Open(sPath, (CFile::modeRead | CFile::shareDenyNone), SFEF_AUTODETECT, CP_ACP))
+		return FALSE;
+
+	if (!file.ReadFile(sText))
+		return FALSE;
+
+	// No BOM is assumed to be UTF-8, so retry as ANSI if the conversion failed
+	if (sText.Find(_T('\xFFFD')) == -1)
+		return TRUE;
+
+	CStdioFileEx ansi;
+
+	if (!ansi.Open(sPath, (CFile::modeRead | CFile::shareDenyNone), SFEF_ANSI, CP_ACP))
+		return FALSE;
+
+	return ansi.ReadFile(sText);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -212,6 +235,12 @@ BOOL CTDLHomeFolder::BuildTaskFile(CTaskFile& tasks, const CString& sFolder, con
 	pathDef.SetDataType(TDCCA_STRING);
 	aAttribDefs.Add(pathDef);
 
+	TDCCUSTOMATTRIBUTEDEFINITION statusDef(_T("Status"), TRUE);
+	statusDef.sUniqueID = TDC_CUSTOMATTRIB_HOMEFOLDERSTATUS;
+	statusDef.sColumnTitle = _T("Status");
+	statusDef.SetDataType(TDCCA_STRING);
+	aAttribDefs.Add(statusDef);
+
 	tasks.SetCustomAttributeDefs(aAttribDefs);
 
 	DWORD dwNextID = 1;
@@ -308,7 +337,7 @@ BOOL CTDLHomeFolder::AddFolderContents(CTaskFile& tasks, void* hParent, DWORD dw
 			{
 				CString sContent;
 
-				if (FileMisc::LoadFile(sPath, sContent))
+				if (LoadTextFile(sPath, sContent))
 					tasks.SetTaskComments(hTask, sContent);
 			}
 		}
@@ -322,11 +351,18 @@ BOOL CTDLHomeFolder::AddFolderContents(CTaskFile& tasks, void* hParent, DWORD dw
 		if (bOpen)
 		{
 			if (IsFileModified(sPath, aModifiedFiles))
+			{
 				crText = ::GetSysColor(COLOR_HOTLIGHT);
+				tasks.SetTaskCustomAttributeData(hTask, TDC_CUSTOMATTRIB_HOMEFOLDERSTATUS, _T("Modified"));
+			}
+			else
+			{
+				tasks.SetTaskCustomAttributeData(hTask, TDC_CUSTOMATTRIB_HOMEFOLDERSTATUS, _T("Opened"));
+			}
 		}
 		else
 		{
-			crText = ::GetSysColor(COLOR_GRAYTEXT);
+			crText = RGB(150, 150, 150);
 		}
 
 		if (crText != CLR_NONE)
@@ -334,4 +370,47 @@ BOOL CTDLHomeFolder::AddFolderContents(CTaskFile& tasks, void* hParent, DWORD dw
 	}
 
 	return TRUE;
+}
+
+static void CollectTasklists(const CString& sFolder, CStringArray& aPaths, int nDepth)
+{
+	if (nDepth > MAX_FOLDER_DEPTH)
+		return;
+
+	CStringArray aFolders;
+	CFileFind finder;
+	CString sWildcard = FileMisc::PathConcat(sFolder, _T("*"));
+
+	BOOL bFound = finder.FindFile(sWildcard);
+
+	while (bFound)
+	{
+		bFound = finder.FindNextFile();
+
+		if (finder.IsDots() || finder.IsHidden() || finder.IsSystem())
+			continue;
+
+		CString sPath = finder.GetFilePath();
+
+		if (::GetFileAttributes(sPath) & FILE_ATTRIBUTE_REPARSE_POINT)
+			continue;
+
+		if (finder.IsDirectory())
+			aFolders.Add(sPath);
+		else if (FileMisc::HasExtension(sPath, _T("tdl")))
+			aPaths.Add(sPath);
+	}
+
+	finder.Close();
+
+	for (int nFolder = 0; nFolder < aFolders.GetSize(); nFolder++)
+		CollectTasklists(aFolders[nFolder], aPaths, nDepth + 1);
+}
+
+void CTDLHomeFolder::CollectTasklistPaths(const CString& sFolder, CStringArray& aPaths)
+{
+	aPaths.RemoveAll();
+
+	if (!sFolder.IsEmpty() && FileMisc::FolderExists(sFolder))
+		CollectTasklists(sFolder, aPaths, 0);
 }

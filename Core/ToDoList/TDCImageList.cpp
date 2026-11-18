@@ -176,6 +176,7 @@ int CTDCImageList::LoadImages(const CString& sTaskList, COLORREF crTransparent,
 		nNextNameIndex = 300;
 
 		// the application icon is used to represent tdl files in the Home view
+
 		AddAppIcon(_T("tdl"), FALSE);
 		AddAppIcon(_T("tdlclosed"), TRUE);
 		
@@ -251,6 +252,119 @@ BOOL CTDCImageList::AddImage(TDCIMAGEINFO& info, CBitmap& bmImage, COLORREF crTr
 	return FALSE;
 }
 
+static HICON CreatePaleIcon(HICON hIcon, BYTE nOpacity)
+{
+	if (!hIcon || (nOpacity == 255))
+		return NULL;
+
+	ICONINFO ii = { 0 };
+
+	if (!::GetIconInfo(hIcon, &ii))
+		return NULL;
+
+	BITMAP bm = { 0 };
+	::GetObject(ii.hbmColor, sizeof(bm), &bm);
+
+	const int cx = bm.bmWidth;
+	const int cy = bm.bmHeight;
+
+	BITMAPINFO bmi = { 0 };
+	bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+	bmi.bmiHeader.biWidth = cx;
+	bmi.bmiHeader.biHeight = cy;
+	bmi.bmiHeader.biPlanes = 1;
+	bmi.bmiHeader.biBitCount = 32;
+	bmi.bmiHeader.biCompression = BI_RGB;
+
+	CArray<DWORD, DWORD> aPixels;
+	aPixels.SetSize(cx * cy);
+
+	HDC hdc = ::GetDC(NULL);
+	::GetDIBits(hdc, ii.hbmColor, 0, cy, aPixels.GetData(), &bmi, DIB_RGB_COLORS);
+
+	const int nMaskStride = (((cx + 31) / 32) * 4);
+	CArray<BYTE, BYTE> aMask;
+	aMask.SetSize(nMaskStride * cy);
+	ZeroMemory(aMask.GetData(), aMask.GetSize());
+
+	struct
+	{
+		BITMAPINFOHEADER bmiHeader;
+		RGBQUAD bmiColors[2];
+	} bmiMask = { 0 };
+
+	bmiMask.bmiHeader = bmi.bmiHeader;
+	bmiMask.bmiHeader.biBitCount = 1;
+	bmiMask.bmiColors[0].rgbBlue = 0;
+	bmiMask.bmiColors[0].rgbGreen = 0;
+	bmiMask.bmiColors[0].rgbRed = 0;
+	bmiMask.bmiColors[1].rgbBlue = 255;
+	bmiMask.bmiColors[1].rgbGreen = 255;
+	bmiMask.bmiColors[1].rgbRed = 255;
+
+	::GetDIBits(hdc, ii.hbmMask, 0, cy, aMask.GetData(), (BITMAPINFO*)&bmiMask, DIB_RGB_COLORS);
+	::ReleaseDC(NULL, hdc);
+
+	BOOL bHasAlpha = FALSE;
+
+	for (int nPixel = 0; nPixel < aPixels.GetSize(); nPixel++)
+	{
+		if (aPixels[nPixel] & 0xFF000000)
+		{
+			bHasAlpha = TRUE;
+			break;
+		}
+	}
+
+	for (int y = 0; y < cy; y++)
+	{
+		for (int x = 0; x < cx; x++)
+		{
+			int nPixel = (y * cx) + x;
+			DWORD dwPixel = aPixels[nPixel];
+			BYTE nAlpha = 0;
+
+			if (bHasAlpha)
+			{
+				nAlpha = (BYTE)(dwPixel >> 24);
+			}
+			else
+			{
+				BYTE nMask = aMask[(y * nMaskStride) + (x / 8)];
+
+				if ((nMask & (0x80 >> (x % 8))) == 0)
+					nAlpha = 255;
+			}
+
+			nAlpha = (BYTE)((nAlpha * nOpacity) / 255);
+			aPixels[nPixel] = (dwPixel & 0x00FFFFFF) | ((DWORD)nAlpha << 24);
+		}
+	}
+
+	void* pBits = NULL;
+	HBITMAP hbmColor = ::CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, &pBits, NULL, 0);
+
+	if (!hbmColor || !pBits)
+	{
+		::DeleteObject(ii.hbmColor);
+		::DeleteObject(ii.hbmMask);
+		return NULL;
+	}
+
+	memcpy(pBits, aPixels.GetData(), (cx * cy * sizeof(DWORD)));
+
+	HBITMAP hbmMask = ::CreateBitmap(cx, cy, 1, 1, NULL);
+	ICONINFO iiPale = { TRUE, 0, 0, hbmMask, hbmColor };
+	HICON hPale = ::CreateIconIndirect(&iiPale);
+
+	::DeleteObject(hbmColor);
+	::DeleteObject(hbmMask);
+	::DeleteObject(ii.hbmColor);
+	::DeleteObject(ii.hbmMask);
+
+	return hPale;
+}
+
 BOOL CTDCImageList::AddImage(const CString& sImageFile, HICON hIcon)
 {
 	if (HasImage(sImageFile))
@@ -274,29 +388,15 @@ BOOL CTDCImageList::AddAppIcon(LPCTSTR szName, BOOL bPale)
 	if (!bPale)
 		return AddImage(szName, icon);
 
-	COLORREF crBkgnd = ((m_crBackground == CLR_NONE) ? ::GetSysColor(COLOR_WINDOW) : m_crBackground);
+	HICON hPale = CreatePaleIcon(icon, 128);
 
-	CClientDC dc(NULL);
-	CDC dcMem;
-	dcMem.CreateCompatibleDC(&dc);
+	if (!hPale)
+		return FALSE;
 
-	CBitmap bm;
-	bm.CreateCompatibleBitmap(&dc, 16, 16);
+	BOOL bResult = AddImage(szName, hPale);
+	::DestroyIcon(hPale);
 
-	CBitmap* pOld = dcMem.SelectObject(&bm);
-	dcMem.FillSolidRect(0, 0, 16, 16, crBkgnd);
-
-	CImageList il;
-	il.Create(16, 16, ILC_COLOR24 | ILC_MASK, 0, 1);
-	il.Add(icon);
-	il.Draw(&dcMem, 0, CPoint(0, 0), ILD_NORMAL | ILD_BLEND50);
-
-	dcMem.SelectObject(pOld);
-
-	TDCIMAGEINFO info(szName, szName, CSize(16, 16));
-	int nUnused = 0;
-
-	return AddImage(info, bm, crBkgnd, this, nUnused);
+	return bResult;
 }
 
 BOOL CTDCImageList::HasImage(const CString& sImageFile) const

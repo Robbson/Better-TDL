@@ -412,6 +412,8 @@ CToDoListWnd::CToDoListWnd()
 	m_tabCtrl(TCE_MBUTTONCLOSE | TCE_DRAGDROP | TCE_CLOSEBUTTON | TCE_BOLDSELTEXT | TCE_TABCOLORS | TCE_TAGCOLORS),
 	m_mgrToDoCtrls(m_tabCtrl),
 	m_bFindShowing(FALSE),
+	m_bHomeFolderNeedsRefresh(FALSE),
+	m_bRefreshingHomeFolder(FALSE),
 	m_bShowProjectName(TRUE),
 	m_bQueryOpenAllow(FALSE),
 	m_bPasswordPrompting(TRUE),
@@ -557,6 +559,7 @@ BEGIN_MESSAGE_MAP(CToDoListWnd, CFrameWnd)
 	ON_COMMAND(ID_HOME_OPEN, OnHomeOpen)
 	ON_COMMAND(ID_HOME_CLOSE, OnHomeClose)
 	ON_COMMAND(ID_HOME_SHOWINEXPLORER, OnHomeShowInExplorer)
+	ON_COMMAND(ID_HOME_OPENREPLACE, OnHomeOpenReplace)
 	ON_COMMAND(ID_FILE_OPENARCHIVE, OnFileOpenarchive)
 	ON_COMMAND(ID_FILE_RESETVERSION, OnFileResetversion)
 	ON_COMMAND(ID_HELP_KEYBOARDSHORTCUTS, OnShowKeyboardshortcuts)
@@ -2150,6 +2153,21 @@ BOOL CToDoListWnd::PreTranslateMessage(MSG* pMsg)
 			return TRUE;
 		}
 
+		// Enter opens the selected Home item
+		if ((pMsg->message == WM_KEYDOWN) && (pMsg->wParam == VK_RETURN) &&
+			GetTDCCount() && GetToDoCtrl().IsHomeFolderView())
+		{
+			TCHAR szClass[64] = { 0 };
+			::GetClassName(pMsg->hwnd, szClass, _countof(szClass));
+
+			if ((lstrcmpi(szClass, _T("SysTreeView32")) == 0) ||
+				(lstrcmpi(szClass, _T("SysListView32")) == 0))
+			{
+				OpenHomeItem(GetToDoCtrl().GetSelectedTaskID());
+				return TRUE;
+			}
+		}
+
 		// Hide the mouse pointer while typing into any editable control
 		if ((pMsg->message == WM_CHAR) ||
 			((pMsg->message == WM_KEYDOWN) &&
@@ -2834,6 +2852,7 @@ void CToDoListWnd::SetHomeFolderViewColumns(CFilteredToDoCtrl& tdc)
 
 		if ((def.sUniqueID == TDC_CUSTOMATTRIB_HOMEFOLDERSIZE) ||
 			(def.sUniqueID == TDC_CUSTOMATTRIB_HOMEFOLDERTYPE) ||
+			(def.sUniqueID == TDC_CUSTOMATTRIB_HOMEFOLDERSTATUS) ||
 			(def.sUniqueID == TDC_CUSTOMATTRIB_HOMEFOLDERPATH))
 		{
 			vis.SetColumnVisible(def.GetColumnID(), TRUE);
@@ -2860,6 +2879,8 @@ BOOL CToDoListWnd::RefreshHomeFolderView(CFilteredToDoCtrl* pTDC)
 	if (sFolder.IsEmpty() || !FileMisc::FolderExists(sFolder))
 		return FALSE;
 
+	CAutoFlagT<BOOL> af(m_bRefreshingHomeFolder, TRUE);
+
 	CStringArray aOpenFiles, aModifiedFiles;
 	GetOpenTasklistPaths(aOpenFiles, aModifiedFiles);
 
@@ -2882,8 +2903,25 @@ BOOL CToDoListWnd::RefreshHomeFolderView(CFilteredToDoCtrl* pTDC)
 		pTDC->ActivateTaskView(FTCV_TASKTREE);
 
 	pTDC->SetModified(FALSE);
+	m_bHomeFolderNeedsRefresh = FALSE;
 
 	return TRUE;
+}
+
+void CToDoListWnd::MarkHomeFolderDirty()
+{
+	if (m_bRefreshingHomeFolder || m_bClosing)
+		return;
+
+	int nHome = FindHomeFolderView();
+
+	if (nHome == -1)
+		return;
+
+	m_bHomeFolderNeedsRefresh = TRUE;
+
+	if (GetSelToDoCtrl() == nHome)
+		RefreshHomeFolderView(&GetToDoCtrl(nHome));
 }
 
 void CToDoListWnd::OnFileHome()
@@ -2992,17 +3030,33 @@ int CToDoListWnd::FindTasklistByPath(const CString& sFilePath) const
 
 CString CToDoListWnd::GetHomeSelectedPath() const
 {
+	CStringArray aPaths;
+	GetHomeSelectedPaths(aPaths);
+
+	return (aPaths.GetSize() ? aPaths[0] : CString(_T("")));
+}
+
+void CToDoListWnd::GetHomeSelectedPaths(CStringArray& aPaths) const
+{
+	aPaths.RemoveAll();
+
 	const CFilteredToDoCtrl& tdc = GetToDoCtrl();
 
 	if (!tdc.IsHomeFolderView())
-		return _T("");
+		return;
 
-	DWORD dwTaskID = tdc.GetSelectedTaskID();
+	CDWordArray aTaskIDs;
 
-	if (!dwTaskID)
-		return _T("");
+	if (tdc.GetSelectedTaskIDs(aTaskIDs, TRUE) <= 0)
+		return;
 
-	return tdc.GetTaskCustomAttributeData(dwTaskID, TDC_CUSTOMATTRIB_HOMEFOLDERFULLPATH);
+	for (int nTask = 0; nTask < aTaskIDs.GetSize(); nTask++)
+	{
+		CString sFilePath = tdc.GetTaskCustomAttributeData(aTaskIDs[nTask], TDC_CUSTOMATTRIB_HOMEFOLDERFULLPATH);
+
+		if (!sFilePath.IsEmpty())
+			aPaths.Add(sFilePath);
+	}
 }
 
 void CToDoListWnd::OpenHomeItem(DWORD dwTaskID)
@@ -3020,7 +3074,7 @@ void CToDoListWnd::OpenHomeItem(DWORD dwTaskID)
 	if (FileMisc::HasExtension(sFilePath, _T("tdl")))
 	{
 		OpenTaskList(sFilePath);
-		RefreshHomeFolderView();
+		m_bHomeFolderNeedsRefresh = TRUE;
 	}
 	else
 	{
@@ -3029,17 +3083,71 @@ void CToDoListWnd::OpenHomeItem(DWORD dwTaskID)
 	}
 }
 
+void CToDoListWnd::OpenHomeSelection()
+{
+	CStringArray aPaths;
+	GetHomeSelectedPaths(aPaths);
+
+	BOOL bRefresh = FALSE;
+
+	for (int nPath = 0; nPath < aPaths.GetSize(); nPath++)
+	{
+		const CString& sFilePath = aPaths[nPath];
+
+		if (FileMisc::FolderExists(sFilePath))
+		{
+			CStringArray aTasklists;
+			CTDLHomeFolder::CollectTasklistPaths(sFilePath, aTasklists);
+
+			if (aTasklists.GetSize() == 0)
+			{
+				FileMisc::Run(GetSafeHwnd(), sFilePath, NULL, SW_SHOWNORMAL, sFilePath);
+			}
+			else
+			{
+				for (int nTasklist = 0; nTasklist < aTasklists.GetSize(); nTasklist++)
+				{
+					if (OpenTaskList(aTasklists[nTasklist]) > 0)
+						bRefresh = TRUE;
+				}
+			}
+		}
+		else if (FileMisc::HasExtension(sFilePath, _T("tdl")))
+		{
+			if (OpenTaskList(sFilePath) > 0)
+				bRefresh = TRUE;
+		}
+		else
+		{
+			FileMisc::Run(GetSafeHwnd(), sFilePath, NULL, SW_SHOWNORMAL,
+						  FileMisc::GetFolderFromFilePath(sFilePath));
+		}
+	}
+
+	if (bRefresh)
+		m_bHomeFolderNeedsRefresh = TRUE;
+}
+
 void CToDoListWnd::ShowHomeContextMenu(CPoint point, BOOL bHasSelection)
 {
-	CString sFilePath = (bHasSelection ? GetHomeSelectedPath() : _T(""));
-	int nOpenTDC = FindTasklistByPath(sFilePath);
+	CStringArray aPaths;
+
+	if (bHasSelection)
+		GetHomeSelectedPaths(aPaths);
+
+	BOOL bAnySelected = (aPaths.GetSize() > 0);
+	BOOL bAnyOpen = FALSE;
+
+	for (int nPath = 0; (nPath < aPaths.GetSize()) && !bAnyOpen; nPath++)
+		bAnyOpen = (FindTasklistByPath(aPaths[nPath]) != -1);
 
 	CMenu menu;
 	menu.CreatePopupMenu();
 
-	menu.AppendMenu(MF_STRING | (sFilePath.IsEmpty() ? MF_GRAYED : 0), ID_HOME_OPEN, _T("&Open"));
-	menu.AppendMenu(MF_STRING | (nOpenTDC == -1 ? MF_GRAYED : 0), ID_HOME_CLOSE, _T("&Close"));
-	menu.AppendMenu(MF_STRING | (sFilePath.IsEmpty() ? MF_GRAYED : 0), ID_HOME_SHOWINEXPLORER, _T("Show in E&xplorer"));
+	menu.AppendMenu(MF_STRING | (bAnySelected ? 0 : MF_GRAYED), ID_HOME_OPEN, _T("&Open"));
+	menu.AppendMenu(MF_STRING | (bAnySelected ? 0 : MF_GRAYED), ID_HOME_OPENREPLACE, _T("Open & Replace"));
+	menu.AppendMenu(MF_STRING | (bAnyOpen ? 0 : MF_GRAYED), ID_HOME_CLOSE, _T("&Close"));
+	menu.AppendMenu(MF_STRING | (bAnySelected ? 0 : MF_GRAYED), ID_HOME_SHOWINEXPLORER, _T("Show in E&xplorer"));
 
 	UINT nCmdID = menu.TrackPopupMenu(TPM_RETURNCMD | TPM_LEFTALIGN | TPM_LEFTBUTTON, point.x, point.y, this);
 
@@ -3049,18 +3157,40 @@ void CToDoListWnd::ShowHomeContextMenu(CPoint point, BOOL bHasSelection)
 
 void CToDoListWnd::OnHomeOpen()
 {
-	OpenHomeItem(GetToDoCtrl().GetSelectedTaskID());
+	OpenHomeSelection();
+}
+
+void CToDoListWnd::OnHomeOpenReplace()
+{
+	for (int nTDC = (GetTDCCount() - 1); nTDC >= 0; nTDC--)
+	{
+		if (GetToDoCtrl(nTDC).IsHomeFolderView())
+			continue;
+
+		if (m_mgrToDoCtrls.IsPristine(nTDC))
+			continue;
+
+		if (!CloseToDoCtrl(nTDC))
+			return; // cancelled by user
+	}
+
+	OpenHomeSelection();
 }
 
 void CToDoListWnd::OnHomeClose()
 {
-	int nTDC = FindTasklistByPath(GetHomeSelectedPath());
+	CStringArray aPaths;
+	GetHomeSelectedPaths(aPaths);
 
-	if (nTDC != -1)
+	for (int nPath = 0; nPath < aPaths.GetSize(); nPath++)
 	{
-		CheckCloseTasklist(nTDC);
-		RefreshHomeFolderView();
+		int nTDC = FindTasklistByPath(aPaths[nPath]);
+
+		if (nTDC != -1)
+			CheckCloseTasklist(nTDC);
 	}
+
+	RefreshHomeFolderView();
 }
 
 void CToDoListWnd::OnHomeShowInExplorer()
@@ -4420,6 +4550,12 @@ LRESULT CToDoListWnd::OnToDoCtrlNotifyMod(WPARAM wp, LPARAM lp)
 		m_idleTasks.UpdateCaption();
 	else
 		m_mgrToDoCtrls.UpdateTabItemText(nTDC);
+
+	if (!tdc.IsHomeFolderView() &&
+		CTDLHomeFolder::IsPathInHomeFolder(tdc.GetFilePath()))
+	{
+		MarkHomeFolderDirty();
+	}
 
 	// refresh toolbar states
 	PostMessage(WM_IDLEUPDATECMDUI, TRUE);
@@ -9553,6 +9689,7 @@ BOOL CToDoListWnd::CloseToDoCtrl(int nIndex)
 
 	CFilteredToDoCtrl& tdcSel = GetToDoCtrl();
 	CFilteredToDoCtrl& tdc = GetToDoCtrl(nIndex);
+	BOOL bWasHome = tdc.IsHomeFolderView();
 
 	if (ConfirmSaveTaskList(nIndex, TDLS_CLOSINGTASKLISTS) != TDCF_SUCCESS)
 		return FALSE;
@@ -9600,6 +9737,9 @@ BOOL CToDoListWnd::CloseToDoCtrl(int nIndex)
 	}
 	
 	m_idleTasks.UpdateMenubarTabCloseBtnVisibility();
+
+	if (!bWasHome && !m_bClosing)
+		MarkHomeFolderDirty();
 	
 	return TRUE;
 }
@@ -9913,6 +10053,16 @@ BOOL CToDoListWnd::SelectToDoCtrl(int nIndex, BOOL bCheckPassword, int nNotifyDu
 	
 	m_tabCtrl.SetCurSel(nIndex); // this changes the selected CToDoCtrl
 	m_tabCtrl.UpdateWindow();
+
+	if (tdcShow.IsHomeFolderView())
+	{
+		if (m_bHomeFolderNeedsRefresh)
+			RefreshHomeFolderView(&tdcShow);
+	}
+	else if (FindHomeFolderView() != -1)
+	{
+		m_bHomeFolderNeedsRefresh = TRUE;
+	}
 	
 	if (!m_bClosing)
 		CheckUpdateActiveToDoCtrlPreferences();
@@ -12722,6 +12872,9 @@ void CToDoListWnd::UpdateWindowMenuTitle()
 {
 	int nCount = GetTDCCount();
 
+	if (FindHomeFolderView() != -1)
+		nCount--;
+
 	if ((nCount == m_nWindowMenuCount) || !m_menubar.GetSafeHmenu())
 		return;
 
@@ -12771,10 +12924,11 @@ void CToDoListWnd::OnUpdateWindow(CCmdUI* pCmdUI)
 		int nPos = 0, nTDCCount = GetTDCCount();
 		ASSERT (nTDCCount);
 
-		int nNumItems = min(nTDCCount, MAX_WINDOW_MENU_ITEMS);
-		
-		for (int nTDC = 0; nTDC < nNumItems; nTDC++)
+		for (int nTDC = 0; (nTDC < nTDCCount) && (nPos < MAX_WINDOW_MENU_ITEMS); nTDC++)
 		{
+			if (GetToDoCtrl(nTDC).IsHomeFolderView())
+				continue;
+
 			CString sMenuItem, sName = m_mgrToDoCtrls.FormatProjectNameWithFileName(nTDC);
 			sMenuItem.Format(_T("&%d %s"), (nPos + 1) % 10, sName);
 			
@@ -12784,7 +12938,9 @@ void CToDoListWnd::OnUpdateWindow(CCmdUI* pCmdUI)
 			nPos++;
 		}
 
-		if (nTDCCount > MAX_WINDOW_MENU_ITEMS)
+		int nMenuCount = nTDCCount - ((FindHomeFolderView() != -1) ? 1 : 0);
+
+		if (nMenuCount > MAX_WINDOW_MENU_ITEMS)
 		{
 			UINT nFlags = (MF_BYPOSITION | MF_STRING | MF_GRAYED);
 			pCmdUI->m_pMenu->InsertMenu(pCmdUI->m_nIndex++, nFlags, ID_WINDOW_MOREWINDOWS, _T("..."));

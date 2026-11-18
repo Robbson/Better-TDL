@@ -2670,6 +2670,13 @@ BEGIN
         MENUITEM "Ma&ximise Comments",          ID_VIEW_MAXCOMMENTS
         MENUITEM "&Unmaximise",                 ID_VIEW_UNMAXTASKLISTANDCOMMENTS
         MENUITEM SEPARATOR
+        POPUP "Comments &Position"
+        BEGIN
+            MENUITEM "&Below Tasklist",             ID_VIEW_COMMENTSPOS_BOTTOM
+            MENUITEM "&Right of Tasklist",          ID_VIEW_COMMENTSPOS_RIGHT
+            MENUITEM "&Left of Tasklist",           ID_VIEW_COMMENTSPOS_LEFT
+        END
+        MENUITEM SEPARATOR
         POPUP "Set Focus"
         BEGIN
             MENUITEM "&Task View",                  ID_VIEW_SETFOCUSTOTASKS

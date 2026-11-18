@@ -239,6 +239,7 @@ public:
 	BOOL GetSortDoneTasksAtBottom() const { return m_pageUI.GetSortDoneTasksAtBottom(); }
 	BOOL GetRTLComments() const { return m_pageUI.GetRTLComments(); }
 	PUIP_LOCATION GetCommentsPos() const { return m_pageUI.GetCommentsPos(); }
+	BOOL SetCommentsPos(PUIP_LOCATION nPos);
 	PUIP_LOCATION GetControlsPos() const { return m_pageUI.GetControlsPos(); }
 	BOOL GetUseLegacyAttributeEditor() const { return m_pageUI.GetUseLegacyAttributeEditor(); }
 	BOOL GetMultiSelFilters() const { return m_pageUI.GetMultiSelFilters(); }

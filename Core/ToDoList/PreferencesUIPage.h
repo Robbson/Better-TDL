@@ -40,6 +40,7 @@ public:
 	BOOL GetSortDoneTasksAtBottom() const { return m_bSortDoneTasksAtBottom; }
 	BOOL GetRTLComments() const { return m_bRTLComments; }
 	PUIP_LOCATION GetCommentsPos() const { return m_nCommentsPos; }
+	BOOL SetCommentsPos(PUIP_LOCATION nPos);
 	PUIP_LOCATION GetControlsPos() const { return m_nCtrlsPos; }
 	BOOL GetUseLegacyAttributeEditor() const { return m_bUseLegacyAttributeEditor; }
 	BOOL GetMultiSelFilters() const { return m_bMultiSelFilters; }

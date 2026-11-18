@@ -430,6 +430,9 @@ protected:
 	afx_msg void OnUserTool(UINT nCmdID);
 	afx_msg void OnViewActivateFilter(UINT nCmdID);
 	afx_msg void OnViewClearfilter();
+	afx_msg void OnViewCommentsPosBottom();
+	afx_msg void OnViewCommentsPosRight();
+	afx_msg void OnViewCommentsPosLeft();
 	afx_msg void OnViewCustomToolbar();
 	afx_msg void OnViewCycleTaskViews();
 	afx_msg void OnViewDecrementTaskViewFontSize();
@@ -587,6 +590,7 @@ protected:
 	afx_msg void OnUpdateUserTool(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateViewActivateFilter(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateViewClearfilter(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateViewCommentsPos(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateViewCustomToolbar(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateViewDecrementTaskViewFontSize(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateViewExpandTasks(CCmdUI* pCmdUI);
@@ -868,6 +872,7 @@ protected:
 	void UpdateToDoCtrlPreferences(CFilteredToDoCtrl* pCtrl);
 	const CPreferencesDlg& Prefs() const;
 	void ResetPrefs();
+	void SetCommentsPosition(PUIP_LOCATION nPos);
 	void ToggleActiveTasklistStyle(TDC_STYLE nStyle, BOOL& bFlag);
 	
 	// helpers

@@ -925,6 +925,20 @@ BOOL CPreferencesDlg::SetAutoHideTabbar(BOOL bAutoHide)
 	return FALSE;
 }
 
+BOOL CPreferencesDlg::SetCommentsPos(PUIP_LOCATION nPos)
+{
+	if (m_pageUI.SetCommentsPos(nPos))
+	{
+		CPreferencesPageBase* pPage = &m_pageUI;
+		pPage->SavePreferences(m_prefs, PREFSKEY);
+
+		return TRUE;
+	}
+
+	// else
+	return FALSE;
+}
+
 FILTER_TITLE CPreferencesDlg::GetTitleFilterOption() const
 {
 	switch (m_pageUI.GetTitleFilterOption())

@@ -618,6 +618,9 @@ BEGIN_MESSAGE_MAP(CToDoListWnd, CFrameWnd)
 	ON_COMMAND(ID_TRAYICON_SHOW, OnTrayiconShow)
 	ON_COMMAND(ID_TRAYICON_SHOWTIMETRACKER, OnViewShowTimeTracker)
 	ON_COMMAND(ID_VIEW_UNMAXTASKLISTANDCOMMENTS, OnUnmaximizeTasklistAndComments)
+	ON_COMMAND(ID_VIEW_COMMENTSPOS_BOTTOM, OnViewCommentsPosBottom)
+	ON_COMMAND(ID_VIEW_COMMENTSPOS_RIGHT, OnViewCommentsPosRight)
+	ON_COMMAND(ID_VIEW_COMMENTSPOS_LEFT, OnViewCommentsPosLeft)
 	ON_COMMAND(ID_VIEW_CLEARFILTER, OnViewClearfilter)
 	ON_COMMAND(ID_VIEW_CUSTOMTOOLBAR, OnViewCustomToolbar)
 	ON_COMMAND(ID_VIEW_CYCLETASKVIEWS, OnViewCycleTaskViews)
@@ -910,6 +913,9 @@ BEGIN_MESSAGE_MAP(CToDoListWnd, CFrameWnd)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_TOGGLETASKSANDCOMMENTS, AlwaysEnabled)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_TOGGLETREEANDLIST, OnUpdateViewToggleTreeandList)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_UNMAXTASKLISTANDCOMMENTS, OnUpdateUnmaximizeTasklistAndComments)
+	ON_UPDATE_COMMAND_UI(ID_VIEW_COMMENTSPOS_BOTTOM, OnUpdateViewCommentsPos)
+	ON_UPDATE_COMMAND_UI(ID_VIEW_COMMENTSPOS_RIGHT, OnUpdateViewCommentsPos)
+	ON_UPDATE_COMMAND_UI(ID_VIEW_COMMENTSPOS_LEFT, OnUpdateViewCommentsPos)
 	ON_UPDATE_COMMAND_UI(ID_WINDOW1, OnUpdateWindow)
 
 	ON_UPDATE_COMMAND_UI_RANGE(ID_ACTIVATEVIEW_TASKTREE, ID_ACTIVATEVIEW_UIEXTENSION16, OnUpdateActivateTaskView)
@@ -6624,6 +6630,47 @@ void CToDoListWnd::OnUnmaximizeTasklistAndComments()
 void CToDoListWnd::OnUpdateUnmaximizeTasklistAndComments(CCmdUI* pCmdUI)
 {
 	pCmdUI->Enable(m_nMaxState != TDCMS_NORMAL);
+}
+
+void CToDoListWnd::OnViewCommentsPosBottom()
+{
+	SetCommentsPosition(PUIP_LOCATEBOTTOM);
+}
+
+void CToDoListWnd::OnViewCommentsPosRight()
+{
+	SetCommentsPosition(PUIP_LOCATERIGHT);
+}
+
+void CToDoListWnd::OnViewCommentsPosLeft()
+{
+	SetCommentsPosition(PUIP_LOCATELEFT);
+}
+
+void CToDoListWnd::OnUpdateViewCommentsPos(CCmdUI* pCmdUI)
+{
+	UINT nCmdID = ID_VIEW_COMMENTSPOS_RIGHT;
+
+	switch (Prefs().GetCommentsPos())
+	{
+	case PUIP_LOCATEBOTTOM:	nCmdID = ID_VIEW_COMMENTSPOS_BOTTOM;	break;
+	case PUIP_LOCATELEFT:	nCmdID = ID_VIEW_COMMENTSPOS_LEFT;		break;
+	default:				nCmdID = ID_VIEW_COMMENTSPOS_RIGHT;		break;
+	}
+
+	pCmdUI->SetRadio(pCmdUI->m_nID == nCmdID);
+}
+
+void CToDoListWnd::SetCommentsPosition(PUIP_LOCATION nPos)
+{
+	if (!m_pPrefs || !m_pPrefs->SetCommentsPos(nPos))
+		return;
+
+	if (CPreferences::UsesIni())
+		CPreferences::Save();
+
+	m_mgrToDoCtrls.SetAllNeedPreferenceUpdate(TRUE);
+	CheckUpdateActiveToDoCtrlPreferences();
 }
 
 void CToDoListWnd::OnReload() 

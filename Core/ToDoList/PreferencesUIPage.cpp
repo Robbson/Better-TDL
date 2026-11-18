@@ -274,3 +274,12 @@ BOOL CPreferencesUIPage::SetAutoHideTabbar(BOOL bAutoHide)
 	return TRUE;
 }
 
+BOOL CPreferencesUIPage::SetCommentsPos(PUIP_LOCATION nPos)
+{
+	if (m_nCommentsPos == nPos)
+		return FALSE;
+
+	m_nCommentsPos = nPos;
+	return TRUE;
+}
+

@@ -113,10 +113,10 @@ Core\ToDoList\Unicode_Debug\ToDoList.exe
 
 The shell tool runs **PowerShell 7 (`pwsh`)** on Windows, not a POSIX shell.
 
-- Unix text tools are **not** available as real binaries: `grep`, `head`, `tail`, `sed`,
-  `awk`, `find`, `xargs`, `wc`. Some names exist only as PowerShell aliases (`ls`, `cat`,
-  `rm`), so prefer real cmdlets and `rg` (bundled ripgrep): `Select-String`, `Get-Content`,
-  `Get-ChildItem`, `Measure-Object`, or the dedicated Read/Grep/Glob tools.
+- Most Unix text tools are provided as binaries on the PATH
+- Some names exist only as PowerShell aliases (`ls`, `cat`, `rm`), so prefer real cmdlets and `rg` (bundled ripgrep):
+  `Select-String`, `Get-Content`, `Get-ChildItem`, `Measure-Object`, or the dedicated Read/Grep/Glob tools.
+- Additionally those tools are available: `git`, `jq`, `yq`, `fd, ``fzf`, `bat`
 - `msbuild` and `cl` are **not on `PATH`**. Invoke MSBuild through the VS2022 path,
   discovered with `vswhere.exe`:
   `C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe`.

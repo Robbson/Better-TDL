@@ -140,3 +140,6 @@ document is restored costs ~1.1 s. See `PERFORMANCE.md` P0-5 for the follow-up.
   runtime preferences, restoring the UI state and painting the tab take ~3 s in Release
   even for a tiny tasklist. This is measured and tracked in
   [PERF-006](PERF-006-tasklist-open-activation-cost.md).
+- Initially only session restore and the command line used `DelayOpenTaskList`. Menu and
+  Home multi-document opens were extended later in
+  [PERF-008](PERF-008-delay-load-multi-document-opens.md).

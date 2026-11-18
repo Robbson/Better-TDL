@@ -121,7 +121,11 @@ remains because it is the only way to navigate back to the virtual document.
 Double-clicking or pressing **Enter** on a read-only task with a `HomeFolder.FullPath`
 value sends the new `WM_TDCN_ACTIVATETASK` notification. The shell opens `.tdl` files
 with the existing `CToDoListWnd::OpenTaskList` path and refreshes the home view; other
-files are launched through `FileMisc::Run`. The Home task context menu is replaced with
+files are launched through `FileMisc::Run`. A multi-selection or a selected folder opens
+its `.tdl` files through `CToDoListWnd::OpenTaskLists`, so only the first is loaded
+immediately and the rest are delayed when
+[PERF-008](../performance/PERF-008-delay-load-multi-document-opens.md) is enabled. The
+Home task context menu is replaced with
 **Open**, **Open & Replace**, **Close** (enabled when any selected `.tdl` is already open)
 and **Show in Explorer**; Open handles all selected items, and opening a folder
 recursively opens every `.tdl` beneath it. Open & Replace first closes every open
@@ -173,6 +177,9 @@ file exists there, otherwise against the application folder (preserving old sess
   folder.
 - Opening/closing/editing tasklists updates the Home Status column when Home is next
   shown; multiple opens are reflected too.
+- Opening several Home rows or a folder with several tasklists loads only the first
+  document immediately when delayed loading is enabled; the rest stay unloaded until
+  their tab is activated (see PERF-008).
 - Home is absent from the Window menu, always occupies the first tab, and preserves the
   user's column order/widths/sort across restarts.
 - Returning to Home after opening multiple documents refreshes its Status column without

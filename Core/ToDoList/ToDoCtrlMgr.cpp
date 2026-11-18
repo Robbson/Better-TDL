@@ -1477,7 +1477,7 @@ int CToDoCtrlMgr::FindToDoCtrl(const CFilteredToDoCtrl* pTDC) const
 		return -1;
 
 	// Compare objects first because delay-loaded tasklists may not have
-	// a window yet (see CUST-005)
+	// a window yet (see PERF-004)
 	int nCtrl = GetCount();
 
 	while (nCtrl--)

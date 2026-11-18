@@ -27,7 +27,7 @@ struct EDITKEYCASE
 	LPCTSTR szExpected;
 };
 
-// The contract from customized/CUST-010-comments-auto-indent.md
+// The contract from customized/text-editor/TED-004-comments-auto-indent.md
 static const EDITKEYCASE EDITKEYCASES[] =
 {
 	// Enter continuation

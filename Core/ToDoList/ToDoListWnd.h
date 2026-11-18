@@ -720,6 +720,7 @@ protected:
 	void ShowStartupWindow();
 	
 	TDC_FILE DelayOpenTaskList(LPCTSTR szFilePath); // 0 = failed, 1 = success, -1 = cancelled
+	int OpenTaskLists(const CStringArray& aFilePaths, BOOL bNotifyDueTasks = TRUE);
 	TDC_FILE OpenTaskList(LPCTSTR szFilePath, BOOL bNotifyDueTasks = TRUE); // 0 = failed, 1 = success, -1 = cancelled
 	TDC_FILE OpenTaskList(CFilteredToDoCtrl* pCtrl, LPCTSTR szFilePath = NULL, TSM_TASKLISTINFO* pInfo = NULL);
 

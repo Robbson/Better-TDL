@@ -2575,24 +2575,15 @@ void CToDoListWnd::OnLoad()
 	if (dialog.DoModal(prefs) == IDOK)
 	{
 		CWaitCursor cursor;
+
+		CStringArray aTasklists;
 		POSITION pos = dialog.GetStartPosition();
 		
 		while (pos)
-		{
-			CString sTaskList = dialog.GetNextPathName(pos);
-			TDC_FILE nOpen = OpenTaskList(sTaskList);
-			
-			if (nOpen == TDCF_SUCCESS)
-			{
-				Resize();
-				UpdateWindow();
-			}
-			else
-			{
-				HandleLoadTasklistError(nOpen, sTaskList);
-			}
-		}
-		
+			aTasklists.Add(dialog.GetNextPathName(pos));
+
+		OpenTaskLists(aTasklists);
+
 		m_idleTasks.RefreshTabOrder();
 	}
 }
@@ -3106,7 +3097,7 @@ void CToDoListWnd::OpenHomeSelection()
 	CStringArray aPaths;
 	GetHomeSelectedPaths(aPaths);
 
-	BOOL bRefresh = FALSE;
+	CStringArray aTasklists;
 
 	for (int nPath = 0; nPath < aPaths.GetSize(); nPath++)
 	{
@@ -3114,26 +3105,22 @@ void CToDoListWnd::OpenHomeSelection()
 
 		if (FileMisc::FolderExists(sFilePath))
 		{
-			CStringArray aTasklists;
-			CTDLHomeFolder::CollectTasklistPaths(sFilePath, aTasklists);
+			CStringArray aFolderTasklists;
+			CTDLHomeFolder::CollectTasklistPaths(sFilePath, aFolderTasklists);
 
-			if (aTasklists.GetSize() == 0)
+			if (aFolderTasklists.GetSize() == 0)
 			{
 				FileMisc::Run(GetSafeHwnd(), sFilePath, NULL, SW_SHOWNORMAL, sFilePath);
 			}
 			else
 			{
-				for (int nTasklist = 0; nTasklist < aTasklists.GetSize(); nTasklist++)
-				{
-					if (OpenTaskList(aTasklists[nTasklist]) > 0)
-						bRefresh = TRUE;
-				}
+				for (int nTasklist = 0; nTasklist < aFolderTasklists.GetSize(); nTasklist++)
+					aTasklists.Add(aFolderTasklists[nTasklist]);
 			}
 		}
 		else if (FileMisc::HasExtension(sFilePath, _T("tdl")))
 		{
-			if (OpenTaskList(sFilePath) > 0)
-				bRefresh = TRUE;
+			aTasklists.Add(sFilePath);
 		}
 		else
 		{
@@ -3142,7 +3129,7 @@ void CToDoListWnd::OpenHomeSelection()
 		}
 	}
 
-	if (bRefresh)
+	if (OpenTaskLists(aTasklists) > 0)
 		m_bHomeFolderNeedsRefresh = TRUE;
 }
 
@@ -5380,6 +5367,71 @@ BOOL CToDoListWnd::GetAutoArchiveOptions(TDC_ARCHIVE& nRemove, BOOL& bRemoveFlag
 	}
 
 	return FALSE;
+}
+
+int CToDoListWnd::OpenTaskLists(const CStringArray& aFilePaths, BOOL bNotifyDueTasks)
+{
+	// Open the first tasklist fully and delay-load the rest, matching the
+	// command line and previous-session behaviour.
+	int nFirstSel = -1;
+	int nNumOpened = 0;
+	BOOL bAnyDelayed = FALSE;
+
+	const CPreferencesDlg& userPrefs = Prefs();
+	BOOL bDelayRest = userPrefs.GetEnableDelayedLoading();
+
+	for (int nFile = 0; nFile < aFilePaths.GetSize(); nFile++)
+	{
+		const CString& sFilePath = aFilePaths[nFile];
+		TDC_FILE nOpen;
+
+		BOOL bCanDelayLoad = (bDelayRest && (nNumOpened > 0));
+
+		if (bCanDelayLoad)
+		{
+			bCanDelayLoad = !TSM_TASKLISTINFO::IsStorage(sFilePath, userPrefs.GetSaveStoragePasswords());
+
+			if (bCanDelayLoad)
+			{
+				CString sResolved(sFilePath);
+				PrepareFilePath(sResolved);
+
+				bCanDelayLoad = !m_dlgReminders.ToDoCtrlHasReminders(sResolved);
+			}
+		}
+
+		if (bCanDelayLoad)
+		{
+			nOpen = DelayOpenTaskList(sFilePath);
+
+			if (nOpen == TDCF_SUCCESS)
+				bAnyDelayed = TRUE;
+		}
+		else
+		{
+			nOpen = OpenTaskList(sFilePath, bNotifyDueTasks);
+		}
+
+		if (nOpen == TDCF_SUCCESS)
+		{
+			nNumOpened++;
+
+			if (nFirstSel == -1)
+				nFirstSel = GetSelToDoCtrl();
+		}
+		else if (nOpen != TDCF_CANCELLED)
+		{
+			HandleLoadTasklistError(nOpen, sFilePath);
+		}
+	}
+
+	// When any tab was delayed, keep the first (fully loaded) document selected
+	// as the command line does. Otherwise preserve the previous behaviour of
+	// leaving the last-opened document selected.
+	if (bAnyDelayed && (nFirstSel != -1))
+		SelectToDoCtrl(nFirstSel, FALSE);
+
+	return nNumOpened;
 }
 
 TDC_FILE CToDoListWnd::OpenTaskList(LPCTSTR szFilePath, BOOL bNotifyDueTasks)
@@ -10066,7 +10118,7 @@ BOOL CToDoListWnd::SelectToDoCtrl(int nIndex, BOOL bCheckPassword, int nNotifyDu
 	CFilteredToDoCtrl& tdcShow = GetToDoCtrl(nIndex);
 
 	// A tasklist that has never been activated has no window yet
-	// (see CUST-005) and nothing can be moved, shown or focused
+	// (see PERF-004) and nothing can be moved, shown or focused
 	BOOL bHaveWnd = (tdcShow.GetSafeHwnd() != NULL);
 	CRect rTDC;
 	

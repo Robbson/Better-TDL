@@ -2301,7 +2301,7 @@ BEGIN
 END
 
 // NOTE: not loaded at runtime. The main toolbar is built from
-// MAIN_TOOLBAR_ITEMS in TDLToolbar.cpp (CUST-019).
+// MAIN_TOOLBAR_ITEMS in TDLToolbar.cpp (UI-006).
 IDR_APP_TOOLBAR TOOLBAR 16, 15
 BEGIN
     BUTTON      ID_LOAD_NORMAL

@@ -29,6 +29,24 @@ const LPCTSTR HOMEFOLDERS_SECTION	= _T("HomeFolders");
 const LPCTSTR SIZE_ATTRIB_ID		= TDC_CUSTOMATTRIB_HOMEFOLDERSIZE;
 const LPCTSTR TYPE_ATTRIB_ID		= TDC_CUSTOMATTRIB_HOMEFOLDERTYPE;
 const int MAX_FOLDER_DEPTH			= 32;
+const int MAX_PREVIEW_FILE_SIZE		= (128 * 1024);
+
+static BOOL IsTextFile(LPCTSTR szExtension)
+{
+	static LPCTSTR TEXT_EXTENSIONS[] = 
+	{
+		_T("txt"), _T("md"), _T("log"), _T("ini"), _T("csv"),
+		_T("json"), _T("xml"), _T("yml"), _T("yaml"),
+	};
+
+	for (int nExt = 0; nExt < _countof(TEXT_EXTENSIONS); nExt++)
+	{
+		if (lstrcmpi(szExtension, TEXT_EXTENSIONS[nExt]) == 0)
+			return TRUE;
+	}
+
+	return FALSE;
+}
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -271,12 +289,29 @@ BOOL CTDLHomeFolder::AddFolderContents(CTaskFile& tasks, void* hParent, DWORD dw
 		tasks.SetTaskLastModified64(hTask, FileMisc::GetFileLastModified(sPath));
 
 		CString sType = FileMisc::GetExtension(sPath, FALSE);
+		BOOL bText = IsTextFile(sType);
 
 		if (!sType.IsEmpty())
 			tasks.SetTaskCustomAttributeData(hTask, TYPE_ATTRIB_ID, sType);
 
+		BOOL bOpen = IsFileOpen(sPath, aOpenFiles);
+
 		if (sType.CompareNoCase(_T("tdl")) == 0)
-			tasks.SetTaskIcon(hTask, _T("tdl"));
+		{
+			tasks.SetTaskIcon(hTask, bOpen ? _T("tdl") : _T("tdlclosed"));
+		}
+		else if (bText)
+		{
+			tasks.SetTaskIcon(hTask, _T("93"));
+
+			if (FileMisc::GetFileSize(sPath) <= MAX_PREVIEW_FILE_SIZE)
+			{
+				CString sContent;
+
+				if (FileMisc::LoadFile(sPath, sContent))
+					tasks.SetTaskComments(hTask, sContent);
+			}
+		}
 
 		CString sSize;
 		sSize.Format(_T("%I64d"), (__int64)FileMisc::GetFileSize(sPath));
@@ -284,7 +319,7 @@ BOOL CTDLHomeFolder::AddFolderContents(CTaskFile& tasks, void* hParent, DWORD dw
 
 		COLORREF crText = CLR_NONE;
 
-		if (IsFileOpen(sPath, aOpenFiles))
+		if (bOpen)
 		{
 			if (IsFileModified(sPath, aModifiedFiles))
 				crText = ::GetSysColor(COLOR_HOTLIGHT);

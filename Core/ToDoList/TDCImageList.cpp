@@ -176,10 +176,8 @@ int CTDCImageList::LoadImages(const CString& sTaskList, COLORREF crTransparent,
 		nNextNameIndex = 300;
 
 		// the application icon is used to represent tdl files in the Home view
-		HICON hAppIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
-
-		if (hAppIcon)
-			AddImage(_T("tdl"), hAppIcon);
+		AddAppIcon(_T("tdl"), FALSE);
+		AddAppIcon(_T("tdlclosed"), TRUE);
 		
 		if (FileMisc::FileExists(sTaskList))
 			dwResult = LoadImagesFromFolder(sTasklistPath, crTransparent, this, nNextNameIndex);
@@ -264,6 +262,41 @@ BOOL CTDCImageList::AddImage(const CString& sImageFile, HICON hIcon)
 
 	int nUnused = 0;
 	return AddImage(info, hIcon, this, nUnused);
+}
+
+BOOL CTDCImageList::AddAppIcon(LPCTSTR szName, BOOL bPale)
+{
+	CIcon icon(IDR_MAINFRAME, 16);
+
+	if (!icon.IsValid())
+		return FALSE;
+
+	if (!bPale)
+		return AddImage(szName, icon);
+
+	COLORREF crBkgnd = ((m_crBackground == CLR_NONE) ? ::GetSysColor(COLOR_WINDOW) : m_crBackground);
+
+	CClientDC dc(NULL);
+	CDC dcMem;
+	dcMem.CreateCompatibleDC(&dc);
+
+	CBitmap bm;
+	bm.CreateCompatibleBitmap(&dc, 16, 16);
+
+	CBitmap* pOld = dcMem.SelectObject(&bm);
+	dcMem.FillSolidRect(0, 0, 16, 16, crBkgnd);
+
+	CImageList il;
+	il.Create(16, 16, ILC_COLOR24 | ILC_MASK, 0, 1);
+	il.Add(icon);
+	il.Draw(&dcMem, 0, CPoint(0, 0), ILD_NORMAL | ILD_BLEND50);
+
+	dcMem.SelectObject(pOld);
+
+	TDCIMAGEINFO info(szName, szName, CSize(16, 16));
+	int nUnused = 0;
+
+	return AddImage(info, bm, crBkgnd, this, nUnused);
 }
 
 BOOL CTDCImageList::HasImage(const CString& sImageFile) const

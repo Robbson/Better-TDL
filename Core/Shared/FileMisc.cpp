@@ -398,6 +398,10 @@ time64_t FileMisc::GetFileLastModified(LPCTSTR szPath)
 	if (GetFileLastModified(szPath, fileTime))
 	{
 		T64Utils::FileTimeToT64(&fileTime, &tTime);
+
+		// FileTimeToT64 returns seconds since 1601 but time64_t is Unix-based
+		if (tTime != T64Utils::T64_NULL)
+			tTime -= T64Utils::TIME_T_BASE;
 		
 #ifdef _DEBUG
 // 		struct _stat st;

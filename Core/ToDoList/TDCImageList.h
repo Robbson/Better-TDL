@@ -44,6 +44,7 @@ public:
 					BOOL bWantDefaultIcons = TRUE, BOOL bWantToolbars = FALSE);
 
 	BOOL AddImage(const CString& sImageFile, HICON hIcon);
+	BOOL AddAppIcon(LPCTSTR szName, BOOL bPale);
 	BOOL HasImage(const CString& sImageFile) const;
 	int GetImageIndex(const CString& sImageName) const;
 	CString GetImageName(int nIndex) const;

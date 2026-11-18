@@ -554,6 +554,9 @@ BEGIN_MESSAGE_MAP(CToDoListWnd, CFrameWnd)
 	ON_COMMAND(ID_FILE_CHANGEPASSWORD, OnFileChangePassword)
 	ON_COMMAND(ID_FILE_ENCRYPT, OnFileEncrypt)
 	ON_COMMAND(ID_FILE_HOME, OnFileHome)
+	ON_COMMAND(ID_HOME_OPEN, OnHomeOpen)
+	ON_COMMAND(ID_HOME_CLOSE, OnHomeClose)
+	ON_COMMAND(ID_HOME_SHOWINEXPLORER, OnHomeShowInExplorer)
 	ON_COMMAND(ID_FILE_OPENARCHIVE, OnFileOpenarchive)
 	ON_COMMAND(ID_FILE_RESETVERSION, OnFileResetversion)
 	ON_COMMAND(ID_HELP_KEYBOARDSHORTCUTS, OnShowKeyboardshortcuts)
@@ -2963,10 +2966,56 @@ LRESULT CToDoListWnd::OnTDCNotifyActivateTask(WPARAM wp, LPARAM lp)
 	if (!tdc.IsHomeFolderView())
 		return 0L;
 
-	CString sFilePath = tdc.GetTaskCustomAttributeData((DWORD)lp, TDC_CUSTOMATTRIB_HOMEFOLDERFULLPATH);
+	OpenHomeItem((DWORD)lp);
+
+	return 0L;
+}
+
+int CToDoListWnd::FindTasklistByPath(const CString& sFilePath) const
+{
+	if (sFilePath.IsEmpty())
+		return -1;
+
+	for (int nTDC = 0; nTDC < GetTDCCount(); nTDC++)
+	{
+		TSM_TASKLISTINFO storageInfo;
+
+		if (m_mgrToDoCtrls.GetStorageDetails(nTDC, storageInfo))
+			continue;
+
+		if (FileMisc::IsSamePath(m_mgrToDoCtrls.GetFilePath(nTDC), sFilePath))
+			return nTDC;
+	}
+
+	return -1;
+}
+
+CString CToDoListWnd::GetHomeSelectedPath() const
+{
+	const CFilteredToDoCtrl& tdc = GetToDoCtrl();
+
+	if (!tdc.IsHomeFolderView())
+		return _T("");
+
+	DWORD dwTaskID = tdc.GetSelectedTaskID();
+
+	if (!dwTaskID)
+		return _T("");
+
+	return tdc.GetTaskCustomAttributeData(dwTaskID, TDC_CUSTOMATTRIB_HOMEFOLDERFULLPATH);
+}
+
+void CToDoListWnd::OpenHomeItem(DWORD dwTaskID)
+{
+	CFilteredToDoCtrl& tdc = GetToDoCtrl();
+
+	if (!tdc.IsHomeFolderView() || !dwTaskID)
+		return;
+
+	CString sFilePath = tdc.GetTaskCustomAttributeData(dwTaskID, TDC_CUSTOMATTRIB_HOMEFOLDERFULLPATH);
 
 	if (sFilePath.IsEmpty())
-		return 0L;
+		return;
 
 	if (FileMisc::HasExtension(sFilePath, _T("tdl")))
 	{
@@ -2978,8 +3027,45 @@ LRESULT CToDoListWnd::OnTDCNotifyActivateTask(WPARAM wp, LPARAM lp)
 		FileMisc::Run(GetSafeHwnd(), sFilePath, NULL, SW_SHOWNORMAL,
 					  FileMisc::GetFolderFromFilePath(sFilePath));
 	}
+}
 
-	return 0L;
+void CToDoListWnd::ShowHomeContextMenu(CPoint point, BOOL bHasSelection)
+{
+	CString sFilePath = (bHasSelection ? GetHomeSelectedPath() : _T(""));
+	int nOpenTDC = FindTasklistByPath(sFilePath);
+
+	CMenu menu;
+	menu.CreatePopupMenu();
+
+	menu.AppendMenu(MF_STRING | (sFilePath.IsEmpty() ? MF_GRAYED : 0), ID_HOME_OPEN, _T("&Open"));
+	menu.AppendMenu(MF_STRING | (nOpenTDC == -1 ? MF_GRAYED : 0), ID_HOME_CLOSE, _T("&Close"));
+	menu.AppendMenu(MF_STRING | (sFilePath.IsEmpty() ? MF_GRAYED : 0), ID_HOME_SHOWINEXPLORER, _T("Show in E&xplorer"));
+
+	UINT nCmdID = menu.TrackPopupMenu(TPM_RETURNCMD | TPM_LEFTALIGN | TPM_LEFTBUTTON, point.x, point.y, this);
+
+	if (nCmdID)
+		SendMessage(WM_COMMAND, nCmdID, 0);
+}
+
+void CToDoListWnd::OnHomeOpen()
+{
+	OpenHomeItem(GetToDoCtrl().GetSelectedTaskID());
+}
+
+void CToDoListWnd::OnHomeClose()
+{
+	int nTDC = FindTasklistByPath(GetHomeSelectedPath());
+
+	if (nTDC != -1)
+	{
+		CheckCloseTasklist(nTDC);
+		RefreshHomeFolderView();
+	}
+}
+
+void CToDoListWnd::OnHomeShowInExplorer()
+{
+	FileMisc::SelectFileInExplorer(GetHomeSelectedPath());
 }
 
 LRESULT CToDoListWnd::OnPostOnCreate(WPARAM /*wp*/, LPARAM /*lp*/)
@@ -4614,6 +4700,13 @@ void CToDoListWnd::OnContextMenu(CWnd* pWnd, CPoint point)
 	{
 		CAutoFlagT<UINT> af(m_nContextMenuID, nMenuID);
 		CAutoFlagT<TDC_COLUMN> af2(m_nContextColumnID, nColID);
+
+		if (tdc.IsHomeFolderView() &&
+			((nMenuID == MM_TASKCONTEXT) || (nMenuID == MM_TASKCONTEXTNOSEL)))
+		{
+			ShowHomeContextMenu(point, (nMenuID == MM_TASKCONTEXT));
+			return;
+		}
 
 		// show the menu
 		CEnMenu menu;
@@ -14825,11 +14918,21 @@ void CToDoListWnd::OnUpdateEditSelectTaskReferences(CCmdUI* pCmdUI)
 
 void CToDoListWnd::OnToolsSelectinExplorer() 
 {
-	FileMisc::SelectFileInExplorer(m_mgrToDoCtrls.GetFilePath(GetSelToDoCtrl()));
+	CString sFilePath = (GetToDoCtrl().IsHomeFolderView() ? GetHomeSelectedPath()
+														  : m_mgrToDoCtrls.GetFilePath(GetSelToDoCtrl()));
+
+	if (!sFilePath.IsEmpty())
+		FileMisc::SelectFileInExplorer(sFilePath);
 }
 
 void CToDoListWnd::OnUpdateToolsSelectinExplorer(CCmdUI* pCmdUI) 
 {
+	if (GetToDoCtrl().IsHomeFolderView())
+	{
+		pCmdUI->Enable(!GetHomeSelectedPath().IsEmpty());
+		return;
+	}
+
 	// Exclude tasklists using storage
 	pCmdUI->Enable(m_mgrToDoCtrls.HasFilePath(GetSelToDoCtrl(), FALSE));
 }

@@ -2899,6 +2899,9 @@
 #define IDS_PREFTIP_SC_COPYALL          51949
 
 #define ID_FILE_HOME                    34810
+#define ID_HOME_OPEN                    34811
+#define ID_HOME_CLOSE                   34812
+#define ID_HOME_SHOWINEXPLORER          34813
 #define IDC_PATHTOHOMEFOLDER            1605
 #define IDS_PREFTIP_GEN_HOMEFOLDER      51951
 #define IDS_HOMEFOLDER_VIEWUNSUPPORTED  51952
@@ -2908,7 +2911,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        340
-#define _APS_NEXT_COMMAND_VALUE         34811
+#define _APS_NEXT_COMMAND_VALUE         34814
 #define _APS_NEXT_CONTROL_VALUE         1606
 #define _APS_NEXT_SYMED_VALUE           108
 #endif

@@ -5410,6 +5410,9 @@ LRESULT CToDoCtrl::OnTreeDragAbort(WPARAM /*wParam*/, LPARAM /*lParam*/)
 
 LRESULT CToDoCtrl::OnTreeDragEnter(WPARAM /*wParam*/, LPARAM lParam)
 {
+	if (IsReadOnly())
+		return FALSE;
+
 	ASSERT(!IsReadOnly());
 
 	if (!m_treeDragDrop.ProcessMessage(GetCurrentMessage()))
@@ -5427,6 +5430,9 @@ LRESULT CToDoCtrl::OnTreeDragPreMove(WPARAM /*wParam*/, LPARAM /*lParam*/)
 
 LRESULT CToDoCtrl::OnTreeDragOver(WPARAM /*wParam*/, LPARAM lParam)
 {
+	if (IsReadOnly())
+		return DD_DROPEFFECT_NONE;
+
 	ASSERT(!IsReadOnly());
 
 	if (m_treeDragDrop.ProcessMessage(GetCurrentMessage()) == DD_DROPEFFECT_NONE)
@@ -5445,6 +5451,9 @@ LRESULT CToDoCtrl::OnTreeDragOver(WPARAM /*wParam*/, LPARAM lParam)
 
 LRESULT CToDoCtrl::OnTreeDragDrop(WPARAM /*wParam*/, LPARAM lParam)
 {
+	if (IsReadOnly())
+		return FALSE;
+
 	ASSERT(!IsReadOnly());
 
 	if (!m_treeDragDrop.ProcessMessage(GetCurrentMessage()))

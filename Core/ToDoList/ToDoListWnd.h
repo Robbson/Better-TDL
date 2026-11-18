@@ -335,6 +335,9 @@ protected:
 	afx_msg void OnFileChangePassword();
 	afx_msg void OnFileEncrypt();
 	afx_msg void OnFileHome();
+	afx_msg void OnHomeOpen();
+	afx_msg void OnHomeClose();
+	afx_msg void OnHomeShowInExplorer();
 	afx_msg void OnFileOpenFromUserStorage(UINT nCmdID);
 	afx_msg void OnFileOpenarchive();
 	afx_msg void OnFileResetversion();
@@ -720,6 +723,10 @@ protected:
 	TDC_PREPAREPATH PrepareFilePath(CString& sFilePath, TSM_TASKLISTINFO* pInfo = NULL);
 
 	int FindHomeFolderView() const;
+	int FindTasklistByPath(const CString& sFilePath) const;
+	CString GetHomeSelectedPath() const;
+	void ShowHomeContextMenu(CPoint point, BOOL bHasSelection);
+	void OpenHomeItem(DWORD dwTaskID);
 	BOOL RefreshHomeFolderView(CFilteredToDoCtrl* pTDC = NULL);
 	void GetOpenTasklistPaths(CStringArray& aOpenFiles, CStringArray& aModifiedFiles) const;
 	void SetHomeFolderViewStyles(CFilteredToDoCtrl& tdc);

@@ -48,20 +48,23 @@ alphabetical, hidden/system/reparse-point entries skipped) and fills a `CTaskFil
 |---|---|
 | Folder / file | task (`TODOITEM` + `TODOSTRUCTURE`) |
 | Name | task title, stable sequential `DWORD` task ID (not shown) |
-| Last modified | built-in `TDCA_LASTMODDATE` |
+| Last modified | built-in `TDCA_LASTMODDATE` (Unix `time64_t`, converted from `FILETIME`) |
 | Size | custom attribute `HomeFolder.Size` (integer, bytes); blank for folders |
 | Type | custom attribute `HomeFolder.Type` (extension) |
+| Content preview | text files up to 128 KB are loaded into the task comments |
 | Path | custom attribute `HomeFolder.Path`; blank for home entries, reserved for future external files |
 | Absolute path | disabled custom attribute `HomeFolder.FullPath` (internal, no column) |
-| `.tdl` icon | task icon name `tdl`, mapped to the application icon (`IDR_MAINFRAME`) in `CTDCImageList::LoadImages` |
+| `.tdl` icon | `tdl` (open) or `tdlclosed` (pale, not open), mapped to `IDR_MAINFRAME` |
+| text icon | task icon `93` for `.txt`, `.md`, `.log`, `.ini`, `.csv`, `.json`, `.xml`, `.yml`, `.yaml` |
 
 Visible columns are fixed to Title, Last Modified, Size, Type and Path. `Size` is an
 integer and has no value for folder rows. The internal absolute path is stored in a
 **disabled** custom attribute so it does not appear as a column or editor field. `.tdl`
-rows use the application icon, added to the task image list under the name `tdl`.
-Top-level rows remain bold because the tree renderer always bolds tasks whose parent is
-the root (`TDLTaskCtrlBase.cpp:2368`); this is existing upstream behaviour, not a Home
-setting.
+rows use the application icon; closed tasklists use a 50%-blended pale copy, while open
+tasklists use the normal icon. Text files use task icon 93 and display their content in
+the comments control (up to 128 KB). Top-level rows remain bold because the tree renderer
+always bolds tasks whose parent is the root (`TDLTaskCtrlBase.cpp:2368`); this is existing
+upstream behaviour, not a Home setting.
 
 Row colouring is text-only and mirrors the MRU tasklist switcher:
 
@@ -80,9 +83,10 @@ tab is marked with `CToDoCtrl::IsHomeFolderView()`; `IsPristine()` returns false
 it can coexist with an empty untitled tasklist, and it is excluded from session save and
 from time-tracker/reminder registration. Drag/drop is explicitly disabled
 (`CToDoCtrl::SetDragDropEnabled(FALSE)`) because reordering a generated snapshot could
-not be persisted. The Home view is restricted to Task Tree and List View; attempts to
-activate any other task view are blocked in `CTabbedToDoCtrl::OnPreTabViewChange` and
-show a notice.
+not be persisted, and the OLE drag handlers return early for read-only tasklists so an
+external drag cannot assert. The Home view is restricted to Task Tree and List View;
+attempts to activate any other task view are blocked in
+`CTabbedToDoCtrl::OnPreTabViewChange` and show a notice.
 
 The filter bar hides the Show and Options combos while Home is active
 (`CTDLFilterBar::SetHomeFolderMode`) and leaves the title/date/attribute filters
@@ -100,7 +104,10 @@ the filter bar remains usable for the current session.
 Double-clicking a read-only task with a `HomeFolder.FullPath` value sends the new
 `WM_TDCN_ACTIVATETASK` notification. The shell opens `.tdl` files with the existing
 `CToDoListWnd::OpenTaskList` path and refreshes the home view; other files are launched
-through `FileMisc::Run`.
+through `FileMisc::Run`. The Home task context menu is replaced with just **Open**,
+**Close** (enabled only when the selected `.tdl` is already open) and **Show in
+Explorer**; Open behaves like double-click. `Tools → Select in Explorer` also uses the
+selected Home item.
 
 ### Relative paths
 
@@ -122,7 +129,8 @@ file exists there, otherwise against the application folder (preserving old sess
 - `Core/ToDoList/TDCMsg.h` — `WM_TDCN_ACTIVATETASK`, `WM_TDCN_VIEWUNSUPPORTED`,
   home-folder attribute IDs.
 - `Core/ToDoList/TDLTaskTreeCtrl.cpp` — read-only double-click activation.
-- `Core/Shared/FileMisc.cpp/.h` — `IsPathInFolder`.
+- `Core/ToDoList/TDCImageList.cpp/.h` — normal/pale application icon for `.tdl` files.
+- `Core/Shared/FileMisc.cpp/.h` — `IsPathInFolder`; Unix-based `GetFileLastModified`.
 - `Core/Shared/EnRecentFileList.cpp/.h` — optional home-relative MRU storage.
 - `Core/ToDoListLib/ToDoListLib.vcxproj(.filters)` — new source files.
 
@@ -137,6 +145,10 @@ file exists there, otherwise against the application folder (preserving old sess
   filter does not assert and the field remains editable.
 - Idle processing with Home active produces no time-tracker assertion.
 - Dragging a Home row does not start a drag operation and does not assert.
+- Last-modified dates match the filesystem dates (not 1601-based values).
+- `.tdl` rows show the application icon, pale when closed and normal when open; text
+  files show icon 93 and their content appears in the comments control.
+- Right-clicking a Home row shows only Open, Close and Show in Explorer.
 - `[HomeFolders]`, `LastFileN`, `LastActiveFile` and `MRU` use the machine key and
   home-relative paths.
 - Preferences shows the configured folder and closes/saves without assertions.

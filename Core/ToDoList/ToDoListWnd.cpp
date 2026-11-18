@@ -2819,6 +2819,9 @@ void CToDoListWnd::GetOpenTasklistPaths(CStringArray& aOpenFiles, CStringArray& 
 
 void CToDoListWnd::SetHomeFolderViewStyles(CFilteredToDoCtrl& tdc)
 {
+	if (!tdc.GetSafeHwnd())
+		return;
+
 	CTDCStyleMap styles;
 
 	if (tdc.HasStyle(TDCS_COLORTEXTBYNONE))
@@ -2874,6 +2877,9 @@ BOOL CToDoListWnd::RefreshHomeFolderView(CFilteredToDoCtrl* pTDC)
 		pTDC = &GetToDoCtrl(nTDC);
 	}
 
+	if (!pTDC->GetSafeHwnd())
+		return FALSE;
+
 	CString sFolder = CTDLHomeFolder::GetFolder();
 
 	if (sFolder.IsEmpty() || !FileMisc::FolderExists(sFolder))
@@ -2895,7 +2901,8 @@ BOOL CToDoListWnd::RefreshHomeFolderView(CFilteredToDoCtrl* pTDC)
 	pTDC->SetReadonly(TRUE);
 	pTDC->SetDragDropEnabled(FALSE);
 	SetHomeFolderViewStyles(*pTDC);
-	SetHomeFolderViewColumns(*pTDC);
+	// Don't reset the column configuration on refresh: it would lose the
+	// user's column order. It is initialised once when the Home doc is created.
 
 	FTC_VIEW nView = pTDC->GetActiveTaskView();
 
@@ -2944,6 +2951,9 @@ void CToDoListWnd::OnFileHome()
 	{
 		if (RefreshHomeFolderView(&GetToDoCtrl(nExisting)))
 		{
+			if ((nExisting > 0) && m_mgrToDoCtrls.MoveToDoCtrl(nExisting, 0))
+				nExisting = 0;
+
 			SelectToDoCtrl(nExisting, TRUE);
 			RefreshFilterBarControls(TDCA_ALL);
 		}
@@ -2970,6 +2980,11 @@ void CToDoListWnd::OnFileHome()
 		return;
 	}
 
+	// Initialise the fixed column set once; subsequent refreshes preserve order
+	SetHomeFolderViewColumns(*pTDC);
+	pTDC->ReloadState(); // restore saved column order/widths
+	pTDC->SetModified(FALSE);
+
 	int nTDC = AddToDoCtrl(pTDC);
 
 	if (nTDC == -1)
@@ -2978,6 +2993,9 @@ void CToDoListWnd::OnFileHome()
 		delete pTDC;
 		return;
 	}
+
+	if ((nTDC > 0) && m_mgrToDoCtrls.MoveToDoCtrl(nTDC, 0))
+		nTDC = 0;
 
 	SelectToDoCtrl(nTDC, TRUE);
 
@@ -3145,7 +3163,7 @@ void CToDoListWnd::ShowHomeContextMenu(CPoint point, BOOL bHasSelection)
 	menu.CreatePopupMenu();
 
 	menu.AppendMenu(MF_STRING | (bAnySelected ? 0 : MF_GRAYED), ID_HOME_OPEN, _T("&Open"));
-	menu.AppendMenu(MF_STRING | (bAnySelected ? 0 : MF_GRAYED), ID_HOME_OPENREPLACE, _T("Open & Replace"));
+	menu.AppendMenu(MF_STRING | (bAnySelected ? 0 : MF_GRAYED), ID_HOME_OPENREPLACE, _T("Open && Replace"));
 	menu.AppendMenu(MF_STRING | (bAnyOpen ? 0 : MF_GRAYED), ID_HOME_CLOSE, _T("&Close"));
 	menu.AppendMenu(MF_STRING | (bAnySelected ? 0 : MF_GRAYED), ID_HOME_SHOWINEXPLORER, _T("Show in E&xplorer"));
 
@@ -9372,6 +9390,10 @@ void CToDoListWnd::OnTabCtrlSelchange(NMHDR* /*pNMHDR*/, LRESULT* pResult)
 		}
 
 		CFilteredToDoCtrl& tdcShow = GetToDoCtrl(nCurSel);
+
+		if (tdcShow.IsHomeFolderView() && m_bHomeFolderNeedsRefresh)
+			RefreshHomeFolderView(&tdcShow);
+
 		UpdateToDoCtrlPreferences(&tdcShow);
 
 		// update the filter selection

@@ -61,7 +61,10 @@ alphabetical, hidden/system/reparse-point entries skipped) and fills a `CTaskFil
 Visible columns are fixed to Title, Last Modified, Size, Type, Status and Path. `Size` is
 an integer and has no value for folder rows. The Status column is sortable and shows
 `Opened`, `Modified` or nothing for closed files. The internal absolute path is stored in
-a **disabled** custom attribute so it does not appear as a column or editor field. `.tdl`
+a **disabled** custom attribute so it does not appear as a column or editor field. The
+column set is initialised once when Home is created and then left alone, so the user's
+column order, widths and sort are preserved across refreshes and restarts (restored via
+`ReloadState`). `.tdl`
 rows use the application icon; closed tasklists use a 50%-alpha pale copy, while open
 tasklists use the normal icon. Text files use task icon 93 and display their content in
 the comments control (up to 128 KB); BOM/UTF-8 is auto-detected, and files that fail UTF-8
@@ -105,9 +108,10 @@ empty. A newly created Home document therefore calls `ClearFilter()` once after 
 the filter bar remains usable for the current session.
 
 Home status is refreshed lazily. Opening, closing or modifying a tasklist sets
-`m_bHomeFolderNeedsRefresh`; if Home is not active it is rebuilt when the user next
-selects the Home tab. This avoids reloading the virtual document while it is hidden and
-keeps multiple-open and edited-document states correct.
+`m_bHomeFolderNeedsRefresh`; if Home is not active it is rebuilt both when the Home tab is
+clicked (`OnTabCtrlSelchange`) and when it is selected through the manager. This avoids
+reloading the virtual document while it is hidden and keeps multiple-open and
+edited-document states correct. Home is always moved to the first tab when opened.
 
 Home is omitted from the Window menu (commands still map by manager index); the tab
 remains because it is the only way to navigate back to the virtual document.
@@ -169,7 +173,10 @@ file exists there, otherwise against the application folder (preserving old sess
   folder.
 - Opening/closing/editing tasklists updates the Home Status column when Home is next
   shown; multiple opens are reflected too.
-- Home is absent from the Window menu but remains available as a tab.
+- Home is absent from the Window menu, always occupies the first tab, and preserves the
+  user's column order/widths/sort across restarts.
+- Returning to Home after opening multiple documents refreshes its Status column without
+  pressing the Home toolbar button.
 - Pressing Enter on a selected Home row opens it like double-click.
 - `[HomeFolders]`, `LastFileN`, `LastActiveFile` and `MRU` use the machine key and
   home-relative paths.

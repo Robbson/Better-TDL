@@ -51,6 +51,8 @@ public:
 					const TDCCOLEDITFILTERVISIBILITY& visDefault);
 	virtual ~CTabbedToDoCtrl();
 	
+	void ReloadState() { LoadState(); }
+	
 	BOOL CanCreateNewTask(TDC_INSERTWHERE nInsertWhere) const;
 	BOOL CreateNewTask(const CString& sText, TDC_INSERTWHERE nWhere = TDC_INSERTATTOPOFSELTASKPARENT, 
 						BOOL bEditText = TRUE, DWORD dwDependency = 0);

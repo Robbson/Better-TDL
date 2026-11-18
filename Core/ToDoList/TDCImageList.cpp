@@ -174,6 +174,12 @@ int CTDCImageList::LoadImages(const CString& sTaskList, COLORREF crTransparent,
 		// then add the user's images
 		DWORD dwResult = 0;
 		nNextNameIndex = 300;
+
+		// the application icon is used to represent tdl files in the Home view
+		HICON hAppIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+
+		if (hAppIcon)
+			AddImage(_T("tdl"), hAppIcon);
 		
 		if (FileMisc::FileExists(sTaskList))
 			dwResult = LoadImagesFromFolder(sTasklistPath, crTransparent, this, nNextNameIndex);

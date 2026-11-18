@@ -80,6 +80,7 @@ CTDLFilterBar::CTDLFilterBar(CWnd* pParent /*=NULL*/)
 	m_eStartNextNDays(_T("-0123456789")),
 	m_eDueNextNDays(_T("-0123456789")),
 	m_bMultiSelection(TRUE),
+	m_bHomeFolderMode(FALSE),
 	m_nTitleFilter(FT_FILTERONTITLEONLY)
 {
 	m_iconUpdateBtn.Load(IDI_UPDATE_FILTER, 16, FALSE);
@@ -541,6 +542,17 @@ void CTDLFilterBar::ShowDefaultFilters(BOOL bShow)
 	m_cbShowFilter.ShowDefaultFilters(bShow); 
 }
 
+void CTDLFilterBar::SetHomeFolderMode(BOOL bHomeFolder)
+{
+	if (m_bHomeFolderMode != bHomeFolder)
+	{
+		m_bHomeFolderMode = bHomeFolder;
+
+		if (GetSafeHwnd())
+			ReposControls();
+	}
+}
+
 void CTDLFilterBar::RefreshFilterControls(const CFilteredToDoCtrl& tdc, TDC_ATTRIBUTE nAttribID)
 {
 	if (tdc.IsDelayLoaded())
@@ -850,6 +862,13 @@ int CTDLFilterBar::ReposControls(int nWidth, BOOL bCalcOnly)
 		// display this control only if the corresponding column
 		// is also showing
 		BOOL bWantCtrl = WantShowFilter(fc.nAttributeID);
+
+		// The Home Folder view uses only the title filter
+		if (m_bHomeFolderMode &&
+			((fc.nCtrlID == IDC_SHOWFILTERCOMBO) || (fc.nCtrlID == IDC_OPTIONFILTERCOMBO)))
+		{
+			bWantCtrl = FALSE;
+		}
 		
 		// special case: User Dates
 		switch (fc.nCtrlID)

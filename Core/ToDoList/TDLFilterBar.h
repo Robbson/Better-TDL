@@ -49,6 +49,7 @@ public:
 	BOOL SetAdvancedFilterIncludesDoneTasks(const CString& sCustom, BOOL bIncDone);
 
 	void ShowDefaultFilters(BOOL bShow);
+	void SetHomeFolderMode(BOOL bHomeFolder);
 	void RefreshFilterControls(const CFilteredToDoCtrl& tdc, TDC_ATTRIBUTE nAttribID = TDCA_ALL);
 	void UpdateDropListData(const CFilteredToDoCtrl& tdc, TDC_ATTRIBUTE nAttribID);
 	void SetFilterLabelAlignment(BOOL bLeft);
@@ -97,6 +98,7 @@ protected:
 	CWndPromptManager m_mgrPrompts;
 	CIcon m_iconUpdateBtn;
 	BOOL m_bMultiSelection;
+	BOOL m_bHomeFolderMode;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX); 

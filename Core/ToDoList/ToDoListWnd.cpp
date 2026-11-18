@@ -1606,6 +1606,9 @@ void CToDoListWnd::UpdateTimeTrackerTasks(BOOL bAllTasks, const CTDCAttributeMap
 
 	const CFilteredToDoCtrl& tdc = GetToDoCtrl();
 
+	if (tdc.IsHomeFolderView())
+		return;
+
 	if (bAllTasks)
 		m_dlgTimeTracker.UpdateAllTasks(&tdc);
 	else
@@ -2866,6 +2869,7 @@ BOOL CToDoListWnd::RefreshHomeFolderView(CFilteredToDoCtrl* pTDC)
 		return FALSE;
 
 	pTDC->SetReadonly(TRUE);
+	pTDC->SetDragDropEnabled(FALSE);
 	SetHomeFolderViewStyles(*pTDC);
 	SetHomeFolderViewColumns(*pTDC);
 
@@ -2898,7 +2902,10 @@ void CToDoListWnd::OnFileHome()
 	if (nExisting != -1)
 	{
 		if (RefreshHomeFolderView(&GetToDoCtrl(nExisting)))
+		{
 			SelectToDoCtrl(nExisting, TRUE);
+			RefreshFilterBarControls(TDCA_ALL);
+		}
 
 		Resize();
 		Invalidate();
@@ -2932,6 +2939,11 @@ void CToDoListWnd::OnFileHome()
 	}
 
 	SelectToDoCtrl(nTDC, TRUE);
+
+	// The home view always starts unfiltered
+	pTDC->ClearFilter();
+
+	RefreshFilterBarControls(TDCA_ALL);
 	Resize();
 	Invalidate();
 
@@ -4079,6 +4091,9 @@ void CToDoListWnd::StartTimeTrackingTask(int nTDC, DWORD dwTaskID, TIMETRACKSRC 
 	ASSERT(nTDC != -1);
 	ASSERT(dwTaskID);
 
+	if (GetToDoCtrl(nTDC).IsHomeFolderView())
+		return;
+
 	// Handle time tracking on every OTHER tasklist first
 	BOOL bExclusive = Prefs().GetExclusiveTimeTracking();
 
@@ -4138,7 +4153,10 @@ void CToDoListWnd::StopTimeTrackingTask(int nTDC, TIMETRACKSRC nFrom)
 
 		// Update Time track widget AND/OR todoctrl depending on who notified
 		CFilteredToDoCtrl& tdc = GetToDoCtrl(nTDC);
-		
+
+		if (tdc.IsHomeFolderView())
+			return;
+
 		// Must update TDC before the time-tracker
 		if (nFrom != FROM_TASKLIST)
 		{
@@ -9238,6 +9256,9 @@ void CToDoListWnd::RefreshFilterBarControls(TDC_ATTRIBUTE nAttribID, BOOL bClear
 {
 	if (m_bShowFilterBar)
 	{
+		if (GetTDCCount())
+			m_filterBar.SetHomeFolderMode(GetToDoCtrl().IsHomeFolderView());
+
 		if (nAttribID == TDCA_ALL)
 		{
 			RefreshFilterBarAdvancedFilters();

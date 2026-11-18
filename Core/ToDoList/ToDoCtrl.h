@@ -148,6 +148,7 @@ public:
 	BOOL MergeTasks(const CTaskFile& tasks, BOOL bMergeByID);
 
 	void SetReadonly(BOOL bReadOnly);
+	void SetDragDropEnabled(BOOL bEnable) { m_treeDragDrop.EnableDragDrop(bEnable); }
 	BOOL LoadVirtualTasks(const CTaskFile& tasks) { return LoadTasks(tasks); }
 	BOOL IsReadOnly() const { return HasStyle(TDCS_READONLY); }
 

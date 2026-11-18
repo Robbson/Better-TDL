@@ -275,6 +275,9 @@ BOOL CTDLHomeFolder::AddFolderContents(CTaskFile& tasks, void* hParent, DWORD dw
 		if (!sType.IsEmpty())
 			tasks.SetTaskCustomAttributeData(hTask, TYPE_ATTRIB_ID, sType);
 
+		if (sType.CompareNoCase(_T("tdl")) == 0)
+			tasks.SetTaskIcon(hTask, _T("tdl"));
+
 		CString sSize;
 		sSize.Format(_T("%I64d"), (__int64)FileMisc::GetFileSize(sPath));
 		tasks.SetTaskCustomAttributeData(hTask, SIZE_ATTRIB_ID, sSize);

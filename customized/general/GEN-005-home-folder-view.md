@@ -53,10 +53,15 @@ alphabetical, hidden/system/reparse-point entries skipped) and fills a `CTaskFil
 | Type | custom attribute `HomeFolder.Type` (extension) |
 | Path | custom attribute `HomeFolder.Path`; blank for home entries, reserved for future external files |
 | Absolute path | disabled custom attribute `HomeFolder.FullPath` (internal, no column) |
+| `.tdl` icon | task icon name `tdl`, mapped to the application icon (`IDR_MAINFRAME`) in `CTDCImageList::LoadImages` |
 
 Visible columns are fixed to Title, Last Modified, Size, Type and Path. `Size` is an
 integer and has no value for folder rows. The internal absolute path is stored in a
-**disabled** custom attribute so it does not appear as a column or editor field.
+**disabled** custom attribute so it does not appear as a column or editor field. `.tdl`
+rows use the application icon, added to the task image list under the name `tdl`.
+Top-level rows remain bold because the tree renderer always bolds tasks whose parent is
+the root (`TDLTaskCtrlBase.cpp:2368`); this is existing upstream behaviour, not a Home
+setting.
 
 Row colouring is text-only and mirrors the MRU tasklist switcher:
 
@@ -73,9 +78,22 @@ path, loads the generated `CTaskFile` through the new public
 down to the fixed set above, forces text-only per-task colours, and adds it as a tab. The
 tab is marked with `CToDoCtrl::IsHomeFolderView()`; `IsPristine()` returns false for it so
 it can coexist with an empty untitled tasklist, and it is excluded from session save and
-from time-tracker/reminder registration. The Home view is restricted to Task Tree and
-List View; attempts to activate any other task view are blocked in
-`CTabbedToDoCtrl::OnPreTabViewChange` and show a notice.
+from time-tracker/reminder registration. Drag/drop is explicitly disabled
+(`CToDoCtrl::SetDragDropEnabled(FALSE)`) because reordering a generated snapshot could
+not be persisted. The Home view is restricted to Task Tree and List View; attempts to
+activate any other task view are blocked in `CTabbedToDoCtrl::OnPreTabViewChange` and
+show a notice.
+
+The filter bar hides the Show and Options combos while Home is active
+(`CTDLFilterBar::SetHomeFolderMode`) and leaves the title/date/attribute filters
+available. Because Home is not registered with the time tracker, idle-time time-tracker
+updates are skipped for it, which also avoids the assertion that previously occurred when
+filtering.
+
+The virtual Home document uses its own `FileStates\HomeFolder` preference key, so an
+active filter would otherwise be restored on the next creation and make the view look
+empty. A newly created Home document therefore calls `ClearFilter()` once after loading;
+the filter bar remains usable for the current session.
 
 ### Activation
 
@@ -115,6 +133,10 @@ file exists there, otherwise against the application folder (preserving old sess
   default text colour (open) or hotlight (modified, unsaved).
 - Attempting to switch Home to Graphs/Calendar/Gantt/Kanban/Workload shows a notice and
   stays in the task view.
+- While Home is active, the filter bar shows no Show or Options combos; entering a title
+  filter does not assert and the field remains editable.
+- Idle processing with Home active produces no time-tracker assertion.
+- Dragging a Home row does not start a drag operation and does not assert.
 - `[HomeFolders]`, `LastFileN`, `LastActiveFile` and `MRU` use the machine key and
   home-relative paths.
 - Preferences shows the configured folder and closes/saves without assertions.

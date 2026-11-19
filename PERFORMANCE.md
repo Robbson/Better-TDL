@@ -573,10 +573,15 @@ make that activation cheap. Opening a document in a running app, or selecting a
 delay-loaded tab, still pays the full fixed UI bill: create the tab window, apply the
 runtime preferences, load the tasks into the tree/list and restore the per-file UI state,
 then show and paint the tab. In Release an 8 KB and a 1.7 MB document both take roughly
-3 s without logging; the file read and XML parse is ~60 ms even for 1.7 MB.
+2.5-3 s with the window foreground; the file read and XML parse is ~60 ms even for
+1.7 MB. The same activation is ~30% slower when the window is in the background, so
+focus state must be controlled when measuring.
 
 The measured breakdown and the instrumentation/profiling plan are in
 [customized/performance/PERF-006-tasklist-open-activation-cost.md](customized/performance/PERF-006-tasklist-open-activation-cost.md).
+The buffered Release measurement attributes the fixed cost mainly to the attribute
+editor (~0.9-1.3 s: creation plus `SetAttributeEditorMode`), the filter bar refresh
+(~0.2-0.5 s) and per-view column-state restore (~0.2 s), not to parsing or fonts.
 This is a separate follow-up from the startup work above: the remaining cost is
 per-activation, not per-process, and it is not addressed by PERF-004 or PERF-005.
 

@@ -4,6 +4,7 @@
 #include "filteredtodoctrl.h"
 #include "preferencesdlg.h"
 #include "TDCToDoCtrlPreferenceHelper.h"
+#include "TDCPerfTrace.h"
 
 void CTDCToDoCtrlPreferenceHelper::UpdateToDoCtrl(CFilteredToDoCtrl& tdc, const CPreferencesDlg& prefs, 
 													BOOL bShowProjectName, BOOL bShowTreeListBar)
@@ -27,6 +28,8 @@ void CTDCToDoCtrlPreferenceHelper::UpdateToDoCtrl(CFilteredToDoCtrl& tdc, const 
 void CTDCToDoCtrlPreferenceHelper::UpdateToDoCtrl(CFilteredToDoCtrl& tdc, const CPreferencesDlg& prefs, 
 													const CFont& fontMain, CFont& fontTree, CFont& fontComments)
 {
+	CTDCPerfTrace log(_T("CTDCToDoCtrlPreferenceHelper::UpdateToDoCtrl(fonts)"));
+
 	// Tree font
 	CString sFaceName;
 	int nFontSize;
@@ -41,6 +44,8 @@ void CTDCToDoCtrlPreferenceHelper::UpdateToDoCtrl(CFilteredToDoCtrl& tdc, const 
 	}
 
 	tdc.SetTreeFont(fontTree.GetSafeHandle() ? fontTree : fontMain);
+
+	log.LogTimeElapsed(_T("UpdateToDoCtrl(TreeFont)"));
 
 	// Comments font
 	if (!prefs.GetCommentsFont(sFaceName, nFontSize))
@@ -65,11 +70,15 @@ void CTDCToDoCtrlPreferenceHelper::UpdateToDoCtrl(CFilteredToDoCtrl& tdc, const 
 	{
 		tdc.SetCommentsFont(fontMain);
 	}
+
+	log.LogTimeElapsed(_T("UpdateToDoCtrl(CommentsFont)"));
 }
 
 void CTDCToDoCtrlPreferenceHelper::UpdateToDoCtrlPrefs(CFilteredToDoCtrl& tdc, const CPreferencesDlg& prefs, 
 														BOOL bShowProjectName, BOOL bShowTreeListBar)
 {
+	CTDCPerfTrace log(_T("CTDCToDoCtrlPreferenceHelper::UpdateToDoCtrlPrefs()"));
+
 	tdc.NotifyBeginPreferencesUpdate();
 
 	CTDCStyleMap styles;
@@ -93,6 +102,8 @@ void CTDCToDoCtrlPreferenceHelper::UpdateToDoCtrlPrefs(CFilteredToDoCtrl& tdc, c
 	
 	tdc.ModifyStyles(styles);
 
+	log.LogTimeElapsed(_T("UpdateToDoCtrlPrefs(ModifyStyles)"));
+
 	// Colour edit field visibility
 	TDCCOLEDITFILTERVISIBILITY vis;
 	tdc.GetColumnFieldVisibility(vis);
@@ -100,10 +111,14 @@ void CTDCToDoCtrlPreferenceHelper::UpdateToDoCtrlPrefs(CFilteredToDoCtrl& tdc, c
 	vis.ShowColorEditIfAsColumns(prefs.GetTextColorOption() == TEXTOPT_DEFAULT);
 	tdc.SetColumnFieldVisibility(vis);
 
+	log.LogTimeElapsed(_T("UpdateToDoCtrlPrefs(FieldVisibility)"));
+
 	// layout
 	tdc.SetLayoutPositions((TDC_UILOCATION)prefs.GetControlsPos(), 
 							(TDC_UILOCATION)prefs.GetCommentsPos());
 	tdc.SetAttributeEditorMode(prefs.GetUseLegacyAttributeEditor() ? TDCAEM_LEGACY : TDCAEM_GRID);
+
+	log.LogTimeElapsed(_T("UpdateToDoCtrlPrefs(Layout/AttributeEditor)"));
 
 	// info tips
 	tdc.SetMaxInfotipCommentsLength(prefs.GetMaxInfoTipCommentsLength());
@@ -113,6 +128,8 @@ void CTDCToDoCtrlPreferenceHelper::UpdateToDoCtrlPrefs(CFilteredToDoCtrl& tdc, c
 	prefs.GetDefaultListItems(tld);
 
 	tdc.SetDefaultAutoListData(tld);
+
+	log.LogTimeElapsed(_T("UpdateToDoCtrlPrefs(AutoListData)"));
 
 	// set list content readonly
 	tdc.SetAutoListContentReadOnly(TDCA_CATEGORY,	prefs.GetDefaultListIsReadonly(TDCA_CATEGORY));
@@ -146,15 +163,27 @@ void CTDCToDoCtrlPreferenceHelper::UpdateToDoCtrlPrefs(CFilteredToDoCtrl& tdc, c
 
 	tdc.SetAttributeColors(nAttribID, colors);
 
+	log.LogTimeElapsed(_T("UpdateToDoCtrlPrefs(Colours)"));
+
 	// misc
 	tdc.SetSubtaskDragDropPos(prefs.GetNewSubtaskPos() == PUIP_TOP);
+
+	log.LogTimeElapsed(_T("UpdateToDoCtrlPrefs(SubtaskPos)"));
+
 	tdc.SetPercentDoneIncrement(prefs.GetPercentDoneIncrement());
+
+	log.LogTimeElapsed(_T("UpdateToDoCtrlPrefs(PercentIncrement)"));
+
 	tdc.SetTimeTrackingReminderInterval(prefs.GetTrackReminderFrequency());
 	tdc.SetNumPriorityRiskLevels(prefs.GetNumPriorityRiskLevels());
+
+	log.LogTimeElapsed(_T("UpdateToDoCtrlPrefs(RiskLevels)"));
 
 	CString sStatus;
 	prefs.GetCompletionStatus(sStatus);
 	tdc.SetCompletionStatus(sStatus);
+
+	log.LogTimeElapsed(_T("UpdateToDoCtrlPrefs(Completion)"));
 
 	// inherited parent task attributes for new tasks
 	CTDCAttributeMap mapParentAttrib;
@@ -163,8 +192,12 @@ void CTDCToDoCtrlPreferenceHelper::UpdateToDoCtrlPrefs(CFilteredToDoCtrl& tdc, c
 	prefs.GetInheritParentAttributes(mapParentAttrib, bUpdateAttrib);
 	tdc.SetInheritedParentAttributes(mapParentAttrib, bUpdateAttrib);
 
+	log.LogTimeElapsed(_T("UpdateToDoCtrlPrefs(Inherit)"));
+
 	// we're done
 	tdc.NotifyEndPreferencesUpdate();
+
+	log.LogTimeElapsed(_T("UpdateToDoCtrlPrefs(NotifyEnd)"));
 }
 
 void CTDCToDoCtrlPreferenceHelper::PopulateStyles(const CPreferencesDlg& prefs, CTDCStyleMap& styles)

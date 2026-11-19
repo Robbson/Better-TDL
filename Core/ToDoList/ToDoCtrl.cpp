@@ -46,6 +46,7 @@
 #include "..\shared\passworddialog.h"
 #include "..\shared\savefocus.h"
 #include "..\shared\ScopedTimer.h"
+#include "TDCPerfTrace.h"
 #include "..\shared\stringres.h"
 #include "..\shared\themed.h"
 #include "..\shared\toolbarhelper.h"
@@ -547,6 +548,8 @@ BOOL CToDoCtrl::Create(const CRect& rect, CWnd* pParentWnd, UINT nID, BOOL bVisi
 {
 	DWORD dwStyle = (WS_CHILD | (bVisible ? WS_VISIBLE : 0) | (bEnabled ? 0 : WS_DISABLED) | WS_TABSTOP);
 	CLocalizer::IgnoreString(_T("ToDoCtrl"));
+
+	CTDCPerfTrace log(_T("CToDoCtrl::Create()"));
 	
 	return CRuntimeDlg::Create(_T("ToDoCtrl"), dwStyle | DS_SETFONT, WS_EX_CONTROLPARENT, rect, pParentWnd, nID);
 }
@@ -567,20 +570,28 @@ BOOL CToDoCtrl::OnInitDialog()
 {
 	CRuntimeDlg::OnInitDialog();
 
+	CTDCPerfTrace log(_T("CToDoCtrl::OnInitDialog()"));
+
 	// create the tree-list before anything else
 	CRect rCtrl;
 	GraphicsMisc::GetAvailableScreenSpace(*this, rCtrl);
 
 	VERIFY(m_taskTree.Create(this, rCtrl, IDC_TASKTREECTRL));
 
+	log.LogTimeElapsed(_T("OnInitDialog(Tree)"));
+
 	m_treeDropTarget.Register(&m_taskTree.Tree(), this);
 
 	// comments
 	VERIFY(m_ctrlComments.Create(this, IDC_COMMENTS));
 
+	log.LogTimeElapsed(_T("OnInitDialog(Comments)"));
+
 	// Attributes
 	VERIFY(m_ctrlAttributes.Create(this, IDC_ATTRIBUTELIST));
 	m_ctrlAttributes.SetPercentDoneIncrement(m_nPercentIncrement);
+
+	log.LogTimeElapsed(_T("OnInitDialog(Attributes)"));
 	
 	// custom font
 	if (m_hFontTree)
@@ -592,17 +603,25 @@ BOOL CToDoCtrl::OnInitDialog()
 
 	// tree drag drop
 	m_treeDragDrop.Initialize(this);
+
+	log.LogTimeElapsed(_T("OnInitDialog(Prompts/DragDrop)"));
 	
 	// Initial state
 	UpdateControls();
 	SetFocus(TDCSF_TASKVIEW);
 
+	log.LogTimeElapsed(_T("OnInitDialog(UpdateControls)"));
+
 	// notify parent that we have been created
 	GetParent()->SendMessage(WM_PARENTNOTIFY, MAKEWPARAM(WM_CREATE, GetDlgCtrlID()), (LPARAM)GetSafeHwnd());
+
+	log.LogTimeElapsed(_T("OnInitDialog(ParentNotify)"));
 
 	// Start the timer which checks for midnight (day changeover)
 	// which runs persistently
 	m_timerMidnight.Enable(*this);
+
+	log.LogTimeElapsed(_T("OnInitDialog(Timer)"));
 	
 	return FALSE;  // return TRUE unless you set the focus to a control
 }
@@ -650,6 +669,8 @@ BOOL CToDoCtrl::SetCommentsFont(HFONT hFont)
 
 	if (hFont && !GraphicsMisc::IsSameFontNameAndSize(hFont, m_hFontComments))
 	{
+		CTDCPerfTrace log(_T("CToDoCtrl::SetCommentsFont()"));
+
 		m_hFontComments = hFont;
 
 		// we've had some trouble with plugins using the richedit control 
@@ -658,8 +679,13 @@ BOOL CToDoCtrl::SetCommentsFont(HFONT hFont)
 		CBinaryData customComments;
 
 		m_ctrlComments.GetContent(sTextComments, customComments);
+
+		log.LogTimeElapsed(_T("SetCommentsFont(GetContent)"));
+
 		m_ctrlComments.SetContentFont(m_hFontComments);
 		m_ctrlComments.SetContent(sTextComments, customComments, FALSE);
+
+		log.LogTimeElapsed(_T("SetCommentsFont(SetContent)"));
 
 		return TRUE;
 	}
@@ -725,6 +751,8 @@ void CToDoCtrl::OnSize(UINT nType, int cx, int cy)
 
 void CToDoCtrl::SetLayoutPositions(TDC_UILOCATION nAttribsPos, TDC_UILOCATION nCommentsPos)
 {
+	CTDCPerfTrace log(_T("CToDoCtrl::SetLayoutPositions()"));
+
 	if (m_layout.ModifyLayout(nAttribsPos,
 							  nCommentsPos,
 							  HasStyle(TDCS_ALLOWCOMMENTSSTACKING),
@@ -739,17 +767,28 @@ void CToDoCtrl::SetAttributeEditorMode(TDC_ATTRIBUTEEDITORMODE nMode)
 	if (m_ctrlAttributes.GetEditorMode() == nMode)
 		return;
 
+	CTDCPerfTrace log(_T("CToDoCtrl::SetAttributeEditorMode()"));
+
 	m_ctrlAttributes.SetEditorMode(nMode);
+
+	log.LogTimeElapsed(_T("SetAttributeEditorMode(SetEditorMode)"));
 
 	// The newly created editor has missed previous state updates
 	m_ctrlAttributes.SetDefaultAutoListData(m_tldDefault);
 	m_ctrlAttributes.SetAutoListData(TDCA_ALL, m_tldAll);
 	m_ctrlAttributes.SetCompletionStatus(m_sCompletionStatus);
 
+	log.LogTimeElapsed(_T("SetAttributeEditorMode(Repopulate)"));
+
 	if (m_taskTree.GetSafeHwnd())
 	{
 		UpdateControls(TRUE);
+
+		log.LogTimeElapsed(_T("SetAttributeEditorMode(UpdateControls)"));
+
 		Resize();
+
+		log.LogTimeElapsed(_T("SetAttributeEditorMode(Resize)"));
 	}
 }
 
@@ -4044,6 +4083,8 @@ BOOL CToDoCtrl::ModifyStyles(const CTDCStyleMap& modStyles)
 	if (modStyles.GetCount() == 0)
 		return FALSE;
 
+	CTDCPerfTrace log(_T("CToDoCtrl::ModifyStyles(%s)"), (LPCTSTR)Misc::Format(modStyles.GetCount()));
+
 	HandleUnsavedComments();
 
 	CHoldRedraw hr(*this, (NCR_PAINT | NCR_ERASEBKGND));
@@ -4063,11 +4104,17 @@ BOOL CToDoCtrl::ModifyStyles(const CTDCStyleMap& modStyles)
 	// notify tree-list we've finished changing styles
 	OnStylesUpdated(modStyles);
 
+	log.LogTimeElapsed(_T("ModifyStyles(Set styles)"));
+
 	if (Misc::HasFlag(dwResult, TDCSS_WANTRESIZE)) 
 		Resize();
 
+	log.LogTimeElapsed(_T("ModifyStyles(Resize)"));
+
 	Invalidate(TRUE);
 	UpdateControls();
+
+	log.LogTimeElapsed(_T("ModifyStyles(Invalidate/UpdateControls)"));
 
 	return TRUE;
 }
@@ -4135,10 +4182,14 @@ BOOL CToDoCtrl::SetCustomAttributeDefs(const CTDCCustomAttribDefinitionArray& aA
 
 void CToDoCtrl::NotifyEndPreferencesUpdate() 
 { 
+	CTDCPerfTrace log(_T("CToDoCtrl::NotifyEndPreferencesUpdate()"));
+
 	Invalidate(); 
 
 	// Update active comments
 	m_ctrlComments.UpdateAppPreferences();
+
+	log.LogTimeElapsed(_T("NotifyEndPreferencesUpdate(Comments)"));
 
 	// And infotips
 	if (HasStyle(TDCS_SHOWINFOTIPS) || HasStyle(TDCS_SHOWIMAGETIPS))
@@ -4151,6 +4202,8 @@ void CToDoCtrl::NotifyEndPreferencesUpdate()
 	{
 		m_infoTip.DestroyWindow();
 	}
+
+	log.LogTimeElapsed(_T("NotifyEndPreferencesUpdate(Infotips)"));
 }
 
 void CToDoCtrl::UpdateVisibleColumns(const CTDCColumnIDMap& mapChanges)
@@ -4558,7 +4611,7 @@ TDC_FILE CToDoCtrl::Load(const CString& sFilePath, CTaskFile& tasks/*out*/, LPCT
 	SetReadonly(CDriveInfo::IsReadonlyPath(sFilePath) > 0);
 
 	// PERMANENT LOGGING //////////////////////////////////////////////
-	CScopedLogTimer log(_T("CToDoCtrl::Load(%s)"), FileMisc::GetFileNameFromPath(sFilePath));
+	CTDCPerfTrace log(_T("CToDoCtrl::Load(%s)"), FileMisc::GetFileNameFromPath(sFilePath));
 	log.LogStart();
 	///////////////////////////////////////////////////////////////////
 	
@@ -4671,7 +4724,7 @@ BOOL CToDoCtrl::LoadTasks(const CTaskFile& tasks)
 		return FALSE;
 
 	// PERMANENT LOGGING //////////////////////////////////////////////
-	CScopedLogTimer log;
+	CTDCPerfTrace log;
 	///////////////////////////////////////////////////////////////////
 
 	// save visible state
@@ -8696,10 +8749,17 @@ void CToDoCtrl::LoadSplitPos(const CPreferences& prefs)
 {
 	ASSERT(GetSafeHwnd());
 
+	CTDCPerfTrace log(_T("CToDoCtrl::LoadSplitPos()"));
+
 	CString sPrefsKey(GetPreferencesKey());
 
 	m_layout.LoadState(prefs, sPrefsKey);
+
+	log.LogTimeElapsed(_T("LoadSplitPos(Layout)"));
+
 	m_ctrlAttributes.LoadState(prefs, sPrefsKey);
+
+	log.LogTimeElapsed(_T("LoadSplitPos(Attributes)"));
 }
 
 void CToDoCtrl::SaveAttributeVisibility(CTaskFile& tasks) const
@@ -8741,11 +8801,17 @@ void CToDoCtrl::SaveTasksState(CPreferences& prefs, BOOL bRebuildingTree) const
 
 HTREEITEM CToDoCtrl::LoadTasksState(const CPreferences& prefs, BOOL bRebuildingTree)
 {
+	CTDCPerfTrace log(_T("CToDoCtrl::LoadTasksState()"));
+
 	// Only restore expanded state if rebuilding the tree
 	HTREEITEM hti = m_taskTree.LoadState(prefs, GetPreferencesKey(_T("TaskTree")), bRebuildingTree);
 
+	log.LogTimeElapsed(_T("LoadTasksState(Tree)"));
+
 	if (!bRebuildingTree)
 		m_taskTree.RecalcUntrackedColumnWidths();
+
+	log.LogTimeElapsed(_T("LoadTasksState(RecalcColumns)"));
 
 	return hti;
 }
@@ -9671,7 +9737,7 @@ void CToDoCtrl::ExpandTasks(TDC_EXPANDCOLLAPSE nWhat, BOOL bExpand)
 		return;
 
 	// PERMANENT LOGGING ///////////////////////////////////////////////
-	CScopedLogTimer timer(_T("ExpandTasks(%s)"), Misc::Format(bExpand));
+	CTDCPerfTrace timer(_T("ExpandTasks(%s)"), Misc::Format(bExpand));
 	////////////////////////////////////////////////////////////////////
 
 	CHTIList prevSel;

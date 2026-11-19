@@ -93,6 +93,8 @@
 #include "..\Interfaces\uiextensionhelper.h"
 #include "..\Interfaces\TasklistSchemaDef.h"
 
+#include "TDCPerfTrace.h"
+
 #include <shlwapi.h>
 #include <windowsx.h>
 #include <direct.h>
@@ -5639,6 +5641,9 @@ TDC_FILE CToDoListWnd::OpenTaskList(CFilteredToDoCtrl* pTDC, LPCTSTR szFilePath,
 {
 	ASSERT(!Misc::IsEmpty(szFilePath));
 
+	// PERF-006: buffered activation trace
+	CTDCPerfTrace log(_T("CToDoListWnd::OpenTaskList(tdc, %s)"), FileMisc::GetFileNameFromPath(szFilePath));
+
 	CString sFilePath(szFilePath);
 	CTaskFile tasks;
 
@@ -5685,6 +5690,8 @@ TDC_FILE CToDoListWnd::OpenTaskList(CFilteredToDoCtrl* pTDC, LPCTSTR szFilePath,
 	
 	ASSERT(FileMisc::FileExists(sFilePath));
 
+	log.LogTimeElapsed(_T("OpenTaskList(prepare path/storage)"));
+
 	BOOL bWasDelayed = pTDC->IsDelayLoaded();
 	BOOL bReloading = pTDC->HasFilePath();
 
@@ -5694,7 +5701,11 @@ TDC_FILE CToDoListWnd::OpenTaskList(CFilteredToDoCtrl* pTDC, LPCTSTR szFilePath,
 	if (bWasDelayed)
 		UpdateToDoCtrlPreferences(pTDC);
 
+	log.LogTimeElapsed(_T("OpenTaskList(prefs)"));
+
 	TDC_FILE nOpen = pTDC->Load(sFilePath, tasks, m_sMasterPassword);
+
+	log.LogTimeElapsed(_T("OpenTaskList(Load)"));
 
 	if (nOpen == TDCF_SUCCESS)
 	{
@@ -5758,6 +5769,8 @@ TDC_FILE CToDoListWnd::OpenTaskList(CFilteredToDoCtrl* pTDC, LPCTSTR szFilePath,
 	{
 		pTDC->SetModified(FALSE);
 	}
+
+	log.LogTimeElapsed(_T("OpenTaskList(post)"));
 
 	return nOpen;
 }
@@ -7941,7 +7954,7 @@ void CToDoListWnd::OnUpdatePrint(CCmdUI* pCmdUI)
 int CToDoListWnd::AddToDoCtrl(CFilteredToDoCtrl* pTDC, TSM_TASKLISTINFO* pInfo)
 {
 	// PERMANENT LOGGING //////////////////////////////////////////////
-	CScopedLogTimer log(_T("CToDoListWnd::AddToDoCtrl()"));
+	CTDCPerfTrace log(_T("CToDoListWnd::AddToDoCtrl()"));
 	log.LogStart();
 	///////////////////////////////////////////////////////////////////
 
@@ -9289,7 +9302,7 @@ CFilteredToDoCtrl* CToDoListWnd::AllocToDoCtrl()
 BOOL CToDoListWnd::CreateToDoCtrl(CFilteredToDoCtrl* pTDC, BOOL bEnabled, BOOL bSkipPrefs)
 {
 	// PERMANENT LOGGING //////////////////////////////////////////////
-	CScopedLogTimer log(_T("CToDoListWnd::CreateToDoCtrl()"));
+	CTDCPerfTrace log(_T("CToDoListWnd::CreateToDoCtrl()"));
 	log.LogStart();
 	///////////////////////////////////////////////////////////////////
 
@@ -9377,6 +9390,8 @@ BOOL CToDoListWnd::EnsureToDoCtrlWindow(CFilteredToDoCtrl* pTDC)
 
 	if (!pTDC || pTDC->GetSafeHwnd())
 		return (pTDC != NULL);
+
+	CTDCPerfTrace log(_T("CToDoListWnd::EnsureToDoCtrlWindow()"));
 
 	// Delay-loaded tasklists have no window until first activated
 	if (!CreateToDoCtrl(pTDC, TRUE, TRUE))
@@ -9631,6 +9646,8 @@ void CToDoListWnd::UpdateFilterBarListData(TDC_ATTRIBUTE nAttribID)
 
 void CToDoListWnd::RefreshFilterBarControls(TDC_ATTRIBUTE nAttribID, BOOL bClearCheckboxHistory)
 {
+	CTDCPerfTrace log(_T("CToDoListWnd::RefreshFilterBarControls()"));
+
 	if (m_bShowFilterBar)
 	{
 		if (GetTDCCount())
@@ -9640,8 +9657,12 @@ void CToDoListWnd::RefreshFilterBarControls(TDC_ATTRIBUTE nAttribID, BOOL bClear
 		{
 			RefreshFilterBarAdvancedFilters();
 
+			log.LogTimeElapsed(_T("RefreshFilterBarControls(AdvancedFilters)"));
+
 			m_filterBar.SetTitleFilterOption(Prefs().GetTitleFilterOption());
 			m_filterBar.RefreshFilterControls(GetToDoCtrl(), nAttribID);
+
+			log.LogTimeElapsed(_T("RefreshFilterBarControls(FilterControls)"));
 
 			if (bClearCheckboxHistory)
 				m_filterBar.ClearCheckboxHistory();
@@ -9649,9 +9670,13 @@ void CToDoListWnd::RefreshFilterBarControls(TDC_ATTRIBUTE nAttribID, BOOL bClear
 		else
 		{
 			m_filterBar.RefreshFilterControls(GetToDoCtrl(), nAttribID);
+
+			log.LogTimeElapsed(_T("RefreshFilterBarControls(FilterControls)"));
 		}
 
 		CheckResizeFilterBar();
+
+		log.LogTimeElapsed(_T("RefreshFilterBarControls(Resize)"));
 	}
 }
 
@@ -10112,12 +10137,17 @@ BOOL CToDoListWnd::VerifyTaskListOpen(int nIndex, BOOL bWantNotifyDueTasks, BOOL
 	if (!m_mgrToDoCtrls.HasFilePath(nIndex))
 		return TRUE;
 
+	// PERF-006: buffered activation trace
+	CTDCPerfTrace log(_T("CToDoListWnd::VerifyTaskListOpen()"));
+
 	// else
 	CFilteredToDoCtrl& tdc = GetToDoCtrl(nIndex);
 
 	// Delay-loaded tasklists have no window yet
 	if (!EnsureToDoCtrlWindow(&tdc))
 		return FALSE;
+
+	log.LogTimeElapsed(_T("VerifyTaskListOpen(EnsureWindow)"));
 
 	CString sFilePath = tdc.GetFilePath();
 
@@ -10128,6 +10158,8 @@ BOOL CToDoListWnd::VerifyTaskListOpen(int nIndex, BOOL bWantNotifyDueTasks, BOOL
 		sFilePath = storageInfo.EncodeInfo(Prefs().GetSaveStoragePasswords());
 
 	TDC_FILE nRes = OpenTaskList(&tdc, sFilePath, &storageInfo);
+
+	log.LogTimeElapsed(_T("VerifyTaskListOpen(OpenTaskList)"));
 
 	if (nRes == TDCF_SUCCESS)
 	{
@@ -10146,6 +10178,8 @@ BOOL CToDoListWnd::VerifyTaskListOpen(int nIndex, BOOL bWantNotifyDueTasks, BOOL
 		if (bWantNotifyDueTasks)
 			DoDueTaskNotification(nIndex, Prefs().GetNotifyDueByOnLoad());
 
+		log.LogTimeElapsed(_T("VerifyTaskListOpen(post)"));
+
 		return TRUE;
 	}
 	else if (bNotifyError)
@@ -10161,6 +10195,9 @@ BOOL CToDoListWnd::SelectToDoCtrl(int nIndex, BOOL bCheckPassword, int nNotifyDu
 {
 	ASSERT (nIndex >= 0);
 	ASSERT (nIndex < GetTDCCount());
+
+	// PERF-006: buffered activation trace
+	CTDCPerfTrace log(_T("CToDoListWnd::SelectToDoCtrl(%s)"), (LPCTSTR)Misc::Format(nIndex));
 	
 	// load and show the chosen item
 	if (!m_bClosing)
@@ -10179,6 +10216,8 @@ BOOL CToDoListWnd::SelectToDoCtrl(int nIndex, BOOL bCheckPassword, int nNotifyDu
 				return FALSE;
 
 			bCheckPassword = FALSE;
+
+			log.LogTimeElapsed(_T("SelectToDoCtrl(VerifyTaskListOpen)"));
 		}
 	}
 
@@ -10201,6 +10240,8 @@ BOOL CToDoListWnd::SelectToDoCtrl(int nIndex, BOOL bCheckPassword, int nNotifyDu
 	
 	m_tabCtrl.SetCurSel(nIndex); // this changes the selected CToDoCtrl
 	m_tabCtrl.UpdateWindow();
+
+	log.LogTimeElapsed(_T("SelectToDoCtrl(Move tab)"));
 
 	if (tdcShow.IsHomeFolderView())
 	{
@@ -10228,6 +10269,8 @@ BOOL CToDoListWnd::SelectToDoCtrl(int nIndex, BOOL bCheckPassword, int nNotifyDu
 		tdcShow.ShowWindow(SW_SHOW);
 	}
 
+	log.LogTimeElapsed(_T("SelectToDoCtrl(Show)"));
+
 	// if the tasklist is encrypted and todolist always prompts for password
 	// then disable Flip3D and Aero Peek
 	UpdateAeroFeatures();
@@ -10250,11 +10293,15 @@ BOOL CToDoListWnd::SelectToDoCtrl(int nIndex, BOOL bCheckPassword, int nNotifyDu
 		tdcShow.Invalidate(TRUE);
 		tdcShow.UpdateWindow();
 	}
+
+	log.LogTimeElapsed(_T("SelectToDoCtrl(Invalidate/Update)"));
 	
 	if (!m_bClosing)
 	{
 		// Reload as required
 		CheckReloadToDoCtrls(nIndex, TRUE);
+
+		log.LogTimeElapsed(_T("SelectToDoCtrl(bookkeeping: CheckReload)"));
 
 		// update various dependencies
 		m_idleTasks.UpdateCaption();
@@ -10262,11 +10309,23 @@ BOOL CToDoListWnd::SelectToDoCtrl(int nIndex, BOOL bCheckPassword, int nNotifyDu
 		m_idleTasks.UpdateMenuSourceControlStatus();
 		m_idleTasks.UpdateAutoListData();
 		m_idleTasks.RefreshPauseTimeTracking();
+
+		log.LogTimeElapsed(_T("SelectToDoCtrl(bookkeeping: IdleTasks)"));
 		
 		UpdateCwd();
+
+		log.LogTimeElapsed(_T("SelectToDoCtrl(bookkeeping: UpdateCwd)"));
+
 		RefreshFilterBarControls();
+
+		log.LogTimeElapsed(_T("SelectToDoCtrl(bookkeeping: FilterBar)"));
+		
 		DoDueTaskNotification(GetSelToDoCtrl(), nNotifyDueTasksBy);
+
+		log.LogTimeElapsed(_T("SelectToDoCtrl(bookkeeping: DueNotify)"));
 	}
+
+	log.LogTimeElapsed(_T("SelectToDoCtrl(bookkeeping)"));
 
 	PromoteToDoCtrlInMRU(&tdcShow);
 
@@ -10306,6 +10365,8 @@ void CToDoListWnd::CheckUpdateActiveToDoCtrlPreferences()
 
 void CToDoListWnd::UpdateToDoCtrlPreferences(CFilteredToDoCtrl* pTDC)
 {
+	CTDCPerfTrace log(_T("CToDoListWnd::UpdateToDoCtrlPreferences()"));
+
 	const CPreferencesDlg& userPrefs = Prefs();
 	CFilteredToDoCtrl& tdc = *pTDC;
 

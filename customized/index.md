@@ -94,7 +94,7 @@ Rules of thumb:
 | PERF-003 | Automated UI performance/artefact harness | In progress (implemented/built; interactive baseline pending) | [PERF-003-ui-perf-harness.md](performance/PERF-003-ui-perf-harness.md) |
 | PERF-004 | Deferred window creation for delay-loaded tasklists | Done | [PERF-004-delayed-tasklist-window.md](performance/PERF-004-delayed-tasklist-window.md) |
 | PERF-005 | No throwaway tasklist at startup | Done | [PERF-005-no-throwaway-tasklist.md](performance/PERF-005-no-throwaway-tasklist.md) |
-| PERF-006 | Fixed per-tasklist open/activation cost in a running app | Proposed (runtime analysis complete; instrumentation next) | [PERF-006-tasklist-open-activation-cost.md](performance/PERF-006-tasklist-open-activation-cost.md) |
+| PERF-006 | Fixed per-tasklist open/activation cost in a running app | Measured (steps 1-2: instrumentation + attribution done; fix pending) | [PERF-006-tasklist-open-activation-cost.md](performance/PERF-006-tasklist-open-activation-cost.md) |
 | PERF-007 | Preferences search slow on first use | Proposed (root cause identified; measurement next) | [PERF-007-preferences-search-first-use-cost.md](performance/PERF-007-preferences-search-first-use-cost.md) |
 | PERF-008 | Delayed loading for multi-document menu and Home opens | Done (built; TDLTest passes; interactive check pending) | [PERF-008-delay-load-multi-document-opens.md](performance/PERF-008-delay-load-multi-document-opens.md) |
 

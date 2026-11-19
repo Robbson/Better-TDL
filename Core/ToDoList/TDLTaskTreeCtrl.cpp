@@ -20,6 +20,7 @@
 #include "..\shared\TreeDragDropHelper.h"
 #include "..\shared\themed.h"
 #include "..\shared\ScopedTimer.h"
+#include "TDCPerfTrace.h"
 
 #include "..\3rdParty\OSVersion.h"
 #include "..\3rdparty\shellicons.h"
@@ -266,6 +267,8 @@ int CTDLTaskTreeCtrl::GetExpandedTasks(CDWordArray& aExpanded, HTREEITEM hti) co
 
 void CTDLTaskTreeCtrl::ExpandTasks(const CDWordArray& aExpand)
 {
+	CTDCPerfTrace log(_T("CTDLTaskTreeCtrl::ExpandTasks(%s)"), (LPCTSTR)Misc::Format(aExpand.GetSize()));
+
 	CHoldRedraw hr(*this);
 	CTLSHoldResync hr2(*this);
 
@@ -281,7 +284,9 @@ void CTDLTaskTreeCtrl::ExpandTasks(const CDWordArray& aExpand)
 			ExpandItemRaw(hti, TRUE, FALSE, FALSE);
 		}
 	}
-	
+
+	log.LogTimeElapsed(_T("ExpandTasks(ExpandItems)"));
+
 	if (nNumExpanded)
 	{
 		ExpandList();

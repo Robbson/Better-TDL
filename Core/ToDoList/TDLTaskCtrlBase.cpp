@@ -24,6 +24,7 @@
 #include "..\shared\enstring.h"
 #include "..\shared\msoutlookhelper.h"
 #include "..\shared\ScopedTimer.h"
+#include "TDCPerfTrace.h"
 #include "..\shared\FileIcons.h"
 #include "..\shared\FileEdit.h"
 #include "..\Shared\DateHelper.h"
@@ -1349,7 +1350,7 @@ int CTDLTaskCtrlBase::RemoveUntrackedColumns(CTDCColumnIDMap& mapCols) const
 void CTDLTaskCtrlBase::RecalcUntrackedColumnWidths(const CTDCColumnIDMap& aColIDs, BOOL bZeroOthers, BOOL bCustomOnly)
 {
 	// PERMANENT LOGGING //////////////////////////////////////////////
-	CScopedLogTimer log(_T("CTDLTaskCtrlBase::RecalcUntrackedColumnWidths()"));
+	CTDCPerfTrace log(_T("CTDLTaskCtrlBase::RecalcUntrackedColumnWidths()"));
 	///////////////////////////////////////////////////////////////////
 	
 	// Weed out all the tracked columns
@@ -1478,8 +1479,12 @@ void CTDLTaskCtrlBase::LoadState(const CPreferences& prefs, const CString& sKey)
 	ASSERT (GetSafeHwnd());
 	ASSERT (!sKey.IsEmpty());
 
+	CTDCPerfTrace log(_T("CTDLTaskCtrlBase::LoadState(%s)"), sKey);
+
 	// make sure columns are configured right
 	OnColumnVisibilityChange(CTDCColumnIDMap());
+
+	log.LogTimeElapsed(_T("LoadState(ColumnVisibility)"));
 	
 	// load column customisations
 	CDWordArray aOrder, aWidths, aTracked;
@@ -1487,11 +1492,17 @@ void CTDLTaskCtrlBase::LoadState(const CPreferences& prefs, const CString& sKey)
 	if (prefs.GetProfileArray((sKey + _T("\\ColumnOrder")), aOrder))
 		SetColumnOrder(aOrder);
 
+	log.LogTimeElapsed(_T("LoadState(Column order)"));
+
 	if (prefs.GetProfileArray((sKey + _T("\\ColumnWidth")), aWidths))
 		SetColumnWidths(aWidths);
+
+	log.LogTimeElapsed(_T("LoadState(Column widths)"));
 	
 	if (prefs.GetProfileArray((sKey + _T("\\ColumnTracked")), aTracked))
 		SetTrackedColumns(aTracked);
+
+	log.LogTimeElapsed(_T("LoadState(Column tracked)"));
 
 	int nSplitPos = prefs.GetProfileInt(sKey, _T("SplitPos"), -1);
 
@@ -1503,7 +1514,11 @@ void CTDLTaskCtrlBase::LoadState(const CPreferences& prefs, const CString& sKey)
 
 	m_sort.LoadState(prefs, sKey);
 
+	log.LogTimeElapsed(_T("LoadState(Split/Sort)"));
+
 	PostResize();
+
+	log.LogTimeElapsed(_T("LoadState(PostResize)"));
 }
 
 int CALLBACK CTDLTaskCtrlBase::SortFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort)

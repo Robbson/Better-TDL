@@ -26,6 +26,7 @@
 #include "..\shared\filemisc.h"
 #include "..\shared\icon.h"
 #include "..\shared\ScopedTimer.h"
+#include "TDCPerfTrace.h"
 #include "..\shared\DlgUnits.h"
 
 #include "..\3rdParty\OSVersion.h"
@@ -7031,17 +7032,25 @@ void CTabbedToDoCtrl::SaveTasksState(CPreferences& prefs, BOOL bRebuildingTree) 
 
 HTREEITEM CTabbedToDoCtrl::LoadTasksState(const CPreferences& prefs, BOOL bRebuildingTree)
 {
+	CTDCPerfTrace log(_T("CTabbedToDoCtrl::LoadTasksState()"));
+
 	if (!bRebuildingTree)
 	{
 		m_taskList.LoadState(prefs, GetPreferencesKey(_T("TaskList")));
 		m_taskList.RecalcUntrackedColumnWidths();
-		
+
+		log.LogTimeElapsed(_T("TabbedToDoCtrl::LoadTasksState(List)"));
+
 		if (m_taskList.IsSorting())
 			GetViewData(FTCV_TASKLIST)->bNeedResort = TRUE;
 	}
 
 	// base class
-	return CToDoCtrl::LoadTasksState(prefs, bRebuildingTree);
+	HTREEITEM hti = CToDoCtrl::LoadTasksState(prefs, bRebuildingTree);
+
+	log.LogTimeElapsed(_T("TabbedToDoCtrl::LoadTasksState(Tree)"));
+
+	return hti;
 }
 
 BOOL CTabbedToDoCtrl::IsViewSet() const 

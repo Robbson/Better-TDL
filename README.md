@@ -73,3 +73,8 @@ Jump between open tasklists the way you do in modern IDEs.
 ### 8. Built for large tasklists
 
 Performance is treated as a feature, not an afterthought, with an automated UI harness that measures scrolling and resizing of real, large tasklists. It keeps the everyday experience smooth even when your lists grow into the thousands of tasks.
+
+## Building from source
+
+See [docs/BUILDING.md](docs/BUILDING.md) for the required tools and how to run the build,
+test, clean and packaging scripts in the repository root.

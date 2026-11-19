@@ -3,17 +3,17 @@ ECHO:
 
 REM - WE USE FULL PATHS THROUGHOUT - NO 'CD' WITH RELATIVE PATHS
 
-PUSHD %~dp0
-
+PUSHD "%~dp0"
 ECHO:
 ECHO Versioning Binaries
 ECHO ===================
 ECHO:
 
 SET REPO=%CD%
-SET RESREPO=%REPO%\..\ToDoList_Resources
+CALL %REPO%\FindTools.bat
+SET RESREPO=%TDL_RESOURCES%
 SET OUTDIR=%REPO%\Core\ToDoList\Unicode_Release
-SET PATHVEREDIT=D:\tools\rcedit-x64.exe
+SET PATHVEREDIT=%RCEDIT%
 SET VERFILE=%OUTDIR%\ver.txt
 
 REM - Extract version from core app
@@ -36,8 +36,8 @@ ECHO PATHVEREDIT = %PATHVEREDIT%
 ECHO TDLVER      = %TDLVER%
 ECHO:
 
-IF NOT EXIST %PATHVEREDIT% (
-ECHO [41m Unable to locate rcedit-x64.exe!!
+IF NOT DEFINED PATHVEREDIT (
+ECHO [41m Unable to locate rcedit-x64.exe!![0m
 ECHO:
 PAUSE
 EXIT
@@ -111,6 +111,25 @@ SET FILELIST=%FILELIST%;WeekPlannerUIExtensionCore.dll
 SET FILELIST=%FILELIST%;WordCloudUIExtensionBridge.dll
 SET FILELIST=%FILELIST%;WordCloudUIExtensionCore.dll
 
+REM - ConvertRTFToHTML builds into its own folder
+SET RTFHELPER=%REPO%\Core\ConvertRTFToHTML\Unicode_Release\ConvertRTFToHTML.exe
+IF NOT EXIST "%OUTDIR%\ConvertRTFToHTML.exe" IF EXIST "%RTFHELPER%" COPY "%RTFHELPER%" "%OUTDIR%\" > NUL
+
+REM - Fail early instead of letting rcedit report every missing file
+SET MISSING_FILE=%OUTDIR%\Missing_Files.txt
+DEL %MISSING_FILE% 2> NUL
+FOR %%f IN (%FILELIST%) DO IF NOT EXIST "%OUTDIR%\%%f" ECHO %%f>> %MISSING_FILE%
+
+IF EXIST %MISSING_FILE% (
+ECHO [41m Release build is incomplete. Missing files:[0m
+TYPE %MISSING_FILE%
+ECHO:
+ECHO Run BuildRelease.bat to build the core app and plugins first.
+ECHO:
+PAUSE
+EXIT
+)
+
 SET OUTPUT_FILE=%OUTDIR%\Versioning_Output.txt
 DEL %OUTPUT_FILE% 2> NUL
 
@@ -143,13 +162,12 @@ ECHO Zipping symbols
 ECHO ===============
 ECHO:
 
-SET PATH7ZIP="C:\Program Files (x86)\7-Zip\7z.exe"
-IF NOT EXIST %PATH7ZIP% SET PATH7ZIP="C:\Program Files\7-Zip\7z.exe"
+SET PATH7ZIP=%SEVENZIP%
 
 ECHO PATH7ZIP = %PATH7ZIP%
 ECHO:
 
-IF NOT EXIST %PATH7ZIP% (
+IF NOT DEFINED PATH7ZIP (
 ECHO [41m Unable to locate 7z.exe!![0m
 ECHO:
 PAUSE
@@ -158,8 +176,8 @@ EXIT
 
 SET OUTPUT_FILE=%OUTDIR%\Symbols_Output.txt
 
-MKDIR %REPO%\..\ToDoList_Symbols 2> NUL
-SET OUTZIP=%REPO%\..\ToDoList_Symbols\%TDLVER%.zip
+MKDIR %TDL_SYMBOLS% 2> NUL
+SET OUTZIP=%TDL_SYMBOLS%\%TDLVER%.zip
 
 %PATH7ZIP% a %OUTZIP% %OUTDIR%\*.pdb > %OUTPUT_FILE%
 
@@ -230,6 +248,20 @@ SET FILELIST=%FILELIST%;XmlDiffPatch.View.dll
 SET FILELIST=%FILELIST%;XmlDiffView.exe
 SET FILELIST=%FILELIST%;ZstdNet.dll
 
+REM - Fail early instead of letting 7-Zip report every missing file
+DEL %MISSING_FILE% 2> NUL
+FOR %%f IN (%FILELIST%) DO IF NOT EXIST "%OUTDIR%\%%f" ECHO %%f>> %MISSING_FILE%
+
+IF EXIST %MISSING_FILE% (
+ECHO [41m Release build is incomplete. Missing files:[0m
+TYPE %MISSING_FILE%
+ECHO:
+ECHO Run BuildRelease.bat to build the core app and plugins first.
+ECHO:
+PAUSE
+EXIT
+)
+
 FOR %%f IN (%FILELIST%) DO ( 
 ECHO Adding '%%f' to zip >> %OUTPUT_FILE%
 %PATH7ZIP% a %OUTZIP% %OUTDIR%\%%f >> %OUTPUT_FILE%
@@ -246,8 +278,13 @@ EXIT
 )
 
 REM REquired MS components for C# plugins
-%PATH7ZIP% a %OUTZIP% C:\Windows\SysWOW64\MFC140U.dll >> %OUTPUT_FILE%
-%PATH7ZIP% a %OUTZIP% C:\Windows\SysWOW64\VCRUNTIME140.dll >> %OUTPUT_FILE%
+IF EXIST "%SystemRoot%\SysWOW64\kernel32.dll" (
+SET SYSDIR=%SystemRoot%\SysWOW64
+) ELSE (
+SET SYSDIR=%SystemRoot%\System32
+)
+%PATH7ZIP% a %OUTZIP% %SYSDIR%\MFC140U.dll >> %OUTPUT_FILE%
+%PATH7ZIP% a %OUTZIP% %SYSDIR%\VCRUNTIME140.dll >> %OUTPUT_FILE%
 
 REM - Manifest for XP only (Updater will delete for other OSes)
 %PATH7ZIP% a %OUTZIP% %REPO%\Core\ToDoList\res\ToDoList.exe.XP.manifest >> %OUTPUT_FILE%
@@ -287,14 +324,15 @@ ECHO [42m Zipping Binaries SUCCEEDED[0m
 ECHO:
 
 REM - Copy the zip file to the download folder
-ECHO Copy todolist_exe_.zip to %REPO%\..\ToDoList_Downloads\Latest\
-COPY %OUTZIP% %REPO%\..\ToDoList_Downloads\Latest\
+ECHO Copy todolist_exe_.zip to %TDL_DOWNLOADS%\Latest\
+MKDIR %TDL_DOWNLOADS%\Latest 2> NUL
+COPY %OUTZIP% %TDL_DOWNLOADS%\Latest\
 ECHO:
    
-REM - And then move it to ToDoList_Prev\9.3
-MKDIR %REPO%\..\ToDoList_Prev\9.3 2> NUL
-ECHO Rename todolist_exe_.zip to %REPO%\..\ToDoList_Prev\9.3\ToDoList_exe.9.3._.zip
-MOVE %OUTZIP% %REPO%\..\ToDoList_Prev\9.3\ToDoList_exe.9.3._.zip
+REM - And then move it to the previous-version folder
+MKDIR %TDL_PREV%\%TDL_PREV_VERSION% 2> NUL
+ECHO Rename todolist_exe_.zip to %TDL_PREV%\%TDL_PREV_VERSION%\ToDoList_exe.%TDL_PREV_VERSION%._.zip
+MOVE %OUTZIP% %TDL_PREV%\%TDL_PREV_VERSION%\ToDoList_exe.%TDL_PREV_VERSION%._.zip
 ECHO:
    
 POPD

@@ -627,7 +627,7 @@
     <value>Magenta</value>
   </data>
   <data name="contextEditUndo.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
-    <value>Ctrl+Z</value>
+    <value>Control+Z</value>
   </data>
   <data name="contextEditUndo.Size" type="System.Drawing.Size, System.Drawing">
     <value>183, 22</value>
@@ -639,7 +639,7 @@
     <value>Magenta</value>
   </data>
   <data name="contextEditRedo.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
-    <value>Ctrl+Y</value>
+    <value>Control+Y</value>
   </data>
   <data name="contextEditRedo.Size" type="System.Drawing.Size, System.Drawing">
     <value>183, 22</value>
@@ -654,7 +654,7 @@
     <value>Magenta</value>
   </data>
   <data name="contextEditCut.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
-    <value>Ctrl+X</value>
+    <value>Control+X</value>
   </data>
   <data name="contextEditCut.Size" type="System.Drawing.Size, System.Drawing">
     <value>183, 22</value>
@@ -666,7 +666,7 @@
     <value>Magenta</value>
   </data>
   <data name="contextEditCopy.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
-    <value>Ctrl+C</value>
+    <value>Control+C</value>
   </data>
   <data name="contextEditCopy.Size" type="System.Drawing.Size, System.Drawing">
     <value>183, 22</value>
@@ -678,7 +678,7 @@
     <value>Magenta</value>
   </data>
   <data name="contextEditPaste.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
-    <value>Ctrl+V</value>
+    <value>Control+V</value>
   </data>
   <data name="contextEditPaste.Size" type="System.Drawing.Size, System.Drawing">
     <value>183, 22</value>
@@ -693,7 +693,7 @@
     <value>Magenta</value>
   </data>
   <data name="contextEditFindReplace.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
-    <value>Ctrl+F</value>
+    <value>Control+F</value>
   </data>
   <data name="contextEditFindReplace.Size" type="System.Drawing.Size, System.Drawing">
     <value>183, 22</value>
@@ -705,7 +705,7 @@
     <value>180, 6</value>
   </data>
   <data name="contextEditSelectAll.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
-    <value>Ctrl+A</value>
+    <value>Control+A</value>
   </data>
   <data name="contextEditSelectAll.Size" type="System.Drawing.Size, System.Drawing">
     <value>183, 22</value>
@@ -720,7 +720,7 @@
     <value>Delete</value>
   </data>
   <data name="contextEditDelete.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
-    <value>Del</value>
+    <value>Delete</value>
   </data>
   <data name="contextEditDelete.Size" type="System.Drawing.Size, System.Drawing">
     <value>183, 22</value>
@@ -864,7 +864,7 @@
     <value>Magenta</value>
   </data>
   <data name="contextFormatBold.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
-    <value>Ctrl+B</value>
+    <value>Control+B</value>
   </data>
   <data name="contextFormatBold.Size" type="System.Drawing.Size, System.Drawing">
     <value>228, 22</value>
@@ -876,7 +876,7 @@
     <value>Magenta</value>
   </data>
   <data name="contextFormatItalic.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
-    <value>Ctrl+I</value>
+    <value>Control+I</value>
   </data>
   <data name="contextFormatItalic.Size" type="System.Drawing.Size, System.Drawing">
     <value>228, 22</value>
@@ -888,7 +888,7 @@
     <value>Magenta</value>
   </data>
   <data name="contextFormatUnderline.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
-    <value>Ctrl+U</value>
+    <value>Control+U</value>
   </data>
   <data name="contextFormatUnderline.Size" type="System.Drawing.Size, System.Drawing">
     <value>228, 22</value>
@@ -939,7 +939,7 @@
     <value>Magenta</value>
   </data>
   <data name="contextFormatIndent.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
-    <value>Ctrl+J</value>
+    <value>Control+J</value>
   </data>
   <data name="contextFormatIndent.Size" type="System.Drawing.Size, System.Drawing">
     <value>228, 22</value>
@@ -951,7 +951,7 @@
     <value>Magenta</value>
   </data>
   <data name="contextFormatOutdent.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
-    <value>Ctrl+Shift+J</value>
+    <value>Control+Shift+J</value>
   </data>
   <data name="contextFormatOutdent.Size" type="System.Drawing.Size, System.Drawing">
     <value>228, 22</value>
@@ -990,7 +990,7 @@
     <value>Magenta</value>
   </data>
   <data name="contextJustifyLeft.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
-    <value>Ctrl+L</value>
+    <value>Control+L</value>
   </data>
   <data name="contextJustifyLeft.Size" type="System.Drawing.Size, System.Drawing">
     <value>149, 22</value>
@@ -1002,7 +1002,7 @@
     <value>Magenta</value>
   </data>
   <data name="contextJustifyCenter.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
-    <value>Ctrl+E</value>
+    <value>Control+E</value>
   </data>
   <data name="contextJustifyCenter.Size" type="System.Drawing.Size, System.Drawing">
     <value>149, 22</value>
@@ -1014,7 +1014,7 @@
     <value>Magenta</value>
   </data>
   <data name="contextJustifyRight.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
-    <value>Ctrl+R</value>
+    <value>Control+R</value>
   </data>
   <data name="contextJustifyRight.Size" type="System.Drawing.Size, System.Drawing">
     <value>149, 22</value>
@@ -1086,7 +1086,7 @@
     <value>Magenta</value>
   </data>
   <data name="contextInsertLine.ShortcutKeys" type="System.Windows.Forms.Keys, System.Windows.Forms">
-    <value>Ctrl+Alt+L</value>
+    <value>Control+Alt+L</value>
   </data>
   <data name="contextInsertLine.Size" type="System.Drawing.Size, System.Drawing">
     <value>217, 22</value>

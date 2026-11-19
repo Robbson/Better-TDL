@@ -7,7 +7,7 @@ ECHO ToDoList_Dev Debug Build
 ECHO ========================
 ECHO:
 
-PUSHD %~dp0
+PUSHD "%~dp0"
 SET REPO=%CD%
 ECHO REPO    = %REPO%
 
@@ -17,11 +17,11 @@ IF NOT EXIST %REPO%\Core EXIT
 IF NOT EXIST %REPO%\Plugins EXIT
 
 REM - Use MSBuild for both core and plugins
-SET MSBUILD="C:\Program Files (x86)\MSBuild\14.0\Bin\MSBuild.exe"
+CALL %REPO%\FindTools.bat
 ECHO MSBUILD = %MSBUILD%
 ECHO:
 
-IF NOT EXIST %MSBUILD% (
+IF NOT DEFINED MSBUILD (
 ECHO [41m Unable to locate MSBuild.exe!![0m
 ECHO:
 PAUSE
@@ -122,7 +122,10 @@ ECHO:
 MKDIR %REPO%\Plugins\Debug 2> NUL
 DEL %OUTPUT_FILE% 2> NUL
 
-%MSBUILD% %SOLUTION% /t:Build /p:Configuration=Debug /p:Platform="Mixed Platforms" /m /v:normal > %OUTPUT_FILE%
+SET TDL_TFM_ARG=
+IF DEFINED TDL_DOTNET_TFM SET TDL_TFM_ARG=/p:TargetFrameworkVersion=%TDL_DOTNET_TFM%
+
+%MSBUILD% %SOLUTION% /t:Build /p:Configuration=Debug /p:Platform="Mixed Platforms" /p:PlatformToolset=v143 /m /v:normal %TDL_TFM_ARG% > %OUTPUT_FILE%
 
 REM - Check for compile errors
 FINDSTR /C:"): error" %OUTPUT_FILE%

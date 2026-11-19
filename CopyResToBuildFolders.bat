@@ -1,13 +1,15 @@
 ECHO OFF
 
-pushd %~dp0
+PUSHD "%~dp0"
 set REPO=%CD%
 ECHO REPO=%REPO%
 
-set RESREPO=%REPO%\..\ToDoList_Resources
+CALL %REPO%\FindTools.bat
+
+set RESREPO=%TDL_RESOURCES%
 ECHO RESREPO=%RESREPO%
 
-set TESTREPO=%REPO%\..\ToDoList_Test
+set TESTREPO=%TDL_TESTREPO%
 ECHO TESTREPO=%TESTREPO%
 
 set EXCLUDEFILE=%REPO%\CopyResToBuildFolders_Exclude.txt

@@ -100,7 +100,8 @@ Facts:
   crypto/zip, Office COM wrappers, database access, Detours).
 - Build entry points: `BuildDebug.bat`, `BuildRelease.bat` (repo root). They build
   `Core/ToDoList_Core.sln`, run `Core/TDLTest`, then build `Plugins/ToDoList_Plugins.sln`.
-  The scripts reference legacy MSBuild/MSDev paths; the actual projects use toolset `v143`.
+  Tools are discovered at run time by `FindTools.bat`; the projects use toolset `v143`
+  (see [BUILDING.md](BUILDING.md)).
 
 See [PROJECT_SCOPE.md](../PROJECT_SCOPE.md) for the per-project analysis scope.
 

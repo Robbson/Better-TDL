@@ -82,8 +82,9 @@ pwsh -File .\Coverage.ps1
 Notes:
 
 - `BuildDebug.bat` builds Core, then runs `TDLTest`, then builds `Plugins/ToDoList_Plugins.sln`.
-- The batch files hard-code old MSBuild/VC6 paths; on a modern install invoke MSBuild
-  directly or update the paths. Do not “fix” project files just to satisfy the scripts.
+- The root batch scripts call `FindTools.bat`, which locates MSBuild, 7-Zip, rcedit and
+  ProjectZip from the environment, `PATH` or standard install locations. See
+  [docs/BUILDING.md](docs/BUILDING.md); do not hard-code machine-specific tool paths.
 - Outputs: `Core/<Project>/Unicode_Debug|Unicode_Release`; `ToDoList.exe` is also copied
   to `Plugins/debug|release`.
 - Runtime plugins are loaded from the **executable directory only**. Copying a DLL

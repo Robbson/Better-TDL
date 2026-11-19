@@ -7,7 +7,7 @@ ECHO ToDoList_Dev Release Build
 ECHO ==========================
 ECHO:
 
-PUSHD %~dp0
+PUSHD "%~dp0"
 SET REPO=%CD%
 ECHO REPO = %REPO%
 ECHO:
@@ -29,18 +29,20 @@ ECHO Building ToDoList Core
 ECHO ======================
 ECHO:
 
-SET MSDEV="C:\Program Files (x86)\Microsoft Visual Studio\Common\MSDev98\Bin\msdev.exe"
+CALL %REPO%\FindTools.bat
 SET OUTPUT_FILE=%REPO%\Core\ToDoList\Unicode_Release\Core_Build_Output.txt
 
-REM - WE USE FULL PATHS EVERYWHERE ELSE EXCEPT HERE BECAUSE 
-REM - MSDEV ASSUMES THAT THE SOLUTION IS PROVIDED BY NAME ONLY
-SET SOLUTION=ToDoList_Core.dsw
+REM - Prefer the legacy VC6 workspace when MSDev is available,
+REM - otherwise build the current solution with MSBuild
+SET SOLUTION=%REPO%\Core\ToDoList_Core.sln
 
 ECHO MSDEV    = %MSDEV%
-ECHO SOLUTION = %REPO%\Core\%SOLUTION%
+ECHO MSBUILD  = %MSBUILD%
+ECHO SOLUTION = %SOLUTION%
+ECHO:
 
-IF NOT EXIST %MSDEV% (
-ECHO [41m Unable to locate MSDev.exe!![0m
+IF NOT DEFINED MSDEV IF NOT DEFINED MSBUILD (
+ECHO [41m Unable to locate MSBuild.exe or MSDev.exe!![0m
 ECHO:
 PAUSE
 EXIT
@@ -56,16 +58,20 @@ PAUSE
 EXIT
 )
 
-cd %REPO%\Core
-%MSDEV% ToDoList_Core.dsw /MAKE "ALL - Win32 Unicode Release" /OUT %OUTPUT_FILE% 
+IF DEFINED MSDEV (
+cd /D "%REPO%\Core"
+%MSDEV% ToDoList_Core.dsw /MAKE "ALL - Win32 Unicode Release" /OUT %OUTPUT_FILE%
+) ELSE (
+%MSBUILD% %SOLUTION% /t:Build /p:Configuration="Unicode Release" /p:Platform="Win32" /m /v:normal > %OUTPUT_FILE%
+)
 ECHO:
 
 REM - Check for compile errors
-FINDSTR /C:") : error" %OUTPUT_FILE%
+FINDSTR /C:") : error" /C:"): error" %OUTPUT_FILE%
 IF %errorlevel%==1 (
 
 REM - Check for include errors
-FINDSTR /C:") : fatal error" %OUTPUT_FILE%
+FINDSTR /C:") : fatal error" /C:"): fatal error" %OUTPUT_FILE%
 IF %errorlevel%==1 (
 
 REM - All other errors
@@ -136,15 +142,20 @@ ECHO Building ToDoList Plugins
 ECHO =========================
 ECHO:
 
-SET MSBUILD="C:\Program Files (x86)\MSBuild\14.0\Bin\MSBuild.exe"
 SET SOLUTION=%REPO%\Plugins\ToDoList_Plugins.sln
 SET OUTPUT_FILE=%REPO%\Plugins\Release\Plugins_Build_Output.txt
 
+REM - The plugin projects still declare v140 and .NET 4.0; build them with the
+REM - current toolset and an installed framework (see FindTools.bat)
+SET TDL_TFM_ARG=
+IF DEFINED TDL_DOTNET_TFM SET TDL_TFM_ARG=/p:TargetFrameworkVersion=%TDL_DOTNET_TFM%
+
 ECHO MSBUILD  = %MSBUILD%
 ECHO SOLUTION = %SOLUTION%
+ECHO TFM      = %TDL_DOTNET_TFM%
 ECHO:
 
-IF NOT EXIST %MSBUILD% (
+IF NOT DEFINED MSBUILD (
 ECHO [41m Unable to locate MSBuild.exe!![0m
 ECHO:
 PAUSE
@@ -161,7 +172,7 @@ PAUSE
 EXIT
 )
 
-%MSBUILD% %SOLUTION% /t:Build /p:Configuration=Release /p:Platform="Mixed Platforms" /m /v:normal > %OUTPUT_FILE%
+%MSBUILD% %SOLUTION% /t:Build /p:Configuration=Release /p:Platform="Mixed Platforms" /p:PlatformToolset=v143 /m /v:normal %TDL_TFM_ARG% > %OUTPUT_FILE%
 
 REM - Check for compile errors
 FINDSTR /C:"): error" %OUTPUT_FILE%
@@ -196,10 +207,16 @@ ECHO [106m[30m Allow caller to cancel building Zip[0m
 PAUSE
 
 CALL %REPO%\BuildReleaseZip.bat
+
+IF DEFINED PROJECTZIP (
 CALL %REPO%\BuildCodeZip.bat
+) ELSE (
+ECHO [43m[30m Skipping source zips: ProjectZip.exe not found[0m
+ECHO:
+)
 
 REM - Open Downloads folder
-Explorer.exe "%REPO%\..\ToDoList_Downloads\Latest"
+Explorer.exe "%TDL_DOWNLOADS%\Latest"
 
 PAUSE
 POPD

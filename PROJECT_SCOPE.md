@@ -119,7 +119,7 @@ From the repository root (Windows):
 
 ```bat
 BuildDebug.bat     REM MSBuild "Unicode Debug|Win32" + TDLTest + Plugins Debug
-BuildRelease.bat   REM legacy path + release build + zip scripts
+BuildRelease.bat   REM Release build + unit tests + Plugins Release + zip scripts
 ```
 
 Individual project build with modern MSBuild:
@@ -134,9 +134,10 @@ Tests:
 Core\TDLTest\Unicode_Debug\TDLTest.exe
 ```
 
-The batch scripts reference Visual Studio 14.0 / VC6 paths even though the project files
-use toolset `v143`; prefer MSBuild from a current Visual Studio installation and expect
-the scripts themselves to need path updates on a modern machine.
+The root batch scripts discover MSBuild, 7-Zip, rcedit and ProjectZip at run time via
+`FindTools.bat` (environment variable, then `PATH`, then standard install locations), so
+they work on a modern Visual Studio installation. Requirements and overrides are documented
+in [docs/BUILDING.md](docs/BUILDING.md).
 
 ---
 

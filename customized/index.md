@@ -85,6 +85,7 @@ Rules of thumb:
 | GEN-005 | Home Folder view over a filesystem tree | Done (built; TDLTest passes; basic flow manually verified) | [GEN-005-home-folder-view.md](general/GEN-005-home-folder-view.md) |
 | GEN-006 | Default assertion logging in Debug builds | In progress (implemented; TDLTest passes; app link pending) | [GEN-006-assert-logging.md](general/GEN-006-assert-logging.md) |
 | GEN-007 | TDL set files (`*.tdlset.txt`) in the Home view | In progress (implemented/built; TDLTest passes; interactive check pending) | [GEN-007-tdl-set-files.md](general/GEN-007-tdl-set-files.md) |
+| GEN-008 | Portable build and packaging scripts | In progress (implemented; plugin Release build verified; end-to-end zip pending) | [GEN-008-build-script-portability.md](general/GEN-008-build-script-portability.md) |
 
 ### Performance (`PERF`)
 

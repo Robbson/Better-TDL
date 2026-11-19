@@ -7,7 +7,7 @@ ECHO ToDoList_Dev Debug Clean
 ECHO ========================
 ECHO:
 
-PUSHD %~dp0
+PUSHD "%~dp0"
 SET REPO=%CD%
 ECHO REPO = %REPO%
 ECHO:
@@ -16,12 +16,12 @@ IF NOT EXIST %REPO%\Core EXIT
 IF NOT EXIST %REPO%\Plugins EXIT
 
 REM - Use MSBuild for both core and plugins
-SET MSBUILD="C:\Program Files (x86)\MSBuild\14.0\Bin\MSBuild.exe"
+CALL %REPO%\FindTools.bat
 
 ECHO MSBUILD  = %MSBUILD%
 ECHO:
 
-IF NOT EXIST %MSBUILD% (
+IF NOT DEFINED MSBUILD (
 ECHO [41m Unable to locate MSBuild.exe!![0m
 ECHO:
 PAUSE

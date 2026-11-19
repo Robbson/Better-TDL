@@ -9292,11 +9292,17 @@ CFilteredToDoCtrl* CToDoListWnd::AllocToDoCtrl()
 
 	Prefs().GetDefaultColumnEditFilterVisibility(vis);
 	
-	return new CFilteredToDoCtrl(m_mgrUIExtensions, 
-								m_mgrContent, 
-								m_mgrShortcuts,
-								m_tdiDefault.cfComments, 
-								vis);
+	CFilteredToDoCtrl* pTDC = new CFilteredToDoCtrl(m_mgrUIExtensions, 
+												   m_mgrContent, 
+												   m_mgrShortcuts,
+												   m_tdiDefault.cfComments, 
+												   vis);
+
+	// Let the attribute editor create only the configured editor up front
+	if (pTDC && Prefs().GetUseLegacyAttributeEditor())
+		pTDC->SetInitialAttributeEditorMode(TDCAEM_LEGACY);
+
+	return pTDC;
 }
 
 BOOL CToDoListWnd::CreateToDoCtrl(CFilteredToDoCtrl* pTDC, BOOL bEnabled, BOOL bSkipPrefs)

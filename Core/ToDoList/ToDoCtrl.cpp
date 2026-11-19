@@ -235,6 +235,9 @@ CToDoCtrl::CToDoCtrl(const CTDCContentMgr& mgrContent,
 	m_nDefRecurReuse(TDIRO_REUSE),
 	m_nFileFormat(TDL_FILEFORMAT_CURRENT),
 	m_bPendingUpdateControls(FALSE),
+	m_bPreferencesUpdate(FALSE),
+	m_bPendingPrefsResize(FALSE),
+	m_bPendingPrefsUpdateControls(FALSE),
 	m_nFileVersion(0),
 	m_nPercentIncrement(5),
 	m_nMaxInfotipCommentsLength(-1),
@@ -746,7 +749,11 @@ void CToDoCtrl::OnSize(UINT nType, int cx, int cy)
 	
 	EndLabelEdit(TRUE);
 	Resize(cx, cy);
-	UpdateWindow();
+
+	// The message loop will coalesce paints for hidden controls anyway,
+	// so don't force a synchronous repaint before the tab is shown
+	if (IsWindowVisible())
+		UpdateWindow();
 }
 
 void CToDoCtrl::SetLayoutPositions(TDC_UILOCATION nAttribsPos, TDC_UILOCATION nCommentsPos)
@@ -758,7 +765,10 @@ void CToDoCtrl::SetLayoutPositions(TDC_UILOCATION nAttribsPos, TDC_UILOCATION nC
 							  HasStyle(TDCS_ALLOWCOMMENTSSTACKING),
 							  HasStyle(TDCS_STACKCOMMENTSABOVEEDITS)))
 	{
-		Resize();
+		if (m_bPreferencesUpdate)
+			m_bPendingPrefsResize = TRUE;
+		else
+			Resize();
 	}
 }
 
@@ -782,13 +792,21 @@ void CToDoCtrl::SetAttributeEditorMode(TDC_ATTRIBUTEEDITORMODE nMode)
 
 	if (m_taskTree.GetSafeHwnd())
 	{
-		UpdateControls(TRUE);
+		if (m_bPreferencesUpdate)
+		{
+			m_bPendingPrefsUpdateControls = TRUE;
+			m_bPendingPrefsResize = TRUE;
+		}
+		else
+		{
+			UpdateControls(TRUE);
 
-		log.LogTimeElapsed(_T("SetAttributeEditorMode(UpdateControls)"));
+			log.LogTimeElapsed(_T("SetAttributeEditorMode(UpdateControls)"));
 
-		Resize();
+			Resize();
 
-		log.LogTimeElapsed(_T("SetAttributeEditorMode(Resize)"));
+			log.LogTimeElapsed(_T("SetAttributeEditorMode(Resize)"));
+		}
 	}
 }
 
@@ -4106,13 +4124,25 @@ BOOL CToDoCtrl::ModifyStyles(const CTDCStyleMap& modStyles)
 
 	log.LogTimeElapsed(_T("ModifyStyles(Set styles)"));
 
-	if (Misc::HasFlag(dwResult, TDCSS_WANTRESIZE)) 
-		Resize();
+	if (Misc::HasFlag(dwResult, TDCSS_WANTRESIZE))
+	{
+		if (m_bPreferencesUpdate)
+			m_bPendingPrefsResize = TRUE;
+		else
+			Resize();
+	}
 
 	log.LogTimeElapsed(_T("ModifyStyles(Resize)"));
 
-	Invalidate(TRUE);
-	UpdateControls();
+	if (m_bPreferencesUpdate)
+	{
+		m_bPendingPrefsUpdateControls = TRUE;
+	}
+	else
+	{
+		Invalidate(TRUE);
+		UpdateControls();
+	}
 
 	log.LogTimeElapsed(_T("ModifyStyles(Invalidate/UpdateControls)"));
 
@@ -4180,9 +4210,18 @@ BOOL CToDoCtrl::SetCustomAttributeDefs(const CTDCCustomAttribDefinitionArray& aA
 	return FALSE;
 }
 
+void CToDoCtrl::NotifyBeginPreferencesUpdate() 
+{ 
+	m_bPreferencesUpdate = TRUE;
+	m_bPendingPrefsResize = FALSE;
+	m_bPendingPrefsUpdateControls = FALSE;
+}
+
 void CToDoCtrl::NotifyEndPreferencesUpdate() 
 { 
 	CTDCPerfTrace log(_T("CToDoCtrl::NotifyEndPreferencesUpdate()"));
+
+	m_bPreferencesUpdate = FALSE;
 
 	Invalidate(); 
 
@@ -4190,6 +4229,27 @@ void CToDoCtrl::NotifyEndPreferencesUpdate()
 	m_ctrlComments.UpdateAppPreferences();
 
 	log.LogTimeElapsed(_T("NotifyEndPreferencesUpdate(Comments)"));
+
+	// Apply the layout and control updates that the preference setters deferred
+	if (m_bPendingPrefsResize)
+	{
+		m_bPendingPrefsResize = FALSE;
+		Resize();
+	}
+
+	log.LogTimeElapsed(_T("NotifyEndPreferencesUpdate(Resize)"));
+
+	if (m_bPendingPrefsUpdateControls)
+	{
+		m_bPendingPrefsUpdateControls = FALSE;
+
+		// With no selection the attribute editor is already in its blank
+		// initial state, and refreshing it would scan the tasklist again
+		if (GetUpdateControlsItem())
+			UpdateControls(TRUE);
+	}
+
+	log.LogTimeElapsed(_T("NotifyEndPreferencesUpdate(Controls)"));
 
 	// And infotips
 	if (HasStyle(TDCS_SHOWINFOTIPS) || HasStyle(TDCS_SHOWIMAGETIPS))
@@ -4236,7 +4296,12 @@ void CToDoCtrl::SetColumnFieldVisibility(const TDCCOLEDITVISIBILITY& vis)
 			m_ctrlAttributes.OnAttributeVisibilityChange();
 
 		if (m_ctrlAttributes.IsLegacyEditor() && (bEditChange || bColumnChange))
-			Resize();
+		{
+			if (m_bPreferencesUpdate)
+				m_bPendingPrefsResize = TRUE;
+			else
+				Resize();
+		}
 
 		if (bChange && HasStyle(TDCS_SAVEUIVISINTASKLIST))
 			m_bModified = TRUE;

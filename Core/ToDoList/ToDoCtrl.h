@@ -450,6 +450,7 @@ public:
 	void RefreshReminders();
 	void SetLayoutPositions(TDC_UILOCATION nControlsPos, TDC_UILOCATION nCommentsPos);
 	void SetAttributeEditorMode(TDC_ATTRIBUTEEDITORMODE nMode);
+	void SetInitialAttributeEditorMode(TDC_ATTRIBUTEEDITORMODE nMode) { m_ctrlAttributes.SetEditorMode(nMode); }
 	void UpdateAttributesPaneSize();
 	void SetCompletionStatus(const CString& sStatus);
 	COleDateTime GetEarliestDueDate() const { return m_calculator.GetEarliestDueDate(); } // entire tasklist
@@ -464,7 +465,7 @@ public:
 	BOOL IsHomeFolderView() const { return m_bHomeFolderView; }
 	CString GetPreferencesKey(const CString& sSubKey = _T("")) const;
 
-	virtual void NotifyBeginPreferencesUpdate() { /* do nothing */ }
+	virtual void NotifyBeginPreferencesUpdate();
 	virtual void NotifyEndPreferencesUpdate();
 	virtual void UpdateVisibleColumns(const CTDCColumnIDMap& mapChanges);
 	virtual BOOL HitTest(const CPoint& ptScreen, TDCHITTEST& hitTest) const;
@@ -573,6 +574,9 @@ protected:
 	BOOL m_bInSelectedTaskEdit;
 	BOOL m_bUpdatingAttribsSize;
 	BOOL m_bPendingUpdateControls;
+	BOOL m_bPreferencesUpdate;
+	BOOL m_bPendingPrefsResize;
+	BOOL m_bPendingPrefsUpdateControls;
 
 private:
 	IDLETASKS m_idleTasks;

@@ -986,7 +986,16 @@ void CTDLTaskAttributeBarCtrl::SetTimeTrackTaskID(DWORD dwTaskID)
 
 void CTDLTaskAttributeBarCtrl::SetNumPriorityRiskLevels(int nNumLevels)
 {
-	m_nNumPriorityRiskLevels = max(1, nNumLevels);
+	nNumLevels = max(1, nNumLevels);
+
+	if ((nNumLevels == m_cbPriority.GetNumLevels()) &&
+		(nNumLevels == m_cbRisk.GetNumLevels()))
+	{
+		m_nNumPriorityRiskLevels = nNumLevels;
+		return;
+	}
+
+	m_nNumPriorityRiskLevels = nNumLevels;
 
 	if (m_cbPriority.GetSafeHwnd())
 		m_cbPriority.SetNumLevels(m_nNumPriorityRiskLevels);

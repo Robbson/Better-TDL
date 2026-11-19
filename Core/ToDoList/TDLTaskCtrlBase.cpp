@@ -1096,6 +1096,11 @@ CString CTDLTaskCtrlBase::GetColumnName(TDC_COLUMN nColID) const
 
 BOOL CTDLTaskCtrlBase::SetColumnOrder(const CDWordArray& aColumns)
 {
+	CDWordArray aCurrent;
+
+	if (GetColumnOrder(aCurrent) && Misc::MatchAll(aCurrent, aColumns, TRUE))
+		return FALSE;
+
 	CIntArray aOrder;
 	aOrder.SetSize(aColumns.GetSize() + 1);
 

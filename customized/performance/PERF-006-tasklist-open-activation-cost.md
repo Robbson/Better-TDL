@@ -1,7 +1,7 @@
 # PERF-006: Fixed per-tasklist cost when opening or activating a document
 
-Status: **Measured** (steps 1-2 complete: buffered instrumentation added and a
-Release Window-menu measurement attributed; structural fix not started)
+Status: **Implemented** (steps 1-2 measured; phase 4 structural fixes applied and
+re-measured; remaining work listed below)
 
 ## Goal
 
@@ -12,7 +12,8 @@ the startup work in [PERF-004](PERF-004-delayed-tasklist-window.md) and
 [PERF-005](PERF-005-no-throwaway-tasklist.md); `PERFORMANCE.md` P0-5 covers the
 multi-document startup floor, not opening a single document while the app is running.
 
-No source changes were made for this analysis.
+No source changes were made for the analysis in Steps 1-2. Phase 4 changes are listed
+under [Phase 4 results](#phase-4-results-structural-fixes).
 
 ## Bottom line
 
@@ -262,6 +263,109 @@ The dispatch to `CTabbedToDoCtrl::LoadTasksState` explains an apparent 200+ ms
 "unattributed" gap between `Build tree` and `LoadTasksState`: the list view restores
 its own column state before the base class is entered.
 
+## Phase 4 results (structural fixes)
+
+### Phase 3 tooling
+
+Step 3 produced two scripts under `tools/`:
+`perf006-activation-profile.ps1` (WPR/ETL) and `perf006-stack-sample.ps1`
+(map-file stack sampler). Both remain useful, but WPR needs elevation on this machine
+and no ETL was captured. The numbers below were taken with the buffered `CTDCPerfTrace`
+from Step 1 instead, using the same foreground, `-g`, delay-loaded fixture.
+
+### Changes
+
+1. **Create only the configured attribute editor**
+   (`Core/ToDoList/TDLTaskAttributeCtrl.cpp:154`,
+   `Core/ToDoList/TDLTaskAttributeCtrl.cpp:168`).
+   `OnCreate` used to create the grid unconditionally and then create the legacy bar on
+   the first `SetEditorMode(LEGACY)`. `CTDLTaskAttributeCtrl` now lazily creates only the
+   active editor. The configured mode is set before window creation in
+   `Core/ToDoList/ToDoListWnd.cpp:9303` via
+   `CToDoCtrl::SetInitialAttributeEditorMode` (`Core/ToDoList/ToDoCtrl.h:453`).
+   This removes one full editor-control tree per activation.
+
+2. **Batch runtime preference application**
+   (`Core/ToDoList/ToDoCtrl.cpp:4213`). `NotifyBeginPreferencesUpdate` now sets a flag,
+   and `ModifyStyles`, `SetLayoutPositions`, `SetAttributeEditorMode` and
+   `SetColumnFieldVisibility` defer their `Resize`/`UpdateControls` work.
+   `NotifyEndPreferencesUpdate` applies the layout and control update once. The update
+   is skipped entirely when there is no selection, because the editor is already in its
+   blank initial state. This removes the duplicate full control refresh that used to run
+   inside `SetAttributeEditorMode` before the tasklist was even loaded.
+
+3. **No-op guards**
+   - `CTDLTaskCtrlBase::SetColumnOrder` (`Core/ToDoList/TDLTaskCtrlBase.cpp:1097`)
+     returns immediately when the saved order equals the current order. This removed
+     ~110 ms per view when the state matches the defaults.
+   - `CTDLTaskAttributeBarCtrl::SetNumPriorityRiskLevels` and
+     `CTDLTaskAttributeListCtrl::SetNumPriorityRiskLevels` now skip the combo rebuild
+     when the editor already has the requested number of levels. The first
+     configuration when the editor default differs still has to run, so this only
+     removes repeated application.
+
+4. **No synchronous paint before the tab is shown**
+   (`Core/ToDoList/ToDoCtrl.cpp:746`). `CToDoCtrl::OnSize` now calls `UpdateWindow()`
+   only when the control is visible. Hidden creation/layout is left to the normal
+   message-loop paint after `SelectToDoCtrl` shows the tab.
+
+### Measurement
+
+Same fixture and method as Step 2 (Release Win32, foreground, `-g`, 8 s startup wait,
+one activation per process, `SelectToDoCtrl` root trace). Single run per document;
+compare with the Step 2 foreground figures.
+
+| File | Size | Step 2 wall | Phase 4 wall | Change |
+|---|---:|---:|---:|---:|
+| `Evidence Board.tdl` | 7.6 KB | 2387 ms | 2139 ms | -248 ms |
+| `biglist.tdl` | 1.66 MB | 2745 ms | 2396 ms | -349 ms |
+
+More useful than the totals are the phases that disappeared or shrank:
+
+| Phase | Step 2 | Phase 4 |
+|---|---:|---:|
+| `SetAttributeEditorMode` (entire) | 614-1034 ms | not called (mode set at creation) |
+| `SetLayoutPositions` (first layout) | 54 ms + later `Resize` | 168-226 ms, no extra resize |
+| `LoadState(Column order)` list view | 110 ms | ~2 ms |
+| `LoadState(Column order)` tree view | 98-100 ms | 2-116 ms (only when order differs) |
+| Duplicate `UpdateControls` in preferences | 205-230 ms | 0 ms when nothing is selected |
+
+The fixed floor is now dominated by the following, in order:
+
+| Block | Phase 4 (small / large) | Notes |
+|---|---:|---|
+| `CToDoCtrl::OnInitDialog` | 1026 / 1040 ms | legacy bar creation ~300-400 ms plus its initial `UpdateControls` 316-387 ms |
+| `SetLayoutPositions` / first layout | 195 / 168 ms | `CToDoCtrlLayout::RebuildLayout` resizes the legacy bar |
+| Filter bar refresh | 176-339 / 142-224 ms | `RefreshFilterControls` rebuilds autolist combos |
+| `ExpandTasks` | 0 / 185 ms | scales with 51 saved expanded items |
+| Show / paint | 23-67 / 104 ms | now no hidden `UpdateWindow` |
+| `SetNumPriorityRiskLevels` | 75-85 / 80-112 ms | first configuration against the editor default |
+
+The `-g` run still includes one log write per outer trace and the remaining
+`CScopedLogTimer` lines, so absolute totals remain inflated relative to a normal run.
+The phase deltas are the meaningful result.
+
+### Remaining work
+
+1. **Initial `UpdateControls` in `OnInitDialog` is now the largest single block**
+   (316-387 ms on a delayed activation). It clears and disables the
+   freshly created legacy bar before any task exists. Add a cheap "start disabled" path
+   to the attribute-editor interface instead of running the full
+   `SetSelectedTaskIDs(empty)`/`ClearValues` cycle.
+2. **First layout** (`SetLayoutPositions`, ~168-226 ms). `RebuildLayout` lays out the
+   legacy bar once; verify whether its `ReposControls` can be deferred until the tab is
+   shown.
+3. **Filter bar** (142-340 ms). `RefreshFilterControls` still destroys/recreates sorted
+   combos and calls `UpdateWindow`. Evaluate deferring the full refresh until after the
+   first paint of a newly shown tab.
+4. **Tree expand restore** (185 ms for 51 items). Defer `ExpandTasks` until after
+   the first paint when the saved expansion does not affect the initially visible rows.
+5. **Tree column order** (still ~116 ms when the saved order differs). Investigate why
+   `SetColumnOrderArray` costs that much on the tree list only.
+
+Acceptance target is unchanged: an 8 KB tasklist should activate in under ~1 s in
+Release, with one layout and one full paint pass.
+
 ## Code path
 
 For a delay-loaded tab, activation is `SelectToDoCtrl` ->
@@ -380,7 +484,12 @@ Open the trace in WPA, load the local PDB, select `CPU Usage (Sampled)`, filter 
 `-start FileIO -start DiskIO -start Registry` if the UI thread is waiting rather than
 running. The same data answers whether the UI thread is CPU-bound or blocked on I/O.
 
-### 4. Structural fixes to evaluate
+### 4. Structural fixes to evaluate — **Partially done**
+
+Phase 4 implemented the attribute-editor creation path, preference batching, the
+column-order and priority-risk no-op guards, and the hidden-window paint guard. See
+[Phase 4 results](#phase-4-results-structural-fixes) for measurements and the remaining
+items (initial `UpdateControls`, first layout, filter bar, expand restore).
 
 Do not start with micro-optimisation. The measured order of attack is:
 

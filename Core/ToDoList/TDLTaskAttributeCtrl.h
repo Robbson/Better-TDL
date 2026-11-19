@@ -180,6 +180,7 @@ protected:
 protected:
 	void UpdateToolbarButtons();
 	void LayoutActiveEditor();
+	BOOL EnsureGridEditor();
 	BOOL EnsureLegacyBar();
 	void ShowActiveEditor();
 	void SetBackgroundColor(COLORREF crBack);

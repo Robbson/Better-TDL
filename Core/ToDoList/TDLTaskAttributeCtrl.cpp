@@ -156,26 +156,43 @@ int CTDLTaskAttributeCtrl::OnCreate(LPCREATESTRUCT pCreateStruct)
 	if (CWnd::OnCreate(pCreateStruct) != 0)
 		return -1;
 
-	// Create toolbar
-	if (!m_toolbar.CreateEx(this, (TBSTYLE_FLAT | TBSTYLE_WRAPABLE), WS_CHILD | WS_VISIBLE | CBRS_ALIGN_TOP))
-		return -1;
-		
-	if (!m_toolbar.LoadToolBar(IDR_ATTRIBCTRL_TOOLBAR, IDB_ATTRIBCTRL_TOOLBAR, colorMagenta))
-		return -1;
-
-	if (!m_tbHelper.Initialize(&m_toolbar))
-		return -1;
-
-	// Create List
-	if (!m_lcAttributes.Create(this, IDC_TASKATTRIBUTES))
-		return -1;
-
 	m_mgrMenuIcons.Initialize(this);
-	m_mgrMenuIcons.AddImages(m_toolbar);
 
+	// Create only the active editor. The grid is the default, so this keeps
+	// the configured editor mode from paying for the other control's creation.
 	ShowActiveEditor();
 
 	return 0;
+}
+
+BOOL CTDLTaskAttributeCtrl::EnsureGridEditor()
+{
+	if (m_lcAttributes.GetSafeHwnd())
+		return TRUE;
+
+	// Create toolbar
+	if (!m_toolbar.GetSafeHwnd())
+	{
+		if (!m_toolbar.CreateEx(this, (TBSTYLE_FLAT | TBSTYLE_WRAPABLE), WS_CHILD | WS_VISIBLE | CBRS_ALIGN_TOP))
+			return FALSE;
+
+		if (!m_toolbar.LoadToolBar(IDR_ATTRIBCTRL_TOOLBAR, IDB_ATTRIBCTRL_TOOLBAR, colorMagenta))
+			return FALSE;
+
+		if (!m_tbHelper.Initialize(&m_toolbar))
+			return FALSE;
+
+		m_mgrMenuIcons.AddImages(m_toolbar);
+	}
+
+	// Create List
+	if (!m_lcAttributes.Create(this, IDC_TASKATTRIBUTES))
+		return FALSE;
+
+	if (GetFont())
+		m_lcAttributes.SetFont(GetFont());
+
+	return TRUE;
 }
 
 void CTDLTaskAttributeCtrl::OnSetFocus(CWnd* pOldWnd)
@@ -269,6 +286,8 @@ void CTDLTaskAttributeCtrl::ShowActiveEditor()
 
 	if (bLegacy)
 		EnsureLegacyBar();
+	else
+		EnsureGridEditor();
 
 	if (m_pLegacyBar && m_pLegacyBar->GetSafeHwnd())
 		m_pLegacyBar->ShowWindow(bLegacy ? SW_SHOW : SW_HIDE);
@@ -297,7 +316,8 @@ void CTDLTaskAttributeCtrl::LayoutActiveEditor()
 	}
 	else if (m_lcAttributes.GetSafeHwnd())
 	{
-		int nTBHeight = m_toolbar.Resize(rClient.Width());
+		int nTBHeight = m_toolbar.GetSafeHwnd() ? m_toolbar.Resize(rClient.Width()) : 0;
+
 		m_lcAttributes.MoveWindow(0,
 								  nTBHeight,
 								  rClient.Width(),
@@ -348,17 +368,26 @@ void CTDLTaskAttributeCtrl::OnItemChanged(NMHDR* pNMHDR, LRESULT* /*pResult*/)
 
 void CTDLTaskAttributeCtrl::LoadState(const CPreferences& prefs, LPCTSTR szKey)
 {
+	if (!m_lcAttributes.GetSafeHwnd())
+		return;
+
 	m_lcAttributes.LoadState(prefs, szKey);
 	UpdateToolbarButtons();
 }
 
 void CTDLTaskAttributeCtrl::SaveState(CPreferences& prefs, LPCTSTR szKey) const
 {
+	if (!m_lcAttributes.GetSafeHwnd())
+		return;
+
 	m_lcAttributes.SaveState(prefs, szKey);
 }
 
 void CTDLTaskAttributeCtrl::UpdateToolbarButtons()
 {
+	if (!m_toolbar.GetSafeHwnd() || !m_lcAttributes.GetSafeHwnd())
+		return;
+
 	CToolBarCtrl& tb = m_toolbar.GetToolBarCtrl();
 	
 	tb.PressButton(ID_ATTRIBCTRL_SINGLECLICKEDIT, m_lcAttributes.HasSingleClickEditing());

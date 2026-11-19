@@ -477,8 +477,10 @@ void CTDLTaskAttributeListCtrl::SetNumPriorityRiskLevels(int nNumLevels)
 {
 	ASSERT(TDC::IsValidNumPriorityRiskLevels(nNumLevels));
 
-	if (nNumLevels != m_cbPriority.GetNumLevels())
-		TDC::GetPriorityRiskLevelStringResourceIDs(nNumLevels, m_aPriorityRiskStrResIDs);
+	if (nNumLevels == m_cbPriority.GetNumLevels())
+		return;
+
+	TDC::GetPriorityRiskLevelStringResourceIDs(nNumLevels, m_aPriorityRiskStrResIDs);
 
 	m_cbPriority.SetNumLevels(nNumLevels);
 	m_cbPriority.SetColors(m_aPriorityColors);

@@ -655,6 +655,11 @@ BOOL CTDLTaskAttributeCtrl::SetSelectedTaskIDs(const CDWordArray& aTaskIDs)
 	return GetActiveEditor().SetSelectedTaskIDs(aTaskIDs);
 }
 
+void CTDLTaskAttributeCtrl::DisableEditing()
+{
+	GetActiveEditor().DisableEditing();
+}
+
 BOOL CTDLTaskAttributeCtrl::GetCustomAttributeData(const CString& sAttribID, TDCCADATA& data, BOOL bFormatted) const
 {
 	return GetActiveEditor().GetCustomAttributeData(sAttribID, data, bFormatted);

@@ -21,6 +21,7 @@ public:
 	virtual BOOL IsAutoListDataReadOnly(TDC_ATTRIBUTE nAttribID) const = 0;
 
 	virtual BOOL SetSelectedTaskIDs(const CDWordArray& aTaskIDs) = 0;
+	virtual void DisableEditing() = 0;
 	virtual BOOL IsAnyTaskSelected(const CDWordArray& aTaskIDs) const = 0;
 	virtual TDC_ATTRIBUTE GetSelectedAttributeID() const = 0;
 	virtual CString GetSelectedAttributeLabel() const = 0;

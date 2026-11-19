@@ -79,7 +79,8 @@ void CToDoCtrlLayout::ExcludeSplitBar(const CSimpleSplitter& splitter, CDC* pDC)
 BOOL CToDoCtrlLayout::ModifyLayout(TDC_UILOCATION nAttribsPos,
 								   TDC_UILOCATION nCommentsPos,
 								   BOOL bAllowStacking,
-								   BOOL bStackCommentAbove)
+								   BOOL bStackCommentAbove,
+								   BOOL bRecalcLayout)
 {
 	ASSERT(::IsWindow(*m_pParent));
 	ASSERT(::IsWindow(*m_pAttributes));
@@ -101,7 +102,7 @@ BOOL CToDoCtrlLayout::ModifyLayout(TDC_UILOCATION nAttribsPos,
 
 	if (bRebuild)
 	{
-		RebuildLayout(TRUE);
+		RebuildLayout(bRecalcLayout);
 
 		if (m_bFirstLayout)
 		{

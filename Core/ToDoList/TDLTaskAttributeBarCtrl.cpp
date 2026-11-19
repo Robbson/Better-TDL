@@ -15,6 +15,7 @@
 
 #include "TDCDialogHelper.h"
 #include "TDCCustomEditAttributeUIHelper.h"
+#include "TDCPerfTrace.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -248,7 +249,11 @@ void CTDLTaskAttributeBarCtrl::DoDataExchange(CDataExchange* pDX)
 
 BOOL CTDLTaskAttributeBarCtrl::OnInitDialog()
 {
+	CTDCPerfTrace log(_T("CTDLTaskAttributeBarCtrl::OnInitDialog()"));
+
 	CRuntimeDlg::OnInitDialog();
+
+	log.LogTimeElapsed(_T("BarOnInitDialog(Base)"));
 
 	m_ePercentDone.SetMask(_T("0123456789"));
 	m_eCost.SetMask(_T("@-.0123456789"), ME_LOCALIZEDECIMAL);
@@ -269,6 +274,8 @@ BOOL CTDLTaskAttributeBarCtrl::OnInitDialog()
 	m_spinPercent.SetRange(0, 100);
 	m_spinPercent.SetBuddy(GetDlgItem(IDC_TDLAB_PERCENT));
 
+	log.LogTimeElapsed(_T("BarOnInitDialog(Masks)"));
+
 	m_iconTrackTime.Load(IDI_TIMETRACK, 16, FALSE);
 	m_iconAddTime.Load(IDI_ADD_LOGGED_TIME, 16, FALSE);
 	m_iconLink.Load(IDI_DEPENDS_LINK, 16, FALSE);
@@ -279,12 +286,25 @@ BOOL CTDLTaskAttributeBarCtrl::OnInitDialog()
 	m_eDependency.AddButton(IDC_TDLAB_DEPENDS_EDIT, _T("..."), CEnString(IDS_OPTIONS));
 	m_eDependency.AddButton(IDC_TDLAB_DEPENDS_LINK, m_iconLink, _T("Select dependency"));
 
+	log.LogTimeElapsed(_T("BarOnInitDialog(Icons)"));
+
 	SetNumPriorityRiskLevels(m_nNumPriorityRiskLevels);
 	SetPercentDoneIncrement(m_nPercentDoneIncrement);
 	SetPriorityColors(m_aPriorityColors);
+
+	log.LogTimeElapsed(_T("BarOnInitDialog(Levels/Colours)"));
+
 	PopulateAutoLists();
+
+	log.LogTimeElapsed(_T("BarOnInitDialog(AutoLists)"));
+
 	RebuildCustomControls();
+
+	log.LogTimeElapsed(_T("BarOnInitDialog(CustomControls)"));
+
 	ShowHideControls();
+
+	log.LogTimeElapsed(_T("BarOnInitDialog(ShowHide)"));
 
 	return TRUE;
 }
@@ -1013,6 +1033,12 @@ BOOL CTDLTaskAttributeBarCtrl::SetSelectedTaskIDs(const CDWordArray& aTaskIDs)
 	EnableDisableControls();
 
 	return m_aSelectedTaskIDs.GetSize();
+}
+
+void CTDLTaskAttributeBarCtrl::DisableEditing()
+{
+	m_aSelectedTaskIDs.RemoveAll();
+	EnableDisableControls();
 }
 
 BOOL CTDLTaskAttributeBarCtrl::IsAnyTaskSelected(const CDWordArray& aTaskIDs) const

@@ -30,7 +30,8 @@ public:
 	BOOL ModifyLayout(TDC_UILOCATION nAttribsPos, 
 					  TDC_UILOCATION nCommentsPos,
 					  BOOL bAllowStacking, 
-					  BOOL bStackCommentAbove);
+					  BOOL bStackCommentAbove,
+					  BOOL bRecalcLayout = TRUE);
 
 	BOOL SetMaximised(TDC_MAXSTATE nState, 
 					  BOOL bShowCommentsAlways,

@@ -120,6 +120,7 @@ public:
 	BOOL IsAutoListDataReadOnly(TDC_ATTRIBUTE nAttribID) const override;
 
 	BOOL SetSelectedTaskIDs(const CDWordArray& aTaskIDs) override;
+	void DisableEditing() override;
 	BOOL IsAnyTaskSelected(const CDWordArray& aTaskIDs) const override;
 	TDC_ATTRIBUTE GetSelectedAttributeID() const override;
 	CString GetSelectedAttributeLabel() const override;

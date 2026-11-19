@@ -55,6 +55,7 @@ public:
 	TDC_ATTRIBUTE GetSelectedAttributeID() const;
 	CString GetSelectedAttributeLabel() const;
 	BOOL SetSelectedTaskIDs(const CDWordArray& aTaskIDs);
+	void DisableEditing();
 	BOOL IsAnyTaskSelected(const CDWordArray& aTaskIDs) const;
 
 	void RefreshSelectedTasksValues(const CTDCAttributeMap& mapAttribIDs = TDCA_ALL);

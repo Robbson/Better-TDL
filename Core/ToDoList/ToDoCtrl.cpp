@@ -610,10 +610,22 @@ BOOL CToDoCtrl::OnInitDialog()
 	log.LogTimeElapsed(_T("OnInitDialog(Prompts/DragDrop)"));
 	
 	// Initial state
-	UpdateControls();
-	SetFocus(TDCSF_TASKVIEW);
+	// No task can be selected yet, so start the attribute editor disabled
+	// without running the full selection refresh
+	m_ctrlAttributes.DisableEditing();
 
-	log.LogTimeElapsed(_T("OnInitDialog(UpdateControls)"));
+	log.LogTimeElapsed(_T("OnInitDialog(DisableEditing)"));
+
+	UpdateSelectedTaskPath();
+	EnableDisableControls(FALSE);
+
+	log.LogTimeElapsed(_T("OnInitDialog(EnableDisable)"));
+
+	// Focus is set again when the tab is shown
+	if (IsWindowVisible())
+		SetFocus(TDCSF_TASKVIEW);
+
+	log.LogTimeElapsed(_T("OnInitDialog(SetFocus)"));
 
 	// notify parent that we have been created
 	GetParent()->SendMessage(WM_PARENTNOTIFY, MAKEWPARAM(WM_CREATE, GetDlgCtrlID()), (LPARAM)GetSafeHwnd());
@@ -763,7 +775,8 @@ void CToDoCtrl::SetLayoutPositions(TDC_UILOCATION nAttribsPos, TDC_UILOCATION nC
 	if (m_layout.ModifyLayout(nAttribsPos,
 							  nCommentsPos,
 							  HasStyle(TDCS_ALLOWCOMMENTSSTACKING),
-							  HasStyle(TDCS_STACKCOMMENTSABOVEEDITS)))
+							  HasStyle(TDCS_STACKCOMMENTSABOVEEDITS),
+							  !m_bPreferencesUpdate))
 	{
 		if (m_bPreferencesUpdate)
 			m_bPendingPrefsResize = TRUE;

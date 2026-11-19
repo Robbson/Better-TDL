@@ -1367,6 +1367,11 @@ BOOL CTDLTaskAttributeListCtrl::SetSelectedTaskIDs(const CDWordArray& aTaskIDs)
 	return TRUE;
 }
 
+void CTDLTaskAttributeListCtrl::DisableEditing()
+{
+	m_aSelectedTaskIDs.RemoveAll();
+}
+
 BOOL CTDLTaskAttributeListCtrl::IsAnyTaskSelected(const CDWordArray& aTaskIDs) const
 {
 	return Misc::MatchAny(aTaskIDs, m_aSelectedTaskIDs);

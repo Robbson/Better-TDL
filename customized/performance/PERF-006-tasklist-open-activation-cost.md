@@ -1,7 +1,7 @@
 # PERF-006: Fixed per-tasklist cost when opening or activating a document
 
 Status: **Implemented** (steps 1-2 measured; phase 4 structural fixes applied and
-re-measured; remaining work listed below)
+re-measured; all remaining items investigated and closed with rationale below)
 
 ## Goal
 
@@ -309,6 +309,49 @@ from Step 1 instead, using the same foreground, `-g`, delay-loaded fixture.
    only when the control is visible. Hidden creation/layout is left to the normal
    message-loop paint after `SelectToDoCtrl` shows the tab.
 
+5. **Start the attribute editor disabled without a full refresh.**
+   `ITDCAttributeEditor` gained `DisableEditing`
+   (`Core/ToDoList/ITDCAttributeEditor.h:24`), implemented by both editors.
+   `CToDoCtrl::OnInitDialog` now calls it instead of `UpdateControls`, so creating a
+   tasklist no longer runs `SetSelectedTaskIDs(empty)`/`ClearValues` on the legacy bar.
+   Comment/project state is still updated with `EnableDisableControls(FALSE)`.
+
+6. **Defer the initial focus until the tab is shown.**
+   `OnInitDialog` skips `SetFocus(TDCSF_TASKVIEW)` while the control is hidden;
+   `CToDoListWnd::SelectToDoCtrl` already sets focus after `ShowWindow`
+   (`Core/ToDoList/ToDoListWnd.cpp:10298`). This was the single largest remaining
+   sub-block (258-376 ms) and is now ~0 ms during activation.
+
+7. **Defer the first layout recalculation.**
+   `CToDoCtrlLayout::ModifyLayout` takes `bRecalcLayout`
+   (`Core/ToDoList/ToDoCtrlLayout.h:30`). During a preference update the splitter tree
+   is rebuilt but not recalculated; `NotifyEndPreferencesUpdate` does the single
+   `Resize`. This removes the duplicate layout pass.
+   The filter bar's synchronous `UpdateWindow` was also removed
+   (`Core/ToDoList/TDLFilterBar.cpp:608`); the normal message-loop paint follows.
+
+8. **Skip unchanged filter droplists.**
+   `CTDLFilterBar::UpdateDropListData` now compares the requested strings with the
+   combo's current content and skips `SetStrings` when they match
+   (`Core/ToDoList/TDLFilterBar.cpp:676`). `SetStrings` resets and re-adds every entry,
+   so repeated refreshes of the same tasklist no longer rebuild all autolist combos.
+   Measured drop-list work for a repeated refresh fell from 72-132 ms to 2-21 ms; the
+   first refresh after a tasklist switch still pays for real content changes.
+
+### Further attribution
+
+`CTDLTaskAttributeBarCtrl::OnInitDialog` was split into sub-scopes. The largest block
+is MFC template creation from the in-memory dialog template (`BarOnInitDialog(Base)`,
+231-239 ms for ~40 standard controls); masks/icons/autolists/custom controls are <3 ms
+each. The next block is `SetNumPriorityRiskLevels` (60-71 ms), which has to configure the
+priority/risk combos once against their default. Creating only the visible fields would
+require reworking `LEGACYCONTROLS`/`DoDataExchange` and was not attempted.
+
+`CTDLFilterBar::RefreshFilterControls` was split as well. On a tasklist switch the
+remaining cost is real content change: visibility/options rebuild (40-75 ms), drop lists
+(21-132 ms depending on data), `UpdateData(FALSE)` (40-83 ms) and `ReposControls`
+(10-56 ms).
+
 ### Measurement
 
 Same fixture and method as Step 2 (Release Win32, foreground, `-g`, 8 s startup wait,
@@ -317,51 +360,68 @@ compare with the Step 2 foreground figures.
 
 | File | Size | Step 2 wall | Phase 4 wall | Change |
 |---|---:|---:|---:|---:|
-| `Evidence Board.tdl` | 7.6 KB | 2387 ms | 2139 ms | -248 ms |
-| `biglist.tdl` | 1.66 MB | 2745 ms | 2396 ms | -349 ms |
+| `Evidence Board.tdl` | 7.6 KB | 2387 ms | 1888-2316 ms | -70 to -500 ms |
+| `biglist.tdl` | 1.66 MB | 2745 ms | 2290-2480 ms | -265 to -455 ms |
 
-More useful than the totals are the phases that disappeared or shrank:
+Post-change run-to-run variance was higher than in Step 2 (the machine was noisier);
+the ranges above are three runs per document, all foreground. The sub-phases are the
+stable evidence:
 
 | Phase | Step 2 | Phase 4 |
 |---|---:|---:|
 | `SetAttributeEditorMode` (entire) | 614-1034 ms | not called (mode set at creation) |
-| `SetLayoutPositions` (first layout) | 54 ms + later `Resize` | 168-226 ms, no extra resize |
+| Initial `UpdateControls` + `SetFocus` in `OnInitDialog` | 290-390 ms | 35-86 ms (no selection refresh, no hidden focus) |
+| `SetLayoutPositions` (first layout) | 54 ms + later `Resize` | 95-186 ms, no second recalc |
 | `LoadState(Column order)` list view | 110 ms | ~2 ms |
 | `LoadState(Column order)` tree view | 98-100 ms | 2-116 ms (only when order differs) |
+| Filter bar refresh | 194-340 ms | 121-220 ms |
 | Duplicate `UpdateControls` in preferences | 205-230 ms | 0 ms when nothing is selected |
 
 The fixed floor is now dominated by the following, in order:
 
 | Block | Phase 4 (small / large) | Notes |
 |---|---:|---|
-| `CToDoCtrl::OnInitDialog` | 1026 / 1040 ms | legacy bar creation ~300-400 ms plus its initial `UpdateControls` 316-387 ms |
-| `SetLayoutPositions` / first layout | 195 / 168 ms | `CToDoCtrlLayout::RebuildLayout` resizes the legacy bar |
-| Filter bar refresh | 176-339 / 142-224 ms | `RefreshFilterControls` rebuilds autolist combos |
-| `ExpandTasks` | 0 / 185 ms | scales with 51 saved expanded items |
-| Show / paint | 23-67 / 104 ms | now no hidden `UpdateWindow` |
-| `SetNumPriorityRiskLevels` | 75-85 / 80-112 ms | first configuration against the editor default |
+| `CToDoCtrl::OnInitDialog` | 769-1026 / 714-971 ms | dominated by legacy bar creation 310-505 ms; initial state is now 35-86 ms |
+| `SetLayoutPositions` / first layout | 159-300 / 94-186 ms | one `RebuildLayout`, recalculation deferred to `Resize` |
+| Filter bar refresh | 193-490 / 121-220 ms | `RefreshFilterControls` still rebuilds autolist combos |
+| `ExpandTasks` | 0 / 192 ms | scales with 51 saved expanded items |
+| Show / paint | 11-74 / 82-111 ms | no hidden `UpdateWindow` |
+| `SetNumPriorityRiskLevels` | 75-103 / 77-83 ms | first configuration against the editor default |
 
 The `-g` run still includes one log write per outer trace and the remaining
 `CScopedLogTimer` lines, so absolute totals remain inflated relative to a normal run.
 The phase deltas are the meaningful result.
 
-### Remaining work
+### Remaining items - investigated and closed
 
-1. **Initial `UpdateControls` in `OnInitDialog` is now the largest single block**
-   (316-387 ms on a delayed activation). It clears and disables the
-   freshly created legacy bar before any task exists. Add a cheap "start disabled" path
-   to the attribute-editor interface instead of running the full
-   `SetSelectedTaskIDs(empty)`/`ClearValues` cycle.
-2. **First layout** (`SetLayoutPositions`, ~168-226 ms). `RebuildLayout` lays out the
-   legacy bar once; verify whether its `ReposControls` can be deferred until the tab is
-   shown.
-3. **Filter bar** (142-340 ms). `RefreshFilterControls` still destroys/recreates sorted
-   combos and calls `UpdateWindow`. Evaluate deferring the full refresh until after the
-   first paint of a newly shown tab.
-4. **Tree expand restore** (185 ms for 51 items). Defer `ExpandTasks` until after
-   the first paint when the saved expansion does not affect the initially visible rows.
-5. **Tree column order** (still ~116 ms when the saved order differs). Investigate why
-   `SetColumnOrderArray` costs that much on the tree list only.
+1. **First layout** (`SetLayoutPositions`, 94-300 ms). Now a single recalculation: the
+   splitter tree is rebuilt without an intermediate layout and `NotifyEndPreferencesUpdate`
+   resizes once. For delay-loaded activation this happens after the control is moved, so
+   there is no duplicate screen-sized pass left to remove.
+2. **Filter bar** (121-330 ms on a tasklist switch). Unchanged droplists are now skipped.
+   The remainder tracks real content changes (visible filter fields, autolist data,
+   filter values) and is required work. Deferring the refresh past the shown tab would
+   leave menu/filter state briefly stale, so it was not done.
+3. **Tree expand restore** (~192 ms for 51 items). `ExpandTasks` already batches raw
+   expansion. The remainder is `ExpandList` inserting the expanded rows into the paired
+   flat list view, which must stay consistent; deferring it would leave that view
+   incomplete. A redraw hold around column-order application made no measurable
+   difference and was reverted.
+4. **Tree column order** (~116-136 ms). Only the tree view pays this when its saved order
+   differs from the default; the list view is skipped by the no-op guard. The cost is in
+   `SetColumnOrderArray` itself; wrapping it in `CHoldRedraw` did not help.
+5. **Legacy bar creation** (231-239 ms) is MFC dialog-template creation of ~40 controls.
+   Removing it requires a visible-fields-only/lazy template rewrite that touches
+   `LEGACYCONTROLS` and `DoDataExchange`; not worth the risk for the remaining gain.
+
+Net result: the fixed cost that was removable has been removed. What remains is
+necessary control creation, layout, view synchronisation and genuine content changes.
+
+The original acceptance target (<1 s for an 8 KB tasklist) is **not met** with the legacy
+attribute editor: the single activation stays around 1.9 s because the legacy bar alone
+costs over 0.5 s to create and configure, and the filter bar and view sync another
+0.3 s. Reaching 1 s would need the legacy-editor rewrite above or a different editor
+strategy, which is a product decision rather than a local optimisation.
 
 Acceptance target is unchanged: an 8 KB tasklist should activate in under ~1 s in
 Release, with one layout and one full paint pass.
@@ -484,12 +544,13 @@ Open the trace in WPA, load the local PDB, select `CPU Usage (Sampled)`, filter 
 `-start FileIO -start DiskIO -start Registry` if the UI thread is waiting rather than
 running. The same data answers whether the UI thread is CPU-bound or blocked on I/O.
 
-### 4. Structural fixes to evaluate — **Partially done**
+### 4. Structural fixes to evaluate — **Done for this pass**
 
 Phase 4 implemented the attribute-editor creation path, preference batching, the
-column-order and priority-risk no-op guards, and the hidden-window paint guard. See
-[Phase 4 results](#phase-4-results-structural-fixes) for measurements and the remaining
-items (initial `UpdateControls`, first layout, filter bar, expand restore).
+column-order and priority-risk no-op guards, the hidden-window paint guard, and the
+unchanged-droplist filter guard. See
+[Phase 4 results](#phase-4-results-structural-fixes) for measurements and for the
+remaining items that were investigated and closed.
 
 Do not start with micro-optimisation. The measured order of attack is:
 

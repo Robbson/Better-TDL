@@ -7,6 +7,7 @@
 #include "tdcmsg.h"
 #include "filteredtodoctrl.h"
 #include "tdccustomFilterattributeUIHelper.h"
+#include "TDCPerfTrace.h"
 
 #include "..\shared\deferwndmove.h"
 #include "..\shared\dlgunits.h"
@@ -560,6 +561,8 @@ void CTDLFilterBar::RefreshFilterControls(const CFilteredToDoCtrl& tdc, TDC_ATTR
 
 	if (nAttribID == TDCA_ALL)
 	{
+		CTDCPerfTrace log(_T("CTDLFilterBar::RefreshFilterControls()"));
+
 		CHoldRedraw hr(GetSafeHwnd(), NCR_PAINT | NCR_ERASEBKGND);
 
 		// column visibility
@@ -570,6 +573,8 @@ void CTDLFilterBar::RefreshFilterControls(const CFilteredToDoCtrl& tdc, TDC_ATTR
 			m_mapVisibility.Copy(tdc.GetVisibleFilterFields());
 			RebuildOptionsCombo();
 		}
+
+		log.LogTimeElapsed(_T("FilterControls(Visibility)"));
 
 		// get filter
 		if (tdc.GetFilter(m_filter) == FS_ADVANCED)
@@ -585,27 +590,87 @@ void CTDLFilterBar::RefreshFilterControls(const CFilteredToDoCtrl& tdc, TDC_ATTR
 			m_sAdvancedFilter.Empty();
 		}
 
+		log.LogTimeElapsed(_T("FilterControls(Filter)"));
+
 		// Custom attributes
 		UpdateCustomControls(tdc, nAttribID);
+
+		log.LogTimeElapsed(_T("FilterControls(CustomControls)"));
 	
 		// auto droplist filters
 		UpdateDropListData(tdc, nAttribID);
+
+		log.LogTimeElapsed(_T("FilterControls(DropLists)"));
 		
 		// update UI
 		RefreshUIBkgndBrush();
 
 		UpdateData(FALSE);
-		UpdateWindow();
+
+		log.LogTimeElapsed(_T("FilterControls(UpdateData)"));
 
 		// disable controls if a custom filter.
 		// just do a repos because this also handles enabled state
 		ReposControls();
+
+		log.LogTimeElapsed(_T("FilterControls(Repos)"));
 	}
 	else
 	{
 		UpdateDropListData(tdc, nAttribID);
 		UpdateCustomControls(tdc, nAttribID);
 	}
+}
+
+static BOOL ComboStringsMatch(const CEnCheckComboBox& combo, const CStringArray& aData)
+{
+	if (!combo.GetSafeHwnd())
+	{
+		for (int nData = 0; nData < aData.GetSize(); nData++)
+		{
+			if (!aData[nData].IsEmpty())
+				return FALSE;
+		}
+
+		return TRUE;
+	}
+
+	CStringArray aRemaining;
+	CString sItem;
+
+	for (int nItem = 0; nItem < combo.GetCount(); nItem++)
+	{
+		combo.GetLBText(nItem, sItem);
+		if (!sItem.IsEmpty())
+			aRemaining.Add(sItem);
+	}
+
+	for (int nData = 0; nData < aData.GetSize(); nData++)
+	{
+		const CString& sData = aData[nData];
+
+		if (sData.IsEmpty())
+			continue;
+
+		BOOL bFound = FALSE;
+		int nItem = aRemaining.GetSize();
+
+		while (nItem--)
+		{
+			if (aRemaining[nItem].CompareNoCase(sData) == 0)
+			{
+				aRemaining.RemoveAt(nItem);
+				bFound = TRUE;
+				break;
+			}
+		}
+
+		if (!bFound)
+			return FALSE;
+	}
+
+	// Any combo entry not present in aData means the lists differ
+	return (aRemaining.GetSize() == 0);
 }
 
 void CTDLFilterBar::UpdateDropListData(const CFilteredToDoCtrl& tdc, TDC_ATTRIBUTE nAttribID, CEnCheckComboBox& combo, const CStringArray& aData)
@@ -625,6 +690,10 @@ void CTDLFilterBar::UpdateDropListData(const CFilteredToDoCtrl& tdc, TDC_ATTRIBU
 		VERIFY(combo.Create(dwStyle, rCombo, this, nCtrlID));
 
 		combo.SetFont(CWnd::GetFont());
+	}
+	else if (ComboStringsMatch(combo, aData))
+	{
+		return;
 	}
 
 	combo.SetStrings(aData);

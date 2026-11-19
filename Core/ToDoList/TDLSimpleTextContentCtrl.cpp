@@ -891,7 +891,6 @@ void CTDLSimpleTextContentCtrl::ApplyAutoIndentRange(int nFrom, int nTo, BOOL bF
 	CClientDC dc(this);
 	const int nDpiX = dc.GetDeviceCaps(LOGPIXELSX);
 
-	BOOL bChanged = FALSE;
 	const int nStart = (bFullPass ? 0 : max(0, min(nFrom, nTextLen)));
 	const int nEnd = (bFullPass ? nTextLen : max(nStart, min(nTo, nTextLen)));
 	int nParaStart = FindParagraphStart(*this, nStart);
@@ -900,8 +899,7 @@ void CTDLSimpleTextContentCtrl::ApplyAutoIndentRange(int nFrom, int nTo, BOOL bF
 	{
 		int nParaEnd = FindParagraphEnd(*this, nParaStart, nTextLen);
 
-		if (ApplyAutoIndentToParagraph(nParaStart, nParaEnd, nDpiX))
-			bChanged = TRUE;
+		ApplyAutoIndentToParagraph(nParaStart, nParaEnd, nDpiX);
 
 		if ((nParaEnd >= nTextLen) || (!bFullPass && (nParaEnd >= nEnd)))
 			break;
@@ -926,10 +924,9 @@ void CTDLSimpleTextContentCtrl::ApplyAutoIndentRange(int nFrom, int nTo, BOOL bF
 		{
 			SetRedraw(TRUE);
 
-			// The per-paragraph selection moves can leave non-blinking caret
-			// artefacts behind even when no paragraph format changed
-			if (bChanged || bCaret)
-				Invalidate(FALSE);
+			// Replacing the content can leave the old text visible beyond the
+			// new text, so always repaint the whole control after a full pass
+			Invalidate(FALSE);
 		}
 
 		if (bCaret)

@@ -737,9 +737,11 @@ protected:
 	void OpenHomeSelection();
 	BOOL IsHomeFileForcedAsText(const CString& sFilePath) const;
 	BOOL IsHomeFileEligibleAsText(const CString& sFilePath) const;
+	BOOL IsHomePathOpen(const CString& sFilePath) const;
 	DWORD FindHomeTaskByPath(CFilteredToDoCtrl& tdc, const CString& sFilePath) const;
 	void MarkHomeFolderDirty();
 	BOOL RefreshHomeFolderView(CFilteredToDoCtrl* pTDC = NULL);
+	BOOL InitHomeFolderView(CFilteredToDoCtrl& tdc);
 	void GetOpenTasklistPaths(CStringArray& aOpenFiles, CStringArray& aModifiedFiles,
 							  CMap<CString, LPCTSTR, COLORREF, COLORREF>& mapTabColors) const;
 	void SetHomeFolderViewStyles(CFilteredToDoCtrl& tdc);

@@ -2973,10 +2973,7 @@ void CToDoListWnd::OnFileHome()
 	if (!pTDC)
 		return;
 
-	pTDC->SetAlternatePreferencesKey(_T("HomeFolder"));
-	pTDC->SetHomeFolderView(TRUE);
-
-	if (!RefreshHomeFolderView(pTDC))
+	if (!InitHomeFolderView(*pTDC))
 	{
 		if (pTDC->GetSafeHwnd())
 			pTDC->DestroyWindow();
@@ -2984,11 +2981,6 @@ void CToDoListWnd::OnFileHome()
 		delete pTDC;
 		return;
 	}
-
-	// Initialise the fixed column set once; subsequent refreshes preserve order
-	SetHomeFolderViewColumns(*pTDC);
-	pTDC->ReloadState(); // restore saved column order/widths
-	pTDC->SetModified(FALSE);
 
 	int nTDC = AddToDoCtrl(pTDC);
 
@@ -3004,15 +2996,35 @@ void CToDoListWnd::OnFileHome()
 
 	SelectToDoCtrl(nTDC, TRUE);
 
-	// The home view always starts unfiltered
-	pTDC->ClearFilter();
-
 	RefreshFilterBarControls(TDCA_ALL);
 	Resize();
 	Invalidate();
 
 	m_idleTasks.UpdateCaption();
 	m_idleTasks.UpdateStatusBar();
+}
+
+BOOL CToDoListWnd::InitHomeFolderView(CFilteredToDoCtrl& tdc)
+{
+	tdc.SetAlternatePreferencesKey(_T("HomeFolder"));
+	tdc.SetHomeFolderView(TRUE);
+
+	if (!RefreshHomeFolderView(&tdc))
+	{
+		tdc.SetHomeFolderView(FALSE);
+		tdc.SetAlternatePreferencesKey(CString());
+		return FALSE;
+	}
+
+	// Initialise the fixed column set once; subsequent refreshes preserve order
+	SetHomeFolderViewColumns(tdc);
+	tdc.ReloadState(); // restore saved column order/widths
+	tdc.SetModified(FALSE);
+
+	// The home view always starts unfiltered
+	tdc.ClearFilter();
+
+	return TRUE;
 }
 
 LRESULT CToDoListWnd::OnTDCNotifyActivateTask(WPARAM wp, LPARAM lp)
@@ -3099,6 +3111,13 @@ void CToDoListWnd::OpenHomeItem(DWORD dwTaskID)
 		OpenTaskList(sFilePath);
 		m_bHomeFolderNeedsRefresh = TRUE;
 	}
+	else if (CTDLHomeFolder::IsTasklistSetFile(sFilePath))
+	{
+		CStringArray aTasklists;
+
+		if (CTDLHomeFolder::ReadTasklistSet(sFilePath, aTasklists) && (OpenTaskLists(aTasklists) > 0))
+			m_bHomeFolderNeedsRefresh = TRUE;
+	}
 	else
 	{
 		FileMisc::Run(GetSafeHwnd(), sFilePath, NULL, SW_SHOWNORMAL,
@@ -3136,6 +3155,16 @@ void CToDoListWnd::OpenHomeSelection()
 		{
 			aTasklists.Add(sFilePath);
 		}
+		else if (CTDLHomeFolder::IsTasklistSetFile(sFilePath))
+		{
+			CStringArray aSetTasklists;
+
+			if (CTDLHomeFolder::ReadTasklistSet(sFilePath, aSetTasklists))
+			{
+				for (int nSetTasklist = 0; nSetTasklist < aSetTasklists.GetSize(); nSetTasklist++)
+					aTasklists.Add(aSetTasklists[nSetTasklist]);
+			}
+		}
 		else
 		{
 			FileMisc::Run(GetSafeHwnd(), sFilePath, NULL, SW_SHOWNORMAL,
@@ -3143,7 +3172,27 @@ void CToDoListWnd::OpenHomeSelection()
 		}
 	}
 
-	if (OpenTaskLists(aTasklists) > 0)
+	// Preserve first-occurrence order and skip duplicates across sets/folders
+	CStringArray aUniqueTasklists;
+
+	for (int nTasklist = 0; nTasklist < aTasklists.GetSize(); nTasklist++)
+	{
+		BOOL bDuplicate = FALSE;
+
+		for (int nExisting = 0; nExisting < aUniqueTasklists.GetSize(); nExisting++)
+		{
+			if (FileMisc::IsSamePath(aTasklists[nTasklist], aUniqueTasklists[nExisting]))
+			{
+				bDuplicate = TRUE;
+				break;
+			}
+		}
+
+		if (!bDuplicate)
+			aUniqueTasklists.Add(aTasklists[nTasklist]);
+	}
+
+	if (OpenTaskLists(aUniqueTasklists) > 0)
 		m_bHomeFolderNeedsRefresh = TRUE;
 }
 
@@ -3162,7 +3211,30 @@ BOOL CToDoListWnd::IsHomeFileEligibleAsText(const CString& sFilePath) const
 {
 	return (FileMisc::FileExists(sFilePath) &&
 			!FileMisc::HasExtension(sFilePath, _T("tdl")) &&
+			!CTDLHomeFolder::IsTasklistSetFile(sFilePath) &&
 			!CTDLHomeFolder::IsTextFile(sFilePath));
+}
+
+BOOL CToDoListWnd::IsHomePathOpen(const CString& sFilePath) const
+{
+	if (FileMisc::HasExtension(sFilePath, _T("tdl")))
+		return (FindTasklistByPath(sFilePath) != -1);
+
+	if (CTDLHomeFolder::IsTasklistSetFile(sFilePath))
+	{
+		CStringArray aTasklists;
+
+		if (CTDLHomeFolder::ReadTasklistSet(sFilePath, aTasklists))
+		{
+			for (int nTasklist = 0; nTasklist < aTasklists.GetSize(); nTasklist++)
+			{
+				if (FindTasklistByPath(aTasklists[nTasklist]) != -1)
+					return TRUE;
+			}
+		}
+	}
+
+	return FALSE;
 }
 
 DWORD CToDoListWnd::FindHomeTaskByPath(CFilteredToDoCtrl& tdc, const CString& sFilePath) const
@@ -3217,7 +3289,7 @@ void CToDoListWnd::ShowHomeContextMenu(CPoint point, BOOL bHasSelection)
 
 	for (int nPath = 0; nPath < aPaths.GetSize(); nPath++)
 	{
-		bAnyOpen |= (FindTasklistByPath(aPaths[nPath]) != -1);
+		bAnyOpen |= IsHomePathOpen(aPaths[nPath]);
 		bAnyTextable |= IsHomeFileEligibleAsText(aPaths[nPath]);
 	}
 
@@ -3265,10 +3337,30 @@ void CToDoListWnd::OnHomeClose()
 
 	for (int nPath = 0; nPath < aPaths.GetSize(); nPath++)
 	{
-		int nTDC = FindTasklistByPath(aPaths[nPath]);
+		const CString& sFilePath = aPaths[nPath];
 
-		if (nTDC != -1)
-			CheckCloseTasklist(nTDC);
+		if (CTDLHomeFolder::IsTasklistSetFile(sFilePath))
+		{
+			CStringArray aTasklists;
+
+			if (CTDLHomeFolder::ReadTasklistSet(sFilePath, aTasklists))
+			{
+				for (int nTasklist = 0; nTasklist < aTasklists.GetSize(); nTasklist++)
+				{
+					int nTDC = FindTasklistByPath(aTasklists[nTasklist]);
+
+					if (nTDC != -1)
+						CheckCloseTasklist(nTDC);
+				}
+			}
+		}
+		else
+		{
+			int nTDC = FindTasklistByPath(sFilePath);
+
+			if (nTDC != -1)
+				CheckCloseTasklist(nTDC);
+		}
 	}
 
 	RefreshHomeFolderView();
@@ -3437,7 +3529,31 @@ LRESULT CToDoListWnd::OnPostOnCreate(WPARAM /*wp*/, LPARAM /*lp*/)
 		}
 	}
 
-	// If nothing else was opened then we need a tasklist
+	// If nothing else was opened then prefer the Home view when configured.
+	// Reuse the existing pristine tasklist in place so startup always has a
+	// tasklist and no untitled document is created or shown.
+	BOOL bNoDocuments = (!GetTDCCount() || m_mgrToDoCtrls.IsPristine());
+
+	if (bNoDocuments && !bStartupEmpty && CTDLHomeFolder::HasFolder())
+	{
+		int nPristine = m_mgrToDoCtrls.FindPristineToDoCtrl();
+
+		if (nPristine != -1)
+		{
+			if (InitHomeFolderView(GetToDoCtrl(nPristine)))
+			{
+				SelectToDoCtrl(nPristine, TRUE);
+				m_mgrToDoCtrls.UpdateTabItemText(nPristine);
+				RefreshFilterBarControls(TDCA_ALL);
+				m_idleTasks.UpdateCaption();
+			}
+		}
+		else
+		{
+			OnFileHome();
+		}
+	}
+
 	if (!GetTDCCount())
 	{
 		if (!CreateNewTaskList(FALSE, FALSE))
@@ -3452,21 +3568,20 @@ LRESULT CToDoListWnd::OnPostOnCreate(WPARAM /*wp*/, LPARAM /*lp*/)
 
 	// if there's only one tasklist open and it's pristine then it's
 	// the original one so add a sample task unless 'empty' flag is set
-	if (m_mgrToDoCtrls.IsPristine())
+	if (m_mgrToDoCtrls.IsPristine() && !bStartupEmpty)
 	{
-		if (!bStartupEmpty)
-		{
-			CFilteredToDoCtrl& tdc = GetToDoCtrl();
-			ASSERT (tdc.GetTaskCount() == 0);
+		CFilteredToDoCtrl& tdc = GetToDoCtrl();
+		ASSERT (tdc.GetTaskCount() == 0);
 
-			tdc.CreateNewTask(CEnString(IDS_SAMPLETASK), TDC_INSERTATTOP, FALSE);
-			tdc.SetModified(FALSE);
-		}
+		tdc.CreateNewTask(CEnString(IDS_SAMPLETASK), TDC_INSERTATTOP, FALSE);
+		tdc.SetModified(FALSE);
 	}
-	else // due task notifications
-	{
+
+	// due task notifications (except for an empty or Home-only window)
+	BOOL bHomeOnly = ((GetTDCCount() == 1) && GetToDoCtrl(0).IsHomeFolderView());
+
+	if (!m_mgrToDoCtrls.IsPristine() && !bHomeOnly)
 		PostMessage(WM_DOINITIALDUETASKNOTIFY);
-	}
 
 	// current focus
 	PostMessage(WM_FW_FOCUSCHANGE, (WPARAM)::GetFocus(), 0L);
@@ -7514,11 +7629,16 @@ void CToDoListWnd::Resize(int cx, int cy, BOOL bMaximized)
 	ReposTaskList(&dwm, rTaskList);
 	
 #ifdef _DEBUG
-	CRect rect;
-	CalcToDoCtrlRect(rect, cx, cy, IsZoomed());
+	// Child layout metrics are not final while the frame is still hidden
+	// (for example during a clamped restore of a saved window position)
+	if (IsWindowVisible())
+	{
+		CRect rect;
+		CalcToDoCtrlRect(rect, cx, cy, IsZoomed());
 
-	if (rect != rTaskList)
-		ASSERT(0);
+		if (rect != rTaskList)
+			ASSERT(0);
+	}
 #endif
 
 	Invalidate(TRUE);

@@ -27,6 +27,7 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 
 const LPCTSTR HOMEFOLDERS_SECTION	= _T("HomeFolders");
+const LPCTSTR TASKLIST_SET_EXT		= _T(".tdlset.txt");
 const LPCTSTR SIZE_ATTRIB_ID		= TDC_CUSTOMATTRIB_HOMEFOLDERSIZE;
 const LPCTSTR TYPE_ATTRIB_ID		= TDC_CUSTOMATTRIB_HOMEFOLDERTYPE;
 const int MAX_FOLDER_DEPTH			= 32;
@@ -211,6 +212,95 @@ BOOL CTDLHomeFolder::IsTextFile(const CString& sFilePath)
 	return IsTextFileExtension(FileMisc::GetExtension(sFilePath, FALSE));
 }
 
+BOOL CTDLHomeFolder::IsTasklistSetFile(const CString& sFilePath)
+{
+	CString sName = FileMisc::GetFileNameFromPath(sFilePath);
+	int nExtLen = lstrlen(TASKLIST_SET_EXT);
+
+	return ((sName.GetLength() > nExtLen) &&
+			(sName.Right(nExtLen).CompareNoCase(TASKLIST_SET_EXT) == 0));
+}
+
+BOOL CTDLHomeFolder::ReadTasklistSet(const CString& sSetFilePath, CStringArray& aTasklistPaths)
+{
+	aTasklistPaths.RemoveAll();
+
+	CString sContent;
+
+	if (!LoadTextFile(sSetFilePath, sContent))
+		return FALSE;
+
+	CString sSetFolder = FileMisc::GetFolderFromFilePath(sSetFilePath);
+	CString sHomeFolder = GetFolder();
+
+	int nStart = 0;
+
+	while (nStart != -1)
+	{
+		CString sLine = sContent.Tokenize(_T("\r\n"), nStart);
+
+		sLine.Trim();
+
+		// Strip a leading UTF-8 BOM and allow simple comment lines
+		if (!sLine.IsEmpty() && (sLine[0] == 0xFEFF))
+		{
+			sLine.Delete(0);
+			sLine.Trim();
+		}
+
+		if (sLine.IsEmpty() || (sLine[0] == _T('#')) || (sLine[0] == _T(';')))
+			continue;
+
+		// Strip matching quotes
+		int nLength = sLine.GetLength();
+
+		if ((nLength >= 2) &&
+			(((sLine[0] == _T('"')) && (sLine[nLength - 1] == _T('"'))) ||
+			 ((sLine[0] == _T('\'')) && (sLine[nLength - 1] == _T('\'')))))
+		{
+			sLine = sLine.Mid(1, nLength - 2);
+			sLine.Trim();
+		}
+
+		if (sLine.IsEmpty())
+			continue;
+
+		CString sFullPath = sLine;
+
+		if (::PathIsRelative(sFullPath))
+		{
+			// Prefer the set file's folder, then the home folder
+			CString sCandidate = FileMisc::GetFullPath(sFullPath, sSetFolder);
+
+			if (FileMisc::FileExists(sCandidate))
+			{
+				sFullPath = sCandidate;
+			}
+			else if (!sHomeFolder.IsEmpty())
+			{
+				CString sHomeCandidate = FileMisc::GetFullPath(sFullPath, sHomeFolder);
+
+				if (FileMisc::FileExists(sHomeCandidate))
+					sFullPath = sHomeCandidate;
+				else
+					sFullPath = sCandidate;
+			}
+			else
+			{
+				sFullPath = sCandidate;
+			}
+		}
+
+		if (!FileMisc::HasExtension(sFullPath, _T("tdl")))
+			continue;
+
+		if (!IsFileInList(sFullPath, aTasklistPaths))
+			aTasklistPaths.Add(sFullPath);
+	}
+
+	return (aTasklistPaths.GetSize() > 0);
+}
+
 BOOL CTDLHomeFolder::BuildTaskFile(CTaskFile& tasks, const CStringArray& aOpenFiles, const CStringArray& aModifiedFiles,
 								   const CStringArray& aTextFiles, const CTDLHomeFolderTabColorMap& mapTabColors,
 								   CTDLHomeFolderTaskColorMap& mapTaskBgColors)
@@ -345,12 +435,35 @@ BOOL CTDLHomeFolder::AddFolderContents(CTaskFile& tasks, void* hParent, DWORD dw
 
 		CString sType = FileMisc::GetExtension(sPath, FALSE);
 		BOOL bTdl = (sType.CompareNoCase(_T("tdl")) == 0);
-		BOOL bText = !bTdl && (IsTextFileExtension(sType) || IsFileInList(sPath, aTextFiles));
+		BOOL bTdlSet = IsTasklistSetFile(sPath);
+		BOOL bText = !bTdl && !bTdlSet && (IsTextFileExtension(sType) || IsFileInList(sPath, aTextFiles));
 
-		if (!sType.IsEmpty())
+		if (bTdlSet)
+			tasks.SetTaskCustomAttributeData(hTask, TYPE_ATTRIB_ID, _T("tdlset.txt"));
+		else if (!sType.IsEmpty())
 			tasks.SetTaskCustomAttributeData(hTask, TYPE_ATTRIB_ID, sType);
 
-		BOOL bOpen = IsFileOpen(sPath, aOpenFiles);
+		BOOL bOpen = FALSE;
+		BOOL bModified = FALSE;
+
+		if (bTdl)
+		{
+			bOpen = IsFileOpen(sPath, aOpenFiles);
+			bModified = IsFileModified(sPath, aModifiedFiles);
+		}
+		else if (bTdlSet)
+		{
+			CStringArray aSetPaths;
+
+			if (ReadTasklistSet(sPath, aSetPaths))
+			{
+				for (int nSetPath = 0; nSetPath < aSetPaths.GetSize(); nSetPath++)
+				{
+					bOpen |= IsFileOpen(aSetPaths[nSetPath], aOpenFiles);
+					bModified |= IsFileModified(aSetPaths[nSetPath], aModifiedFiles);
+				}
+			}
+		}
 
 		if (bTdl)
 		{
@@ -360,6 +473,18 @@ BOOL CTDLHomeFolder::AddFolderContents(CTaskFile& tasks, void* hParent, DWORD dw
 
 			if (mapTabColors.Lookup(sPath, crTab) && (crTab != CLR_NONE))
 				mapTaskBgColors.SetAt(dwTaskID, crTab);
+		}
+		else if (bTdlSet)
+		{
+			tasks.SetTaskIcon(hTask, _T("85"));
+
+			if (FileMisc::GetFileSize(sPath) <= MAX_PREVIEW_FILE_SIZE)
+			{
+				CString sContent;
+
+				if (LoadTextFile(sPath, sContent))
+					tasks.SetTaskComments(hTask, sContent);
+			}
 		}
 		else if (bText)
 		{
@@ -382,7 +507,7 @@ BOOL CTDLHomeFolder::AddFolderContents(CTaskFile& tasks, void* hParent, DWORD dw
 
 		if (bOpen)
 		{
-			if (IsFileModified(sPath, aModifiedFiles))
+			if (bModified)
 			{
 				crText = ::GetSysColor(COLOR_HOTLIGHT);
 				tasks.SetTaskCustomAttributeData(hTask, TDC_CUSTOMATTRIB_HOMEFOLDERSTATUS, _T("Modified"));
@@ -394,7 +519,7 @@ BOOL CTDLHomeFolder::AddFolderContents(CTaskFile& tasks, void* hParent, DWORD dw
 		}
 		else
 		{
-			crText = (bTdl ? CLOSED_TDL_TEXT_COLOR : OTHER_FILE_TEXT_COLOR);
+			crText = ((bTdl || bTdlSet) ? CLOSED_TDL_TEXT_COLOR : OTHER_FILE_TEXT_COLOR);
 		}
 
 		if (crText != CLR_NONE)
@@ -431,6 +556,19 @@ static void CollectTasklists(const CString& sFolder, CStringArray& aPaths, int n
 			aFolders.Add(sPath);
 		else if (FileMisc::HasExtension(sPath, _T("tdl")))
 			aPaths.Add(sPath);
+		else if (CTDLHomeFolder::IsTasklistSetFile(sPath))
+		{
+			CStringArray aSetPaths;
+
+			if (CTDLHomeFolder::ReadTasklistSet(sPath, aSetPaths))
+			{
+				for (int nSetPath = 0; nSetPath < aSetPaths.GetSize(); nSetPath++)
+				{
+					if (!IsFileInList(aSetPaths[nSetPath], aPaths))
+						aPaths.Add(aSetPaths[nSetPath]);
+				}
+			}
+		}
 	}
 
 	finder.Close();

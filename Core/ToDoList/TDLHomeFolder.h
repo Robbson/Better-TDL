@@ -29,6 +29,9 @@ public:
 	static CString ResolveStoredPath(const CString& sFilePath);
 	static BOOL IsTextFile(const CString& sFilePath);
 
+	static BOOL IsTasklistSetFile(const CString& sFilePath);
+	static BOOL ReadTasklistSet(const CString& sSetFilePath, CStringArray& aTasklistPaths);
+
 	typedef CMap<CString, LPCTSTR, COLORREF, COLORREF> CTDLHomeFolderTabColorMap;
 	typedef CMap<DWORD, DWORD, COLORREF, COLORREF> CTDLHomeFolderTaskColorMap;
 

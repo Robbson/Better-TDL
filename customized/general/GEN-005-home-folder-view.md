@@ -52,10 +52,11 @@ alphabetical, hidden/system/reparse-point entries skipped) and fills a `CTaskFil
 | Size | custom attribute `HomeFolder.Size` (integer, bytes); blank for folders |
 | Type | custom attribute `HomeFolder.Type` (extension) |
 | Status | custom attribute `HomeFolder.Status`: `Opened`, `Modified` or blank when closed |
-| Content preview | text files up to 128 KB are loaded into the task comments |
+| Content preview | text files (and `*.tdlset.txt` set files) up to 128 KB are loaded into the task comments |
 | Path | custom attribute `HomeFolder.Path`; blank for home entries, reserved for future external files |
 | Absolute path | disabled custom attribute `HomeFolder.FullPath` (internal, no column) |
 | `.tdl` icon | `tdl` (open) or `tdlclosed` (pale, not open), mapped to `IDR_MAINFRAME` |
+| set icon | task icon `85` for `*.tdlset.txt` (see [GEN-007](GEN-007-tdl-set-files.md)) |
 | text icon | task icon `93` for `.txt`, `.md`, `.log`, `.ini`, `.csv`, `.json`, `.xml`, `.yml`, `.yaml` |
 
 Visible columns are fixed to Title, Last Modified, Size, Type, Status and Path. `Size` is
@@ -85,6 +86,7 @@ to the best contrasting colour, matching the adaptive tab title colour:
 | State | Text colour | Background |
 |---|---|---|
 | Closed `.tdl` file | `RGB(150,150,150)` | default |
+| Closed `.tdlset.txt` file | `RGB(150,150,150)` | default |
 | Other file | `RGB(101,67,33)` | default |
 | Open, unmodified tasklist | default window text or best contrast | tab colour, if set |
 | Open, modified and unsaved tasklist | `COLOR_HOTLIGHT` or best contrast | tab colour, if set |
@@ -122,6 +124,28 @@ edited-document states correct. Home is always moved to the first tab when opene
 
 Home is omitted from the Window menu (commands still map by manager index); the tab
 remains because it is the only way to navigate back to the virtual document.
+
+### Tasklist sets
+
+Files named `*.tdlset.txt` are plain-text lists of `.tdl` documents (one per line,
+optionally with `#`/`;` comments). They appear with task icon `85` and type
+`tdlset.txt`; opening one opens all listed tasklists in file order, and the context
+menu's Close closes their open members. See
+[GEN-007](GEN-007-tdl-set-files.md) for the format and behaviour.
+
+### Startup
+
+When a session has no tasklist to restore and no document is supplied on the command
+line, the app normally creates an untitled tasklist containing the sample task. If a
+Home folder is configured, the existing pristine tasklist is converted to the Home view
+in place before the window is shown. This keeps the startup invariant that a tasklist
+exists from `OnCreate` onward and avoids both the sample task and any untitled tab or
+flash. An explicit start-empty request (`-e`) still produces an empty tasklist.
+Due-task notifications are skipped when Home is the only open tab.
+
+The debug layout consistency check in `CToDoListWnd::Resize` is skipped while the frame
+is hidden: restoring a saved window position that must be clamped can leave child
+metrics stale during the hidden resize, while the visible layout is still checked.
 
 ### Activation
 
@@ -177,6 +201,9 @@ file exists there, otherwise against the application folder (preserving old sess
 ## Manual checks
 
 - Toolbar Home button opens a Home tab containing the folder tree.
+- Starting with no previous tasklists and a configured Home folder opens Home directly,
+  without creating a new document, sample task, untitled tab, or startup assertion.
+- Starting with `-e` still opens an empty tasklist, not Home.
 - A `.tdl` row opens the tasklist as a document and changes from grey (closed) to the
   default text colour (open) or hotlight (modified, unsaved).
 - Attempting to switch Home to Graphs/Calendar/Gantt/Kanban/Workload shows a notice and

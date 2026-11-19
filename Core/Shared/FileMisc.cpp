@@ -414,8 +414,8 @@ time64_t FileMisc::GetFileLastModified(LPCTSTR szPath)
 
 BOOL FileMisc::GetFileLastModified(LPCTSTR szPath, FILETIME& fileTime)
 {
-	// files only
-	if (!FileExists(szPath))
+	// files and folders
+	if (!FileExists(szPath) && !FolderExists(szPath))
 		return FALSE;
 	
 	CFileFind ff;

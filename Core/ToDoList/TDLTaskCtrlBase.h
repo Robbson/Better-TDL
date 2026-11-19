@@ -171,6 +171,7 @@ public:
 	BOOL GetTaskTextColors(DWORD dwTaskID, COLORREF& crText, COLORREF& crBack, BOOL bRef = -1, BOOL bSelected = FALSE) const;
 	BOOL GetTaskTextColors(const TODOITEM* pTDI, const TODOSTRUCTURE* pTDS, COLORREF& crText, 
 							COLORREF& crBack, BOOL bRef = -1, BOOL bSelected = FALSE) const;
+	BOOL GetTaskBackgroundColor(DWORD dwTaskID, COLORREF& crBack) const;
 	int GetTaskIconIndex(DWORD dwTaskID) const;
 	int GetTaskIconIndex(const TODOITEM* pTDI, const TODOSTRUCTURE* pTDS) const;
 
@@ -212,6 +213,7 @@ public:
 	BOOL SetAttributeColors(TDC_ATTRIBUTE nAttribID, const CTDCColorMap& colors);
 	TDC_ATTRIBUTE GetColorByAttribute() const  { return m_nColorByAttribID; }
 	BOOL SetStartedTaskColors(COLORREF crStarted, COLORREF crStartedToday);
+	void SetTaskBackgroundColors(const CMap<DWORD, DWORD, COLORREF, COLORREF>& mapColors);
 	BOOL SetDueTaskColors(COLORREF crDue, COLORREF crDueToday);
 	void GetDueTaskColors(COLORREF& crDue, COLORREF& crDueToday) const { crDue = m_crDue; crDueToday = m_crDueToday; }
 	BOOL HasDueTodayColor() const { return HasColor(m_crDueToday); }
@@ -274,6 +276,7 @@ protected:
 	COLORREF m_crDueToday, m_crFlagged, m_crReference;
 	CDWordArray m_aPriorityColors;
 	CTDCColorMap m_mapAttribColors;
+	CMap<DWORD, DWORD, COLORREF, COLORREF> m_mapTaskBgColors;
 	TDC_ATTRIBUTE m_nColorByAttribID;
 	CBrush m_brDue, m_brDueToday;
 	CFontCache m_fonts;

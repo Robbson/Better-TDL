@@ -8826,6 +8826,21 @@ int CToDoCtrl::FindTasks(const SEARCHPARAMS& params, CResultArray& aResults) con
 	return TCF().FindTasks(params, aResults, HasDueTodayColor());
 }
 
+DWORD CToDoCtrl::FindTaskByCustomAttribute(const CString& sAttribID, const CString& sValue) const
+{
+	POSITION pos = m_data.GetStart();
+
+	while (pos)
+	{
+		DWORD dwTaskID = m_data.GetNextTaskID(pos);
+
+		if (m_data.GetTaskCustomAttributeData(dwTaskID, sAttribID) == sValue)
+			return dwTaskID;
+	}
+
+	return 0;
+}
+
 BOOL CToDoCtrl::HasOverdueTasks() const
 {
 	return m_calculator.HasOverdueTasks();

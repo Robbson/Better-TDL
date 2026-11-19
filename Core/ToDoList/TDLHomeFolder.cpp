@@ -31,8 +31,10 @@ const LPCTSTR SIZE_ATTRIB_ID		= TDC_CUSTOMATTRIB_HOMEFOLDERSIZE;
 const LPCTSTR TYPE_ATTRIB_ID		= TDC_CUSTOMATTRIB_HOMEFOLDERTYPE;
 const int MAX_FOLDER_DEPTH			= 32;
 const int MAX_PREVIEW_FILE_SIZE		= (128 * 1024);
+const COLORREF CLOSED_TDL_TEXT_COLOR = RGB(150, 150, 150);
+const COLORREF OTHER_FILE_TEXT_COLOR = RGB(101, 67, 33);
 
-static BOOL IsTextFile(LPCTSTR szExtension)
+static BOOL IsTextFileExtension(LPCTSTR szExtension)
 {
 	static LPCTSTR TEXT_EXTENSIONS[] = 
 	{
@@ -43,6 +45,17 @@ static BOOL IsTextFile(LPCTSTR szExtension)
 	for (int nExt = 0; nExt < _countof(TEXT_EXTENSIONS); nExt++)
 	{
 		if (lstrcmpi(szExtension, TEXT_EXTENSIONS[nExt]) == 0)
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+static BOOL IsFileInList(const CString& sFilePath, const CStringArray& aFiles)
+{
+	for (int nFile = 0; nFile < aFiles.GetSize(); nFile++)
+	{
+		if (FileMisc::IsSamePath(sFilePath, aFiles[nFile]))
 			return TRUE;
 	}
 
@@ -193,14 +206,24 @@ BOOL CTDLHomeFolder::IsFileModified(const CString& sFilePath, const CStringArray
 	return FALSE;
 }
 
-BOOL CTDLHomeFolder::BuildTaskFile(CTaskFile& tasks, const CStringArray& aOpenFiles, const CStringArray& aModifiedFiles)
+BOOL CTDLHomeFolder::IsTextFile(const CString& sFilePath)
 {
-	return BuildTaskFile(tasks, GetFolder(), aOpenFiles, aModifiedFiles);
+	return IsTextFileExtension(FileMisc::GetExtension(sFilePath, FALSE));
 }
 
-BOOL CTDLHomeFolder::BuildTaskFile(CTaskFile& tasks, const CString& sFolder, const CStringArray& aOpenFiles, const CStringArray& aModifiedFiles)
+BOOL CTDLHomeFolder::BuildTaskFile(CTaskFile& tasks, const CStringArray& aOpenFiles, const CStringArray& aModifiedFiles,
+								   const CStringArray& aTextFiles, const CTDLHomeFolderTabColorMap& mapTabColors,
+								   CTDLHomeFolderTaskColorMap& mapTaskBgColors)
+{
+	return BuildTaskFile(tasks, GetFolder(), aOpenFiles, aModifiedFiles, aTextFiles, mapTabColors, mapTaskBgColors);
+}
+
+BOOL CTDLHomeFolder::BuildTaskFile(CTaskFile& tasks, const CString& sFolder, const CStringArray& aOpenFiles, const CStringArray& aModifiedFiles,
+								   const CStringArray& aTextFiles, const CTDLHomeFolderTabColorMap& mapTabColors,
+								   CTDLHomeFolderTaskColorMap& mapTaskBgColors)
 {
 	tasks.Reset();
+	mapTaskBgColors.RemoveAll();
 
 	if (sFolder.IsEmpty() || !FileMisc::FolderExists(sFolder))
 		return FALSE;
@@ -220,6 +243,7 @@ BOOL CTDLHomeFolder::BuildTaskFile(CTaskFile& tasks, const CString& sFolder, con
 	sizeDef.sUniqueID = SIZE_ATTRIB_ID;
 	sizeDef.sColumnTitle = _T("Size");
 	sizeDef.SetDataType(TDCCA_INTEGER);
+	sizeDef.dwFeatures |= TDCCAF_HIDEZERO;
 	aAttribDefs.Add(sizeDef);
 
 	TDCCUSTOMATTRIBUTEDEFINITION typeDef(_T("Type"), TRUE);
@@ -245,11 +269,13 @@ BOOL CTDLHomeFolder::BuildTaskFile(CTaskFile& tasks, const CString& sFolder, con
 
 	DWORD dwNextID = 1;
 
-	return AddFolderContents(tasks, NULL, 0, sFolder, dwNextID, aOpenFiles, aModifiedFiles, 0);
+	return AddFolderContents(tasks, NULL, 0, sFolder, dwNextID, aOpenFiles, aModifiedFiles, aTextFiles, mapTabColors, mapTaskBgColors, 0);
 }
 
 BOOL CTDLHomeFolder::AddFolderContents(CTaskFile& tasks, void* hParent, DWORD dwParentID, const CString& sFolder,
-									   DWORD& dwNextID, const CStringArray& aOpenFiles, const CStringArray& aModifiedFiles, int nDepth)
+									   DWORD& dwNextID, const CStringArray& aOpenFiles, const CStringArray& aModifiedFiles,
+									   const CStringArray& aTextFiles, const CTDLHomeFolderTabColorMap& mapTabColors,
+									   CTDLHomeFolderTaskColorMap& mapTaskBgColors, int nDepth)
 {
 	if (nDepth > MAX_FOLDER_DEPTH)
 		return TRUE;
@@ -300,7 +326,7 @@ BOOL CTDLHomeFolder::AddFolderContents(CTaskFile& tasks, void* hParent, DWORD dw
 		tasks.SetTaskCustomAttributeData(hTask, TDC_CUSTOMATTRIB_HOMEFOLDERFULLPATH, sPath);
 		tasks.SetTaskLastModified64(hTask, FileMisc::GetFileLastModified(sPath));
 
-		AddFolderContents(tasks, hTask, dwTaskID, sPath, dwNextID, aOpenFiles, aModifiedFiles, nDepth + 1);
+		AddFolderContents(tasks, hTask, dwTaskID, sPath, dwNextID, aOpenFiles, aModifiedFiles, aTextFiles, mapTabColors, mapTaskBgColors, nDepth + 1);
 	}
 
 	for (int nFile = 0; nFile < aFiles.GetSize(); nFile++)
@@ -318,16 +344,22 @@ BOOL CTDLHomeFolder::AddFolderContents(CTaskFile& tasks, void* hParent, DWORD dw
 		tasks.SetTaskLastModified64(hTask, FileMisc::GetFileLastModified(sPath));
 
 		CString sType = FileMisc::GetExtension(sPath, FALSE);
-		BOOL bText = IsTextFile(sType);
+		BOOL bTdl = (sType.CompareNoCase(_T("tdl")) == 0);
+		BOOL bText = !bTdl && (IsTextFileExtension(sType) || IsFileInList(sPath, aTextFiles));
 
 		if (!sType.IsEmpty())
 			tasks.SetTaskCustomAttributeData(hTask, TYPE_ATTRIB_ID, sType);
 
 		BOOL bOpen = IsFileOpen(sPath, aOpenFiles);
 
-		if (sType.CompareNoCase(_T("tdl")) == 0)
+		if (bTdl)
 		{
 			tasks.SetTaskIcon(hTask, bOpen ? _T("tdl") : _T("tdlclosed"));
+
+			COLORREF crTab = CLR_NONE;
+
+			if (mapTabColors.Lookup(sPath, crTab) && (crTab != CLR_NONE))
+				mapTaskBgColors.SetAt(dwTaskID, crTab);
 		}
 		else if (bText)
 		{
@@ -362,7 +394,7 @@ BOOL CTDLHomeFolder::AddFolderContents(CTaskFile& tasks, void* hParent, DWORD dw
 		}
 		else
 		{
-			crText = RGB(150, 150, 150);
+			crText = (bTdl ? CLOSED_TDL_TEXT_COLOR : OTHER_FILE_TEXT_COLOR);
 		}
 
 		if (crText != CLR_NONE)

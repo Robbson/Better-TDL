@@ -2180,6 +2180,30 @@ BOOL CTDLTaskCtrlBase::SetStartedTaskColors(COLORREF crStarted, COLORREF crStart
 	return FALSE;
 }
 
+void CTDLTaskCtrlBase::SetTaskBackgroundColors(const CMap<DWORD, DWORD, COLORREF, COLORREF>& mapColors)
+{
+	m_mapTaskBgColors.RemoveAll();
+
+	POSITION pos = mapColors.GetStartPosition();
+
+	while (pos)
+	{
+		DWORD dwTaskID = 0;
+		COLORREF crBack = CLR_NONE;
+
+		mapColors.GetNextAssoc(pos, dwTaskID, crBack);
+		m_mapTaskBgColors.SetAt(dwTaskID, crBack);
+	}
+
+	if (GetSafeHwnd())
+		RedrawTasks(FALSE);
+}
+
+BOOL CTDLTaskCtrlBase::GetTaskBackgroundColor(DWORD dwTaskID, COLORREF& crBack) const
+{
+	return m_mapTaskBgColors.Lookup(dwTaskID, crBack);
+}
+
 BOOL CTDLTaskCtrlBase::CheckUpdateDueBrushColor(COLORREF crNew, COLORREF& crCur, CBrush& brCur)
 {
 	if (crCur != crNew)
@@ -2525,6 +2549,12 @@ LRESULT CTDLTaskCtrlBase::OnListCustomDraw(NMLVCUSTOMDRAW* pLVCD, const CIntArra
 					COLORREF crText, crBack;
 					GetTaskTextColors(pTDI, pTDS, crText, crBack, bRef, bSelected);
 
+					if (!bSelected && !HasColor(crBack))
+						GetTaskBackgroundColor(dwTaskID, crBack);
+
+					if (!bSelected && HasColor(crBack))
+						crText = GraphicsMisc::GetBestTextColor(crBack);
+
 					// draw task background
 					// Note: using the non-full width item rect
 					if (!bSelected && HasColor(crBack))
@@ -2610,6 +2640,12 @@ DWORD CTDLTaskCtrlBase::OnPostPaintTaskTitle(const NMCUSTOMDRAW& nmcd, BOOL bFil
 			GM_ITEMSTATE nState = GetItemTitleState(nmcd);
 
 			VERIFY(GetTaskTextColors(pTDI, pTDS, crText, crBack, (dwTaskID != dwTrueID), (nState != GMIS_NONE)));
+
+			if (!HasColor(crBack) && (nState == GMIS_NONE))
+				GetTaskBackgroundColor(dwTaskID, crBack);
+
+			if ((nState == GMIS_NONE) && HasColor(crBack))
+				crText = GraphicsMisc::GetBestTextColor(crBack);
 
 			if (!HasColor(crBack))
 				crBack = (IsAlternateTitleLine(nmcd) ? m_crAltLine : GetSysColor(COLOR_WINDOW));

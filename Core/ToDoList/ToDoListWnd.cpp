@@ -560,6 +560,7 @@ BEGIN_MESSAGE_MAP(CToDoListWnd, CFrameWnd)
 	ON_COMMAND(ID_HOME_CLOSE, OnHomeClose)
 	ON_COMMAND(ID_HOME_SHOWINEXPLORER, OnHomeShowInExplorer)
 	ON_COMMAND(ID_HOME_OPENREPLACE, OnHomeOpenReplace)
+	ON_COMMAND(ID_HOME_OPENASTEXT, OnHomeOpenAsText)
 	ON_COMMAND(ID_FILE_OPENARCHIVE, OnFileOpenarchive)
 	ON_COMMAND(ID_FILE_RESETVERSION, OnFileResetversion)
 	ON_COMMAND(ID_HELP_KEYBOARDSHORTCUTS, OnShowKeyboardshortcuts)
@@ -2784,10 +2785,12 @@ int CToDoListWnd::FindHomeFolderView() const
 	return -1;
 }
 
-void CToDoListWnd::GetOpenTasklistPaths(CStringArray& aOpenFiles, CStringArray& aModifiedFiles) const
+void CToDoListWnd::GetOpenTasklistPaths(CStringArray& aOpenFiles, CStringArray& aModifiedFiles,
+										CMap<CString, LPCTSTR, COLORREF, COLORREF>& mapTabColors) const
 {
 	aOpenFiles.RemoveAll();
 	aModifiedFiles.RemoveAll();
+	mapTabColors.RemoveAll();
 
 	for (int nTDC = 0; nTDC < GetTDCCount(); nTDC++)
 	{
@@ -2802,6 +2805,11 @@ void CToDoListWnd::GetOpenTasklistPaths(CStringArray& aOpenFiles, CStringArray& 
 			continue;
 
 		aOpenFiles.Add(sFilePath);
+
+		COLORREF crTab = m_mgrToDoCtrls.GetTabColor(nTDC);
+
+		if (crTab != CLR_NONE)
+			mapTabColors.SetAt(sFilePath, crTab);
 
 		if (m_mgrToDoCtrls.IsModified(nTDC) && !m_mgrToDoCtrls.GetReadOnlyStatus(nTDC))
 			aModifiedFiles.Add(sFilePath);
@@ -2879,15 +2887,19 @@ BOOL CToDoListWnd::RefreshHomeFolderView(CFilteredToDoCtrl* pTDC)
 	CAutoFlagT<BOOL> af(m_bRefreshingHomeFolder, TRUE);
 
 	CStringArray aOpenFiles, aModifiedFiles;
-	GetOpenTasklistPaths(aOpenFiles, aModifiedFiles);
+	CMap<CString, LPCTSTR, COLORREF, COLORREF> mapTabColors;
+	GetOpenTasklistPaths(aOpenFiles, aModifiedFiles, mapTabColors);
 
 	CTaskFile tasks;
+	CMap<DWORD, DWORD, COLORREF, COLORREF> mapTaskBgColors;
 
-	if (!CTDLHomeFolder::BuildTaskFile(tasks, sFolder, aOpenFiles, aModifiedFiles))
+	if (!CTDLHomeFolder::BuildTaskFile(tasks, sFolder, aOpenFiles, aModifiedFiles, m_aHomeTextFiles, mapTabColors, mapTaskBgColors))
 		return FALSE;
 
 	if (!pTDC->LoadVirtualTasks(tasks))
 		return FALSE;
+
+	pTDC->SetTaskBackgroundColors(mapTaskBgColors);
 
 	pTDC->SetReadonly(TRUE);
 	pTDC->SetDragDropEnabled(FALSE);
@@ -3133,6 +3145,63 @@ void CToDoListWnd::OpenHomeSelection()
 		m_bHomeFolderNeedsRefresh = TRUE;
 }
 
+BOOL CToDoListWnd::IsHomeFileForcedAsText(const CString& sFilePath) const
+{
+	for (int nFile = 0; nFile < m_aHomeTextFiles.GetSize(); nFile++)
+	{
+		if (FileMisc::IsSamePath(sFilePath, m_aHomeTextFiles[nFile]))
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+BOOL CToDoListWnd::IsHomeFileEligibleAsText(const CString& sFilePath) const
+{
+	return (FileMisc::FileExists(sFilePath) &&
+			!FileMisc::HasExtension(sFilePath, _T("tdl")) &&
+			!CTDLHomeFolder::IsTextFile(sFilePath));
+}
+
+DWORD CToDoListWnd::FindHomeTaskByPath(CFilteredToDoCtrl& tdc, const CString& sFilePath) const
+{
+	return tdc.FindTaskByCustomAttribute(TDC_CUSTOMATTRIB_HOMEFOLDERFULLPATH, sFilePath);
+}
+
+void CToDoListWnd::OnHomeOpenAsText()
+{
+	CStringArray aPaths;
+	GetHomeSelectedPaths(aPaths);
+
+	CString sFirstPath;
+
+	for (int nPath = 0; nPath < aPaths.GetSize(); nPath++)
+	{
+		const CString& sFilePath = aPaths[nPath];
+
+		if (!IsHomeFileEligibleAsText(sFilePath))
+			continue;
+
+		if (!IsHomeFileForcedAsText(sFilePath))
+			m_aHomeTextFiles.Add(sFilePath);
+
+		if (sFirstPath.IsEmpty())
+			sFirstPath = sFilePath;
+	}
+
+	if (sFirstPath.IsEmpty())
+		return;
+
+	if (RefreshHomeFolderView())
+	{
+		CFilteredToDoCtrl& tdc = GetToDoCtrl();
+		DWORD dwTaskID = FindHomeTaskByPath(tdc, sFirstPath);
+
+		if (dwTaskID)
+			tdc.SelectTask(dwTaskID, FALSE);
+	}
+}
+
 void CToDoListWnd::ShowHomeContextMenu(CPoint point, BOOL bHasSelection)
 {
 	CStringArray aPaths;
@@ -3142,15 +3211,20 @@ void CToDoListWnd::ShowHomeContextMenu(CPoint point, BOOL bHasSelection)
 
 	BOOL bAnySelected = (aPaths.GetSize() > 0);
 	BOOL bAnyOpen = FALSE;
+	BOOL bAnyTextable = FALSE;
 
-	for (int nPath = 0; (nPath < aPaths.GetSize()) && !bAnyOpen; nPath++)
-		bAnyOpen = (FindTasklistByPath(aPaths[nPath]) != -1);
+	for (int nPath = 0; nPath < aPaths.GetSize(); nPath++)
+	{
+		bAnyOpen |= (FindTasklistByPath(aPaths[nPath]) != -1);
+		bAnyTextable |= IsHomeFileEligibleAsText(aPaths[nPath]);
+	}
 
 	CMenu menu;
 	menu.CreatePopupMenu();
 
 	menu.AppendMenu(MF_STRING | (bAnySelected ? 0 : MF_GRAYED), ID_HOME_OPEN, _T("&Open"));
 	menu.AppendMenu(MF_STRING | (bAnySelected ? 0 : MF_GRAYED), ID_HOME_OPENREPLACE, _T("Open && Replace"));
+	menu.AppendMenu(MF_STRING | (bAnyTextable ? 0 : MF_GRAYED), ID_HOME_OPENASTEXT, _T("Open as &Text"));
 	menu.AppendMenu(MF_STRING | (bAnyOpen ? 0 : MF_GRAYED), ID_HOME_CLOSE, _T("&Close"));
 	menu.AppendMenu(MF_STRING | (bAnySelected ? 0 : MF_GRAYED), ID_HOME_SHOWINEXPLORER, _T("Show in E&xplorer"));
 

@@ -191,6 +191,7 @@ protected:
 	CString m_sQuickFind;
 	CString m_sTaskViewImageExt;
 	CString m_sTitlePrefix;
+	CStringArray m_aHomeTextFiles;
 
 	BOOL m_bAllowForcedCheckOut;
 	BOOL m_bClosing;
@@ -341,6 +342,7 @@ protected:
 	afx_msg void OnHomeClose();
 	afx_msg void OnHomeShowInExplorer();
 	afx_msg void OnHomeOpenReplace();
+	afx_msg void OnHomeOpenAsText();
 	afx_msg void OnFileOpenFromUserStorage(UINT nCmdID);
 	afx_msg void OnFileOpenarchive();
 	afx_msg void OnFileResetversion();
@@ -733,9 +735,13 @@ protected:
 	void ShowHomeContextMenu(CPoint point, BOOL bHasSelection);
 	void OpenHomeItem(DWORD dwTaskID);
 	void OpenHomeSelection();
+	BOOL IsHomeFileForcedAsText(const CString& sFilePath) const;
+	BOOL IsHomeFileEligibleAsText(const CString& sFilePath) const;
+	DWORD FindHomeTaskByPath(CFilteredToDoCtrl& tdc, const CString& sFilePath) const;
 	void MarkHomeFolderDirty();
 	BOOL RefreshHomeFolderView(CFilteredToDoCtrl* pTDC = NULL);
-	void GetOpenTasklistPaths(CStringArray& aOpenFiles, CStringArray& aModifiedFiles) const;
+	void GetOpenTasklistPaths(CStringArray& aOpenFiles, CStringArray& aModifiedFiles,
+							  CMap<CString, LPCTSTR, COLORREF, COLORREF>& mapTabColors) const;
 	void SetHomeFolderViewStyles(CFilteredToDoCtrl& tdc);
 	void SetHomeFolderViewColumns(CFilteredToDoCtrl& tdc);
 

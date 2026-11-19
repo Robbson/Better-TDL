@@ -27,15 +27,25 @@ public:
 	static BOOL IsPathInHomeFolder(const CString& sFilePath);
 	static CString GetStoredPath(const CString& sFilePath);
 	static CString ResolveStoredPath(const CString& sFilePath);
+	static BOOL IsTextFile(const CString& sFilePath);
 
-	static BOOL BuildTaskFile(CTaskFile& tasks, const CStringArray& aOpenFiles, const CStringArray& aModifiedFiles);
-	static BOOL BuildTaskFile(CTaskFile& tasks, const CString& sFolder, const CStringArray& aOpenFiles, const CStringArray& aModifiedFiles);
+	typedef CMap<CString, LPCTSTR, COLORREF, COLORREF> CTDLHomeFolderTabColorMap;
+	typedef CMap<DWORD, DWORD, COLORREF, COLORREF> CTDLHomeFolderTaskColorMap;
+
+	static BOOL BuildTaskFile(CTaskFile& tasks, const CStringArray& aOpenFiles, const CStringArray& aModifiedFiles,
+							  const CStringArray& aTextFiles, const CTDLHomeFolderTabColorMap& mapTabColors,
+							  CTDLHomeFolderTaskColorMap& mapTaskBgColors);
+	static BOOL BuildTaskFile(CTaskFile& tasks, const CString& sFolder, const CStringArray& aOpenFiles, const CStringArray& aModifiedFiles,
+							  const CStringArray& aTextFiles, const CTDLHomeFolderTabColorMap& mapTabColors,
+							  CTDLHomeFolderTaskColorMap& mapTaskBgColors);
 
 	static void CollectTasklistPaths(const CString& sFolder, CStringArray& aPaths);
 
 protected:
 	static BOOL AddFolderContents(CTaskFile& tasks, void* hParent, DWORD dwParentID, const CString& sFolder,
-								  DWORD& dwNextID, const CStringArray& aOpenFiles, const CStringArray& aModifiedFiles, int nDepth);
+								  DWORD& dwNextID, const CStringArray& aOpenFiles, const CStringArray& aModifiedFiles,
+								  const CStringArray& aTextFiles, const CTDLHomeFolderTabColorMap& mapTabColors,
+								  CTDLHomeFolderTaskColorMap& mapTaskBgColors, int nDepth);
 	static BOOL IsFileOpen(const CString& sFilePath, const CStringArray& aOpenFiles);
 	static BOOL IsFileModified(const CString& sFilePath, const CStringArray& aModifiedFiles);
 };

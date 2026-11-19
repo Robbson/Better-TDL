@@ -173,6 +173,7 @@ public:
 	void SetReferenceTaskColor(COLORREF color) { m_taskTree.SetReferenceTaskColor(color); }
 	void SetAttributeColors(TDC_ATTRIBUTE nAttribID, const CTDCColorMap& colors) { m_taskTree.SetAttributeColors(nAttribID, colors); }
 	void SetStartedTaskColors(COLORREF crStarted, COLORREF crStartedToday) { m_taskTree.SetStartedTaskColors(crStarted, crStartedToday); }
+	void SetTaskBackgroundColors(const CMap<DWORD, DWORD, COLORREF, COLORREF>& mapColors) { m_taskTree.SetTaskBackgroundColors(mapColors); }
 	void SetAlternateLineColor(COLORREF color) { m_taskTree.SetAlternateLineColor(color); }
 
 	void GetDueTaskColors(COLORREF& crDue, COLORREF& crDueToday) { m_taskTree.GetDueTaskColors(crDue, crDueToday); }
@@ -429,6 +430,7 @@ public:
 	const CTDCImageList& GetTaskIconImageList() const;
 
 	int FindTasks(const SEARCHPARAMS& params, CResultArray& aResults) const;
+	DWORD FindTaskByCustomAttribute(const CString& sAttribID, const CString& sValue) const;
 	BOOL HasTask(DWORD dwTaskID) const { return m_data.HasTask(dwTaskID); }
 	BOOL HasOverdueTasks() const;
 	BOOL HasDueTodayTasks() const;

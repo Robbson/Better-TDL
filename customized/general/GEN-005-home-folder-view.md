@@ -59,9 +59,12 @@ alphabetical, hidden/system/reparse-point entries skipped) and fills a `CTaskFil
 | text icon | task icon `93` for `.txt`, `.md`, `.log`, `.ini`, `.csv`, `.json`, `.xml`, `.yml`, `.yaml` |
 
 Visible columns are fixed to Title, Last Modified, Size, Type, Status and Path. `Size` is
-an integer and has no value for folder rows. The Status column is sortable and shows
-`Opened`, `Modified` or nothing for closed files. The internal absolute path is stored in
-a **disabled** custom attribute so it does not appear as a column or editor field. The
+an integer with `TDCCAF_HIDEZERO`, so folder rows (which have no size value) and empty
+files show blank rather than `0`, matching Windows Explorer. The Status column is sortable
+and shows `Opened`, `Modified` or nothing for closed files. The internal absolute path is
+stored in a **disabled** custom attribute so it does not appear as a column or editor
+field. Folder rows use the folder's real last-modified time (`FileMisc::GetFileLastModified`
+now accepts directories). The
 column set is initialised once when Home is created and then left alone, so the user's
 column order, widths and sort are preserved across refreshes and restarts (restored via
 `ReloadState`). `.tdl`
@@ -73,15 +76,19 @@ always bolds tasks whose parent is the root (`TDLTaskCtrlBase.cpp:2368`); this i
 upstream behaviour, not a Home setting.
 
 Row colouring is text-only and mirrors the MRU tasklist switcher, except that closed
-files use a lighter gray (`RGB(150,150,150)`) so they remain distinguishable from bold
-open titles:
+`.tdl` files use a lighter gray (`RGB(150,150,150)`) and other files use dark brown
+(`RGB(101,67,33)`) so they remain distinguishable from bold open titles. When an open
+`.tdl` row has a tasklist tab colour, that colour is used as the row background while the
+text colour still reflects the open/modified state; for dark tab colours the text switches
+to the best contrasting colour, matching the adaptive tab title colour:
 
-| State | Text colour |
-|---|---|
-| Closed file | `RGB(150,150,150)` |
-| Open, unmodified tasklist | default window text |
-| Open, modified and unsaved tasklist | `COLOR_HOTLIGHT` |
-| Folder | default window text |
+| State | Text colour | Background |
+|---|---|---|
+| Closed `.tdl` file | `RGB(150,150,150)` | default |
+| Other file | `RGB(101,67,33)` | default |
+| Open, unmodified tasklist | default window text or best contrast | tab colour, if set |
+| Open, modified and unsaved tasklist | `COLOR_HOTLIGHT` or best contrast | tab colour, if set |
+| Folder | default window text | default |
 
 `CToDoListWnd::OnFileHome` creates or refreshes a normal `CFilteredToDoCtrl` with no file
 path, loads the generated `CTaskFile` through the new public
@@ -132,6 +139,14 @@ recursively opens every `.tdl` beneath it. Open & Replace first closes every ope
 non-home tasklist (prompting to save modified documents) and then opens the selection.
 `Tools → Select in Explorer` also uses the selected Home item.
 
+### Open as Text
+
+Files whose extension is not in the built-in preview list show **Open as Text** in the
+Home context menu. Choosing it adds the selected file(s) to a session-only forced-text
+list, rebuilds the Home snapshot and selects the first file so its content appears in the
+comments editor. `.tdl` files and already-recognised text files do not offer the command.
+The same 128 KB preview limit applies.
+
 ### Relative paths
 
 When a tasklist is inside the home folder, session (`[Settings] LastFileN`,
@@ -152,6 +167,8 @@ file exists there, otherwise against the application folder (preserving old sess
 - `Core/ToDoList/TDCMsg.h` — `WM_TDCN_ACTIVATETASK`, `WM_TDCN_VIEWUNSUPPORTED`,
   home-folder attribute IDs.
 - `Core/ToDoList/TDLTaskTreeCtrl.cpp` — read-only double-click and Enter activation.
+- `Core/ToDoList/TDLTaskCtrlBase.cpp/.h` — transient per-task background colours used
+  for tasklist tab colours on open Home rows.
 - `Core/ToDoList/TDCImageList.cpp/.h` — 32-bit alpha application icon for `.tdl` files.
 - `Core/Shared/FileMisc.cpp/.h` — `IsPathInFolder`; Unix-based `GetFileLastModified`.
 - `Core/Shared/EnRecentFileList.cpp/.h` — optional home-relative MRU storage.
@@ -168,7 +185,13 @@ file exists there, otherwise against the application folder (preserving old sess
   filter does not assert and the field remains editable.
 - Idle processing with Home active produces no time-tracker assertion.
 - Dragging a Home row does not start a drag operation and does not assert.
-- Last-modified dates match the filesystem dates (not 1601-based values).
+- Last-modified dates match the filesystem dates (not 1601-based values), including folders.
+- Folder Size cells are blank rather than `0`.
+- Non-`.tdl` files show dark-brown text; closed `.tdl` files stay light gray; an open
+  tasklist with a tab colour paints its Home row with that colour as background and uses
+  white text when the colour is dark.
+- Right-clicking a non-text, non-`.tdl` file offers **Open as Text**, which shows its
+  content in the comments editor and selects the row.
 - `.tdl` rows show a smooth 50%-alpha application icon when closed and the normal icon
   when open; text files show icon 93 and their content appears in the comments control.
 - ANSI text files with non-ASCII characters display correctly (UTF-8 first, ANSI retry).

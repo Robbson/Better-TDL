@@ -3977,6 +3977,7 @@ END
 STRINGTABLE
 BEGIN
     ID_VIEW_MAXTASKLIST     "\nMaximise Task View"
+    ID_VIEW_MAXCOMMENTS     "\nMaximise Comments"
 END
 
 STRINGTABLE

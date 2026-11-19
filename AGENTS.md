@@ -95,19 +95,21 @@ Notes:
 
 ## Debug assertions
 
-Debug builds show an MFC assertion dialog by default, which blocks automation. To log
-assertions instead, set the environment variable before launching a Debug build:
+Debug builds append every CRT/MFC assertion to a log file before any dialog is shown.
+The default path is `%TEMP%\ToDoList_asserts.log`; override it with the environment
+variable:
 
 ```bat
-set TDL_ASSERT_LOG=1
+set TDL_ASSERT_LOG=D:\temp\ToDoList_asserts.log
 Core\ToDoList\Unicode_Debug\ToDoList.exe
 ```
 
-- `TDL_ASSERT_LOG=1` writes `%TEMP%\ToDoList_asserts.log`.
-- `TDL_ASSERT_LOG=<path>` writes to the given file.
-- The log includes a stack trace resolved with `dbghelp`/PDB when available.
-- The hook suppresses the dialog and continues execution. This is intended for
-  diagnosis, not production.
+- Logging is always on in Debug builds. The log includes a timestamp, process id, the
+  assertion message and a stack trace resolved with `dbghelp`/PDB when available.
+- The normal assertion dialog still appears by default.
+- Setting `TDL_ASSERT_LOG` to `1` or a path also suppresses the dialog and continues
+  execution, for unattended runs.
+- `TDL_ASSERT_LOG=0` restores stock behaviour: dialog only, no log.
 - Release builds ignore the variable.
 
 ## Windows tooling

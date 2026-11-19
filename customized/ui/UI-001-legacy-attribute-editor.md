@@ -358,8 +358,8 @@ Assertion fixes found during runtime testing:
   tripped MFC's `CArray` assertion. It now skips the copy when source and destination are
   the same object.
 - `SetSelectedTaskIDs()` now also guards against self-copy.
-- Added debug-only assertion logging (`TDL_ASSERT_LOG`) with stack traces; see
-  `AGENTS.md` for usage.
+- Added debug-only assertion logging (`TDL_ASSERT_LOG`) with stack traces; now on by
+  default, see [GEN-006](../general/GEN-006-assert-logging.md) and `AGENTS.md` for usage.
 
 Layout and appearance fixes:
 

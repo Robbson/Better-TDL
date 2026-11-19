@@ -70,6 +70,7 @@ static char THIS_FILE[] = __FILE__;
 
 #ifdef _DEBUG
 static CString s_sAssertLogPath;
+static BOOL s_bSuppressAssertDialog = FALSE;
 
 static void GetAssertLogPath(CString& sPath)
 {
@@ -162,10 +163,15 @@ static int __cdecl TDLAssertReportHook(int nReportType, char* szMessage, int* pn
 	if (szMessage)
 		::OutputDebugStringA(szMessage);
 
-	if (pnReturnValue)
-		*pnReturnValue = 0;
+	if (s_bSuppressAssertDialog)
+	{
+		if (pnReturnValue)
+			*pnReturnValue = 0;
 
-	return TRUE; // handled: suppress dialog and debug break
+		return TRUE; // handled: suppress dialog and debug break
+	}
+
+	return FALSE; // logged: let the default assertion dialog/break proceed
 }
 
 static void InitAssertLogging()
@@ -173,8 +179,13 @@ static void InitAssertLogging()
 	TCHAR szEnv[MAX_PATH * 2] = { 0 };
 	DWORD dwLen = ::GetEnvironmentVariable(_T("TDL_ASSERT_LOG"), szEnv, _countof(szEnv));
 
-	if ((dwLen == 0) || (dwLen >= _countof(szEnv)) || (lstrcmp(szEnv, _T("0")) == 0))
+	// TDL_ASSERT_LOG=0 restores stock behaviour: dialog only, no logging
+	if ((dwLen > 0) && (dwLen < _countof(szEnv)) && (lstrcmpi(szEnv, _T("0")) == 0))
 		return;
+
+	// Logging is on by default. An explicit value ('1' or a path) additionally
+	// suppresses the dialog so unattended runs cannot block.
+	s_bSuppressAssertDialog = ((dwLen > 0) && (dwLen < _countof(szEnv)));
 
 	_CrtSetReportHook2(_CRT_RPTHOOK_INSTALL, TDLAssertReportHook);
 }

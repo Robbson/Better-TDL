@@ -46,8 +46,8 @@ static const TDCTOOLBARITEM MAIN_TOOLBAR_ITEMS[] =
 	{},
 	{ ID_EDIT_SETREMINDER,			_T("207") },
 	{},
-	{ ID_VIEW_MAXTASKLIST,			_T("7") }, // Todo: Option für horizontal/vertical window split
-	{ ID_VIEW_MAXTASKLIST,			_T("210") },
+	{ ID_VIEW_MAXTASKLIST,			_T("6") },
+	{ ID_VIEW_MAXCOMMENTS,			_T("210") },
 	{},
 	{ ID_EDIT_UNDO,					_T("208") },
 	{ ID_EDIT_REDO,					_T("209") },

@@ -86,6 +86,7 @@ Rules of thumb:
 | GEN-006 | Default assertion logging in Debug builds | In progress (implemented; TDLTest passes; app link pending) | [GEN-006-assert-logging.md](general/GEN-006-assert-logging.md) |
 | GEN-007 | TDL set files (`*.tdlset.txt`) in the Home view | In progress (implemented/built; TDLTest passes; interactive check pending) | [GEN-007-tdl-set-files.md](general/GEN-007-tdl-set-files.md) |
 | GEN-008 | Portable build and packaging scripts | In progress (implemented; plugin Release build verified; end-to-end zip pending) | [GEN-008-build-script-portability.md](general/GEN-008-build-script-portability.md) |
+| GEN-009 | Plugin Manager view over plugin DLLs in the app folder | Proposed (design only) | [GEN-009-plugin-manager-view.md](general/GEN-009-plugin-manager-view.md) |
 
 ### Performance (`PERF`)
 

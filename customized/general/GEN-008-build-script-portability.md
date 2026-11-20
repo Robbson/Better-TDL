@@ -52,6 +52,10 @@ tool paths and assume a fixed sibling-folder layout.
   of the literal `C:\Windows` path for the bundled VC runtime DLLs.
 - Missing output folders (`ToDoList_Downloads\Latest`, `ToDoList_Prev\<version>`,
   `ToDoList_Symbols`) are created before use.
+- `BuildReleaseZip.bat` prints the final release/downloads/symbols archive paths and
+  pauses at the end, so a double-clicked window no longer closes before the result can be
+  read. The copy and move into the sibling folders are now error-checked and pause with
+  the source/target paths when they fail.
 
 ## Files
 
@@ -80,5 +84,7 @@ tool paths and assume a fixed sibling-folder layout.
   copied `ConvertRTFToHTML.exe` and listed the missing plugin DLLs before any versioning.
 - The Plugins solution now builds with `Release|Mixed Platforms` using the v143 and v4.8
   overrides, and the release output contains all 93 files the zip script requires.
+- The final copy/move block was exercised against a temp tree: both destinations are
+  created, success is not misreported as an error, and the summary prints the exact paths.
 - Full `BuildDebug.bat`, `BuildRelease.bat` and `BuildReleaseZip.bat` runs are still to be
   done on a clean checkout.

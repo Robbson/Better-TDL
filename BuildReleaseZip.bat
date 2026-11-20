@@ -323,16 +323,46 @@ REM SUCCESS!
 ECHO [42m Zipping Binaries SUCCEEDED[0m
 ECHO:
 
+SET DOWNLOAD_ZIP=%TDL_DOWNLOADS%\Latest\todolist_exe_.zip
+SET PREV_ZIP=%TDL_PREV%\%TDL_PREV_VERSION%\ToDoList_exe.%TDL_PREV_VERSION%._.zip
+SET SYMBOLS_ZIP=%TDL_SYMBOLS%\%TDLVER%.zip
+
 REM - Copy the zip file to the download folder
-ECHO Copy todolist_exe_.zip to %TDL_DOWNLOADS%\Latest\
-MKDIR %TDL_DOWNLOADS%\Latest 2> NUL
-COPY %OUTZIP% %TDL_DOWNLOADS%\Latest\
+ECHO Copy todolist_exe_.zip to "%DOWNLOAD_ZIP%"
+MKDIR "%TDL_DOWNLOADS%\Latest" 2> NUL
+COPY "%OUTZIP%" "%DOWNLOAD_ZIP%" > NUL
+
+IF ERRORLEVEL 1 (
+ECHO Copy to the downloads folder FAILED
+ECHO   Source: "%OUTZIP%"
+ECHO   Target: "%DOWNLOAD_ZIP%"
+ECHO:
+PAUSE
+EXIT
+)
 ECHO:
    
 REM - And then move it to the previous-version folder
-MKDIR %TDL_PREV%\%TDL_PREV_VERSION% 2> NUL
-ECHO Rename todolist_exe_.zip to %TDL_PREV%\%TDL_PREV_VERSION%\ToDoList_exe.%TDL_PREV_VERSION%._.zip
-MOVE %OUTZIP% %TDL_PREV%\%TDL_PREV_VERSION%\ToDoList_exe.%TDL_PREV_VERSION%._.zip
+MKDIR "%TDL_PREV%\%TDL_PREV_VERSION%" 2> NUL
+ECHO Rename todolist_exe_.zip to "%PREV_ZIP%"
+MOVE /Y "%OUTZIP%" "%PREV_ZIP%" > NUL
+
+IF ERRORLEVEL 1 (
+ECHO Move to the previous-version folder FAILED
+ECHO   Source: "%OUTZIP%"
+ECHO   Target: "%PREV_ZIP%"
+ECHO:
+PAUSE
+EXIT
+)
+ECHO:
+
+ECHO ============================================================
+ECHO  Release zip: "%PREV_ZIP%"
+ECHO  Downloads:   "%DOWNLOAD_ZIP%"
+IF EXIST "%SYMBOLS_ZIP%" ECHO  Symbols:     "%SYMBOLS_ZIP%"
+ECHO ============================================================
 ECHO:
    
 POPD
+PAUSE

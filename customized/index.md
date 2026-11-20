@@ -130,3 +130,4 @@ Rules of thumb:
 | UI-013 | Remove the debug dead-space marker beside the horizontal scrollbar | Done (built; TDLTest passes; visual check pending) | [UI-013-debug-scrollbar-dead-space.md](ui/UI-013-debug-scrollbar-dead-space.md) |
 | UI-014 | Preferences index section highlighting | In progress (implemented and built; interactive check pending) | [UI-014-preferences-section-highlight.md](ui/UI-014-preferences-section-highlight.md) |
 | UI-015 | Preferences page grouping and information architecture | Proposed | [UI-015-preferences-reorganization.md](ui/UI-015-preferences-reorganization.md) |
+| UI-016 | Custom toolbar default configuration | Done (built; TDLTest passes) | [UI-016-default-custom-toolbar.md](ui/UI-016-default-custom-toolbar.md) |

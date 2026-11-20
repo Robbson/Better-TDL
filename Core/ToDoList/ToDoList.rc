@@ -414,7 +414,7 @@ BEGIN
     RTEXT           "0/64 tools remaining",IDC_REMAININGCOUNT,129,146,263,8
 END
 
-IDD_PREFUI_PAGE DIALOG 0, 0, 395, 710
+IDD_PREFUI_PAGE DIALOG 0, 0, 395, 769
 STYLE DS_SETFONT | WS_CHILD
 FONT 8, "Tahoma"
 BEGIN
@@ -471,17 +471,19 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,520,387,10
     CONTROL         "&Insert spaces instead of tabs when indenting",IDC_INSERTSPACESFORCOMMENTSTABS,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,535,381,10
-    LTEXT           "Tasklist Tab Bar",IDC_TABBARGROUP,7,555,381,8
+    LTEXT           "&Bullet prefixes (one per line)",IDC_STATIC,7,550,381,8
+    EDITTEXT        IDC_COMMENTBULLETPREFIXES,7,562,60,42,ES_MULTILINE | ES_AUTOHSCROLL | ES_WANTRETURN | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Tasklist Tab Bar",IDC_TABBARGROUP,7,614,381,8
     CONTROL         "&Hide tab bar when only one tasklist is open",IDC_AUTOHIDETABBAR,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,569,381,10
-    CONTROL         "&Stack tab bar items",IDC_STACKTABBARITEMS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,585,381,10
-    CONTROL         "Keep tabs or&dered by name",IDC_KEEPTABSORDERED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,600,381,10
-    LTEXT           "Default Task View Visibility",IDC_TASKVIEWSGROUP,7,617,381,8
-    LISTBOX         IDC_TASKVIEWVISIBILITY,7,632,331,51,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | LBS_MULTICOLUMN | WS_VSCROLL | WS_TABSTOP
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,628,381,10
+    CONTROL         "&Stack tab bar items",IDC_STACKTABBARITEMS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,644,381,10
+    CONTROL         "Keep tabs or&dered by name",IDC_KEEPTABSORDERED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,659,381,10
+    LTEXT           "Default Task View Visibility",IDC_TASKVIEWSGROUP,7,676,381,8
+    LISTBOX         IDC_TASKVIEWVISIBILITY,7,691,331,51,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | LBS_MULTICOLUMN | WS_VSCROLL | WS_TABSTOP
     CONTROL         "Right &align attribute labels",IDC_RIGHTALIGNLABELS,
                     "Button",BS_AUTOCHECKBOX | NOT WS_VISIBLE | WS_DISABLED | WS_TABSTOP,363,14,25,17
     CONTROL         "Use &legacy attribute editor (v8.2 style)",IDC_USELEGACYATTRIBUTEEDITOR,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,690,381,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,749,381,10
 END
 
 IDD_PREFUITASKLIST_PAGE DIALOG 0, 0, 394, 600
@@ -4113,6 +4115,7 @@ BEGIN
     IDS_PREFTIP_UI_TABBARSTACK "Choose this option if you want to see every tab at all times. Without it, Windows provides scroll buttons to scroll tabs into view."
     IDS_PREFTIP_UI_TABORDER "As you load tasklists this option keeps their tabs ordered alphabetically."
     IDS_PREFTIP_UI_DEFAULTVIEWS "By default all Task Views are visible for any tasklist loaded. If you don't use certain views you can choose to have these not appear by default for previously unopened tasklists."
+    IDS_PREFTIP_UI_BULLETPREFIXES "One prefix per line. Prefixes are matched at the start of a comment line (after any leading spaces or tabs) and align word-wrapped continuation lines under the following text. Include the trailing space if the prefix requires one (e.g. '- ')."
     IDS_PREFTIP_TB_MENUITEMCOL "Select a menu item from the droplist, or '<separator>' to divide groups of buttons by a vertical line."
     IDS_PREFTIP_TB_IMAGECOL  "Select an image from the Select Toolbar Icon Dialog to identify the menu command."
     IDS_PREFTIP_TB_MOVEUP     "Moves the row containing the selected cell up one place (equivalent to moving the button left on the toolbar)."

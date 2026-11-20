@@ -9,6 +9,7 @@
 #include "..\shared\localizer.h"
 
 #include "..\Interfaces\ipreferences.h"
+#include "..\Interfaces\Preferences.h"
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -93,5 +94,15 @@ void CTDCSimpleTextContent::LoadPreferences(const IPreferences* pPrefs, LPCWSTR 
 
 	CTDLSimpleTextContentCtrl::SetPasteSourceUrls(pPrefs->GetProfileInt(_T("Preferences"), _T("IncludeWebLinksInCommentsPaste"), TRUE));
 	CTDLSimpleTextContentCtrl::SetTabIndentWithSpaces(pPrefs->GetProfileInt(_T("Preferences"), _T("InsertSpacesForCommentsIndent"), TRUE));
+
+	CStringArray aBulletPrefixes;
+
+	if (pPrefs->GetProfileInt(_T("Preferences\\CommentBulletPrefixes"), _T("ItemCount"), -1) >= 0)
+		CPreferences::GetProfileArray(pPrefs, _T("Preferences\\CommentBulletPrefixes"), aBulletPrefixes, TRUE);
+
+	if (aBulletPrefixes.GetSize() == 0)
+		CTDLSimpleTextContentCtrl::GetDefaultBulletPrefixes(aBulletPrefixes);
+
+	CTDLSimpleTextContentCtrl::SetBulletPrefixes(aBulletPrefixes);
 }
 

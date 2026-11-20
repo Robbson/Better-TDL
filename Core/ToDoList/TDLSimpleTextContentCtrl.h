@@ -7,6 +7,8 @@
 // tdlcommentsctrl.h : header file
 //
 
+#include <afxtempl.h>
+
 #include "..\shared\urlricheditctrl.h"
 #include "..\shared\menuiconmgr.h"
 
@@ -63,6 +65,10 @@ public:
 	static void EnableInlineSpellChecking(BOOL bEnable) { s_bInlineSpellChecking = bEnable; }
 	static BOOL IsInlineSpellCheckingEnabled() { return s_bInlineSpellChecking; }
 
+	static void SetBulletPrefixes(const CStringArray& aPrefixes);
+	static const CStringArray& GetBulletPrefixes();
+	static int GetDefaultBulletPrefixes(CStringArray& aPrefixes);
+
 protected:
 	BOOL m_bWordWrap;
 	BOOL m_bShowAllChars;
@@ -75,6 +81,8 @@ protected:
 	static BOOL s_bInlineSpellChecking;
 	static BOOL s_bPasteSourceUrls;
 	static BOOL s_bTabIndentWithSpaces;
+	static CStringArray s_aBulletPrefixes;
+	static BOOL s_bBulletPrefixesSet;
 
 protected:
 	virtual void PreSubclassWindow();

@@ -27,6 +27,7 @@ public:
 
 protected:
 	void TestQuotedStrings();
+	void TestCommentBulletPrefixes();
 	void TestSearchIndexDialogTemplates();
 	void TestSearchIndexMatching();
 	void TestArrayPerformance();

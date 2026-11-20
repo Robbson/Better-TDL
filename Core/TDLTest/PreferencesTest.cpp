@@ -10,6 +10,7 @@
 #include "..\shared\filemisc.h"
 
 #include "..\ToDoList\PreferencesSearchIndex.h"
+#include "..\ToDoList\PreferencesUIPage.h"
 
 #include "..\interfaces\preferences.h"
 
@@ -22,6 +23,17 @@ static char THIS_FILE[]=__FILE__;
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
+
+class CTestPreferencesUIPage : public CPreferencesUIPage
+{
+public:
+	CTestPreferencesUIPage() : CPreferencesUIPage(NULL) {}
+
+	void LoadPreferencesForTest(const IPreferences* pPrefs, LPCTSTR szKey)
+	{
+		LoadPreferences(pPrefs, szKey);
+	}
+};
 
 CPreferencesTest::CPreferencesTest(const CTestUtils& utils) 
 	: 
@@ -40,6 +52,7 @@ TESTRESULT CPreferencesTest::Run()
 	ClearTotals();
 
 	TestQuotedStrings();
+	TestCommentBulletPrefixes();
 	TestSearchIndexDialogTemplates();
 	TestSearchIndexMatching();
 	TestArrayPerformance();
@@ -106,6 +119,34 @@ void CPreferencesTest::TestQuotedStrings()
 		CPreferences::Release();
 	}
 
+	FileMisc::DeleteFile(sIniPath);
+}
+
+void CPreferencesTest::TestCommentBulletPrefixes()
+{
+	CTDCScopedTest test(*this, _T("CPreferencesTest::CommentBulletPrefixes"));
+
+	CString sIniPath = FileMisc::GetTempFilePath(_T("TestCommentBulletPrefixes"), _T(".ini"));
+	FileMisc::DeleteFile(sIniPath);
+
+	CPreferences::Initialise(sIniPath, TRUE);
+
+	{
+		CPreferences prefs;
+		CTestPreferencesUIPage page;
+
+		page.LoadPreferencesForTest((const IPreferences*)prefs, _T("Preferences"));
+		ExpectEQ(page.GetCommentBulletPrefixes(), _T("- \r\n-> \r\n=> "));
+
+		// An empty saved list must still use the defaults
+		CStringArray aEmpty;
+		prefs.WriteProfileArray(_T("Preferences\\CommentBulletPrefixes"), aEmpty);
+
+		page.LoadPreferencesForTest((const IPreferences*)prefs, _T("Preferences"));
+		ExpectEQ(page.GetCommentBulletPrefixes(), _T("- \r\n-> \r\n=> "));
+	}
+
+	CPreferences::Release();
 	FileMisc::DeleteFile(sIniPath);
 }
 

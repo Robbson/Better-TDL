@@ -5,12 +5,15 @@
 #include "resource.h"
 #include "PreferencesUIPage.h"
 #include "tdcenum.h"
+#include "TDLSimpleTextContentCtrl.h"
 
 #include "..\shared\misc.h"
 #include "..\shared\enstring.h"
 #include "..\shared\themed.h"
 #include "..\shared\filemisc.h"
 #include "..\shared\darkmode.h"
+
+#include "..\Interfaces\Preferences.h"
 
 #include "..\3rdParty\OSVersion.h"
 
@@ -19,6 +22,40 @@
 #undef THIS_FILE
 static char THIS_FILE[] = __FILE__;
 #endif
+
+/////////////////////////////////////////////////////////////////////////////
+
+const LPCTSTR COMMENT_BULLET_PREFIXES_KEY = _T("Preferences\\CommentBulletPrefixes");
+
+static void SplitBulletPrefixes(LPCTSTR szPrefixes, CStringArray& aPrefixes)
+{
+	aPrefixes.RemoveAll();
+
+	CString sPrefixes(szPrefixes);
+	sPrefixes.Replace(_T("\r\n"), _T("\n"));
+	sPrefixes.Replace(_T('\r'), _T('\n'));
+
+	int nStart = 0;
+
+	while (nStart <= sPrefixes.GetLength())
+	{
+		int nEnd = sPrefixes.Find(_T('\n'), nStart);
+
+		if (nEnd < 0)
+			nEnd = sPrefixes.GetLength();
+
+		CString sPrefix = sPrefixes.Mid(nStart, nEnd - nStart);
+		CString sTrimmed(sPrefix);
+
+		if (!Misc::Trim(sTrimmed).IsEmpty())
+			aPrefixes.Add(sPrefix);
+
+		if (nEnd == sPrefixes.GetLength())
+			break;
+
+		nStart = nEnd + 1;
+	}
+}
 
 /////////////////////////////////////////////////////////////////////////////
 // CPreferencesUIPage property page
@@ -71,6 +108,7 @@ void CPreferencesUIPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_SORTDONETASKSATBOTTOM, m_bSortDoneTasksAtBottom);
 	DDX_Check(pDX, IDC_INCLUDEWEBLINKINCOMMENTSPASTE, m_bIncludeWebLinksInCommentsPaste);
 	DDX_Check(pDX, IDC_INSERTSPACESFORCOMMENTSTABS, m_bInsertSpacesForCommentsIndent);
+	DDX_Text(pDX, IDC_COMMENTBULLETPREFIXES, m_sCommentBulletPrefixes);
 	DDX_Check(pDX, IDC_USELEGACYATTRIBUTEEDITOR, m_bUseLegacyAttributeEditor);
 
 	m_cbThemes.DDX(pDX, m_sUIThemeFile);
@@ -121,6 +159,7 @@ void CPreferencesUIPage::InitTooltips()
 	AddTooltip(IDC_SHOWCOMMENTSALWAYS, IDS_PREFTIP_UI_SHOWCOMMENTS);
 	AddTooltip(IDC_SHAREDCOMMENTSHEIGHT, IDS_PREFTIP_UI_SHARECOMMENTS);
 	AddTooltip(IDC_INCLUDEWEBLINKINCOMMENTSPASTE, IDS_PREFTIP_UI_WEBLINKPASTE);
+	AddTooltip(IDC_COMMENTBULLETPREFIXES, IDS_PREFTIP_UI_BULLETPREFIXES);
 	AddTooltip(IDC_AUTOHIDETABBAR, IDS_PREFTIP_UI_TABBARHIDE);
 	AddTooltip(IDC_STACKTABBARITEMS, IDS_PREFTIP_UI_TABBARSTACK);
 	AddTooltip(IDC_KEEPTABSORDERED, IDS_PREFTIP_UI_TABORDER);
@@ -130,6 +169,7 @@ void CPreferencesUIPage::InitTooltips()
 void CPreferencesUIPage::AddSearchText(CStringArray& aText) const
 {
 	aText.Add(m_sUIThemeFile);
+	aText.Add(m_sCommentBulletPrefixes);
 }
 
 void CPreferencesUIPage::OnFirstShow()
@@ -202,6 +242,16 @@ void CPreferencesUIPage::LoadPreferences(const IPreferences* pPrefs, LPCTSTR szK
 	m_bInsertSpacesForCommentsIndent = pPrefs->GetProfileInt(szKey, _T("InsertSpacesForCommentsIndent"), TRUE);
 	m_bUseLegacyAttributeEditor = pPrefs->GetProfileInt(szKey, _T("AttributeEditorMode"), 0) != 0;
 
+	CStringArray aBulletPrefixes;
+
+	if (pPrefs->GetProfileInt(COMMENT_BULLET_PREFIXES_KEY, _T("ItemCount"), -1) >= 0)
+		CPreferences::GetProfileArray(pPrefs, COMMENT_BULLET_PREFIXES_KEY, aBulletPrefixes, TRUE);
+
+	if (aBulletPrefixes.GetSize() == 0)
+		CTDLSimpleTextContentCtrl::GetDefaultBulletPrefixes(aBulletPrefixes);
+
+	m_sCommentBulletPrefixes = Misc::FormatArray(aBulletPrefixes, _T("\r\n"));
+
 	// First time handling of new 'Attribute Editor'
 	// If the attributes were previously on the bottom move them to the side
 	if ((m_nCtrlsPos == PUIP_LOCATEBOTTOM) && !pPrefs->GetProfileInt(szKey, _T("AttributeEditor"), FALSE))
@@ -263,6 +313,11 @@ void CPreferencesUIPage::SavePreferences(IPreferences* pPrefs, LPCTSTR szKey) co
 	pPrefs->WriteProfileInt(szKey, _T("IncludeWebLinksInCommentsPaste"), m_bIncludeWebLinksInCommentsPaste);
 	pPrefs->WriteProfileInt(szKey, _T("InsertSpacesForCommentsIndent"), m_bInsertSpacesForCommentsIndent);
 	pPrefs->WriteProfileInt(szKey, _T("AttributeEditor"), TRUE);
+
+	CStringArray aBulletPrefixes;
+	SplitBulletPrefixes(m_sCommentBulletPrefixes, aBulletPrefixes);
+
+	CPreferences::WriteProfileArray(pPrefs, COMMENT_BULLET_PREFIXES_KEY, aBulletPrefixes);
 
 	pPrefs->WriteProfileString(szKey, _T("UIThemeFile"), m_sUIThemeFile);
 

@@ -118,6 +118,7 @@ TESTRESULT CTDLSimpleTextContentCtrlTest::Run()
 		TestEditingKeys();
 		TestImmediateIndentUpdate();
 		TestWrappedLineAlignment();
+		TestCustomBulletPrefixes();
 	}
 	else
 	{
@@ -509,6 +510,44 @@ void CTDLSimpleTextContentCtrlTest::TestWrappedLineAlignment()
 		CString sAfter = ctrl.GetTextRange(CHARRANGE{ 0, ctrl.GetTextLength() });
 		ExpectEQ(sAfter, (_T("\t") + sLong));
 	}
+}
+
+void CTDLSimpleTextContentCtrlTest::TestCustomBulletPrefixes()
+{
+	CTDCScopedTest test(*this, _T("CTDLSimpleTextContentCtrl::CustomBulletPrefixes"));
+
+	CTDLSimpleTextContentCtrl ctrl;
+
+	if (!ExpectTrue(CreateEditor(ctrl)))
+		return;
+
+	CStringArray aDefaults;
+	ExpectEQ(CTDLSimpleTextContentCtrl::GetDefaultBulletPrefixes(aDefaults), 3);
+
+	CStringArray aPrefixes;
+	aPrefixes.Add(_T("* "));
+	aPrefixes.Add(_T("# "));
+	CTDLSimpleTextContentCtrl::SetBulletPrefixes(aPrefixes);
+
+	CString sLong;
+
+	for (int nRepeat = 0; nRepeat < 10; nRepeat++)
+		sLong += _T("The quick brown fox jumps over the lazy dog. ");
+
+	ctrl.SetTextContent((_T("* ") + sLong), TRUE);
+	ctrl.ApplyAutoIndent();
+
+	const int nContStart = (int)ctrl.SendMessage(EM_LINEINDEX, 1, 0);
+	ExpectTrue(nContStart > 0);
+
+	CPoint ptText, ptCont;
+	ctrl.PointFromChar(2, ptText);
+	ctrl.PointFromChar(nContStart, ptCont);
+
+	ExpectTrue(abs(ptCont.x - ptText.x) <= 1);
+
+	// Restore the defaults for any later tests
+	CTDLSimpleTextContentCtrl::SetBulletPrefixes(aDefaults);
 }
 
 CString CTDLSimpleTextContentCtrlTest::GetMarkedText(const CTDLSimpleTextContentCtrl& ctrl) const

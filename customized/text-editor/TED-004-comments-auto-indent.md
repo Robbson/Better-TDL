@@ -48,11 +48,12 @@ Files: `Core/ToDoList/TDLSimpleTextContentCtrl.cpp` and
    and `"\t- item"` continues with a tab.
 3. `ApplyAutoIndent()` walks each paragraph and sets the RichEdit hanging indent
    (`PARAFORMAT2.dxOffset` / `PFM_OFFSET`) to the measured width of the paragraph's
-   leading spaces plus any recognised bullet marker (`BULLET_PREFIXES`: `- `, `-> `,
+   leading spaces plus any recognised bullet marker. The marker list is configurable in
+   **Preferences → User Interface → General → Task Comments** (defaults: `- `, `-> `,
    `=> `). Wrapped lines therefore start where the paragraph's text starts. The width is
    measured with `PointFromChar()` and converted from pixels to twips, so spaces,
    proportional fonts, bullet markers and the control's custom tab stops are handled by
-   RichEdit itself.
+   RichEdit itself. An empty list falls back to the built-in defaults.
 4. Formatting is synchronous; there is no auto-indent timer. `OnChangeText()` formats only
    the caret paragraph (`ApplyAutoIndentToCaretParagraph()`), so ordinary typing does not
    walk the whole document. `Tab`, `Return` and `Shift+Tab` format only the paragraphs
@@ -195,6 +196,24 @@ The `SpaceIndent` test covers single-line and multi-line Tab insertion, the
 selection-ending-at-line-start case, preservation of an existing tab, and the following
 `Shift+Tab` removal.
 
+### Bullet prefix list (editable)
+
+**Preferences → User Interface → General → Task Comments → “Bullet prefixes (one per
+line)”** is a multi-line edit, modelled on the Dynamic Droplists in Default Tasklist
+Attributes. Each non-blank row is one literal prefix, matched at the start of a paragraph
+after its leading spaces/tabs. Prefixes include any trailing space the user wants to
+match; `.INI` storage escapes the string with quotes, so trailing spaces survive a
+round-trip. Defaults are `- `, `-> ` and `=> `.
+
+The list is stored as an array under `Preferences\CommentBulletPrefixes` (`ItemCount` plus
+`Item0`, `Item1`, …). A missing section or an empty saved list falls back to the built-in
+defaults, so the feature cannot be left accidentally inert. `CTDLSimpleTextContentCtrl::SetBulletPrefixes()` is
+called from `CTDCSimpleTextContent::LoadPreferences()` on every preference refresh, so
+changes take effect without restarting. The `CustomBulletPrefixes` test replaces the list
+with `* ` and checks the wrapped-line alignment, then restores the defaults.
+`CPreferencesTest::CommentBulletPrefixes` loads an empty preferences file and asserts
+that the preferences page and the editor both fall back to the same defaults.
+
 ### Formatting timing (implemented)
 
 The former 50 ms `TIMER_AUTOINDENT` was introduced by this customization, not by
@@ -256,9 +275,10 @@ states after every call (auto-repeat).
 - Shift+Enter, Ctrl+Enter and Alt+Enter keep their existing behaviour.
 - Bullet markers are used **only** by the wrapped-line hanging indent, not by `Enter`.
   `Enter` always copies exactly the previous line's leading whitespace.
-- Bullet recognition for the hanging indent requires the exact marker strings in
-  `BULLET_PREFIXES`, including the trailing space. Lines without the trailing space (for
-  example `-item`) are treated as ordinary text.
+- Bullet recognition for the hanging indent requires the exact marker strings configured
+  in **Task Comments → Bullet prefixes**, including the trailing space. Lines without the
+  trailing space (for example `-item`) are treated as ordinary text unless the user
+  removes the space from the list entry. An empty list falls back to the built-in defaults.
 - Bullet markers are recognised literally, not parsed as Markdown; nested markers are
   supported only through the leading spaces/tabs before the marker.
 - `Enter` copies leading spaces and tabs verbatim (a tab stays a tab); it does not convert
@@ -282,8 +302,8 @@ states after every call (auto-repeat).
 ## Verification
 
 - `Core/ToDoListLib/ToDoListLib.vcxproj` builds successfully in `Unicode Debug`.
-- `TDLTest` builds and passes: 310419/310419 tests, including the new
-  `CTDLSimpleTextContentCtrlTest` suite (122 assertions). The suite covers every row of the
+- `TDLTest` builds and passes: 310436/310436 tests, including the new
+  `CTDLSimpleTextContentCtrlTest` suite (126 assertions). The suite covers every row of the
   behaviour table below, tab preservation, and space-indented/space-bullet wrapped-line
   alignment. It also asserts that tab-indented paragraphs are not re-indented (the
   `Shift+Tab` regression) and that inserting a leading tab into a `-> item` paragraph

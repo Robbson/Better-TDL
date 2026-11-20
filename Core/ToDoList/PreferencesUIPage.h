@@ -57,6 +57,7 @@ public:
 	BOOL GetStackCommentsAboveEditFields() const { return (m_bStackEditFieldsAndComments && m_bStackCommentsAboveEditFields); }
 	BOOL GetIncludeWebLinksInCommentsPaste() const { return m_bIncludeWebLinksInCommentsPaste; }
 	BOOL GetInsertSpacesForCommentsIndent() const { return m_bInsertSpacesForCommentsIndent; }
+	CString GetCommentBulletPrefixes() const { return m_sCommentBulletPrefixes; }
 //	BOOL Get() const { return ; }
 
 protected:
@@ -87,6 +88,7 @@ protected:
 	BOOL	m_bStackCommentsAboveEditFields;
 	BOOL	m_bIncludeWebLinksInCommentsPaste;
 	BOOL	m_bInsertSpacesForCommentsIndent;
+	CString	m_sCommentBulletPrefixes;
 	BOOL	m_bSortDoneTasksAtBottom;
 	BOOL	m_bUseLegacyAttributeEditor;
 

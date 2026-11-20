@@ -33,6 +33,7 @@ protected:
 	void TestEditingKeys();
 	void TestImmediateIndentUpdate();
 	void TestWrappedLineAlignment();
+	void TestCustomBulletPrefixes();
 
 	CString GetMarkedText(const CTDLSimpleTextContentCtrl& ctrl) const;
 

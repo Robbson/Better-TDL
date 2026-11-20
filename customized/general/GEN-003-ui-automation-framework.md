@@ -115,7 +115,7 @@ UIA can drive and read the editor but does not expose paragraph formatting direc
 
 Extract the file-local `GetAutoIndentPrefix()`/bullet-prefix rules into a small testable
 helper and assert them without a UI: spaces, tabs, bullets, empty bullets, indented
-bullets, multi-line selections, and the `BULLET_PREFIXES` table. These are the rules most
+bullets, multi-line selections, and the configurable bullet-prefix list. These are the rules most
 likely to regress and need no desktop.
 
 ### 2. UIA end-to-end tests (the real editing path)

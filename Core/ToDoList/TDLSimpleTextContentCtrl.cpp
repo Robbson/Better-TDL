@@ -52,6 +52,8 @@ const DWORD SIMPLETEXT_COMMENTS = (DWORD)(LPCTSTR)_T("SIMPLETEXT_COMMENTS");
 BOOL CTDLSimpleTextContentCtrl::s_bInlineSpellChecking = FALSE;
 BOOL CTDLSimpleTextContentCtrl::s_bPasteSourceUrls = TRUE;
 BOOL CTDLSimpleTextContentCtrl::s_bTabIndentWithSpaces = TRUE;
+CStringArray CTDLSimpleTextContentCtrl::s_aBulletPrefixes;
+BOOL CTDLSimpleTextContentCtrl::s_bBulletPrefixesSet = FALSE;
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -64,7 +66,7 @@ const long NUM_PREF = sizeof(CF_PREFERRED) / sizeof(CLIPFORMAT);
 
 /////////////////////////////////////////////////////////////////////////////
 
-// Add or remove bullet markers here
+// Default bullet markers, editable in Preferences
 static const LPCTSTR BULLET_PREFIXES[] =
 {
 	_T("- "),
@@ -73,6 +75,35 @@ static const LPCTSTR BULLET_PREFIXES[] =
 	_T("-> "),
 	_T("=> "),
 };
+
+/////////////////////////////////////////////////////////////////////////////
+
+int CTDLSimpleTextContentCtrl::GetDefaultBulletPrefixes(CStringArray& aPrefixes)
+{
+	aPrefixes.RemoveAll();
+
+	for (int nPrefix = 0; nPrefix < _countof(BULLET_PREFIXES); nPrefix++)
+		aPrefixes.Add(BULLET_PREFIXES[nPrefix]);
+
+	return aPrefixes.GetSize();
+}
+
+void CTDLSimpleTextContentCtrl::SetBulletPrefixes(const CStringArray& aPrefixes)
+{
+	s_aBulletPrefixes.Copy(aPrefixes);
+	s_bBulletPrefixesSet = TRUE;
+}
+
+const CStringArray& CTDLSimpleTextContentCtrl::GetBulletPrefixes()
+{
+	if (!s_bBulletPrefixesSet)
+	{
+		GetDefaultBulletPrefixes(s_aBulletPrefixes);
+		s_bBulletPrefixesSet = TRUE;
+	}
+
+	return s_aBulletPrefixes;
+}
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -121,15 +152,16 @@ static int FindParagraphEnd(const CRichEditBaseCtrl& ctrl, int nParaStart, int n
 
 static int GetBulletPrefixLength(const CString& sText, int nStart)
 {
-	int nNumPrefixes = _countof(BULLET_PREFIXES);
+	const CStringArray& aPrefixes = CTDLSimpleTextContentCtrl::GetBulletPrefixes();
+	int nNumPrefixes = aPrefixes.GetSize();
 
 	for (int nPrefix = 0; nPrefix < nNumPrefixes; nPrefix++)
 	{
-		LPCTSTR szPrefix = BULLET_PREFIXES[nPrefix];
-		int nLen = lstrlen(szPrefix);
+		const CString& sPrefix = aPrefixes[nPrefix];
+		int nLen = sPrefix.GetLength();
 
 		if (((nStart + nLen) <= sText.GetLength()) &&
-			(sText.Mid(nStart, nLen) == szPrefix))
+			(sText.Mid(nStart, nLen) == sPrefix))
 		{
 			return nLen;
 		}

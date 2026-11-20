@@ -129,3 +129,4 @@ Rules of thumb:
 | UI-012 | Tooltip and wider hit band for the attribute/title splitter | Done (built; TDLTest passes; widened-band interactive check pending) | [UI-012-attribute-splitter-tooltip.md](ui/UI-012-attribute-splitter-tooltip.md) |
 | UI-013 | Remove the debug dead-space marker beside the horizontal scrollbar | Done (built; TDLTest passes; visual check pending) | [UI-013-debug-scrollbar-dead-space.md](ui/UI-013-debug-scrollbar-dead-space.md) |
 | UI-014 | Preferences index section highlighting | In progress (implemented and built; interactive check pending) | [UI-014-preferences-section-highlight.md](ui/UI-014-preferences-section-highlight.md) |
+| UI-015 | Preferences page grouping and information architecture | Proposed | [UI-015-preferences-reorganization.md](ui/UI-015-preferences-reorganization.md) |

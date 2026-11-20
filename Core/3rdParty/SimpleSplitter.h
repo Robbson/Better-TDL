@@ -68,6 +68,9 @@ protected:
 	void InitialisePanes(int nNumPanes);
 	void ResizePaneWindow(int nPane);
 	void ResizePaneWindows();
+	BOOL PaneHasTaskView(CWnd* pPane) const;
+	BOOL PaneHasRichEdit(CWnd* pPane) const;
+	void DoubleBufferPanes();
 	int HitTestBar(CPoint ptClient) const;
 	int GetBarThickness(int nBar) const;
 

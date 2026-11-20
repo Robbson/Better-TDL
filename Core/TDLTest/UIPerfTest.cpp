@@ -48,6 +48,7 @@ namespace
 
 	const int DEFAULT_STEPS				= 20;
 	const int DEFAULT_STEP_DELAY_MS		= 25;
+	const int SETTLE_MS					= 150;	// drain queued input before capturing
 	const int DEFAULT_PIXEL_TOLERANCE	= 2000;
 
 	// ---------------------------------------------------------------
@@ -447,19 +448,24 @@ namespace
 
 	void SendMouseAbsolute(DWORD dwFlags, CPoint ptScreen)
 	{
-		INPUT input = { 0 };
-		input.type = INPUT_MOUSE;
-		input.mi.dwFlags = (dwFlags | MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK);
+		// SendInput's ABSOLUTE coordinates are scaled against the virtual desktop
+		// and land a few pixels off with DPI scaling, which is fatal for the few
+		// pixels wide split bar. SetCursorPos is exact on this machine, so move with
+		// it and only synthesise the button state with mouse_event.
+		::SetCursorPos(ptScreen.x, ptScreen.y);
 
-		int nVX = ::GetSystemMetrics(SM_XVIRTUALSCREEN);
-		int nVY = ::GetSystemMetrics(SM_YVIRTUALSCREEN);
-		int nVW = (std::max)(1, ::GetSystemMetrics(SM_CXVIRTUALSCREEN) - 1);
-		int nVH = (std::max)(1, ::GetSystemMetrics(SM_CYVIRTUALSCREEN) - 1);
+		DWORD dwButton = 0;
 
-		input.mi.dx = (LONG)MulDiv(ptScreen.x - nVX, 65535, nVW);
-		input.mi.dy = (LONG)MulDiv(ptScreen.y - nVY, 65535, nVH);
+		if (dwFlags & MOUSEEVENTF_LEFTDOWN)
+			dwButton = MOUSEEVENTF_LEFTDOWN;
+		else if (dwFlags & MOUSEEVENTF_LEFTUP)
+			dwButton = MOUSEEVENTF_LEFTUP;
 
-		::SendInput(1, &input, sizeof(INPUT));
+		// A move-only call still has to deliver a WM_MOUSEMOVE; SetCursorPos does
+		// that once the button is down (the app sees the new position on the
+		// next input post, so the caller's Sleep covers it)
+		if (dwButton)
+			::mouse_event(dwButton, 0, 0, 0, 0);
 	}
 
 	void SendMouseWheel(CPoint ptScreen, int nDelta)
@@ -514,6 +520,17 @@ namespace
 		FINDBYIDCTX ctx = { nID, NULL };
 		::EnumChildWindows(hParent, EnumFindByIdProc, (LPARAM)&ctx);
 		return ctx.hFound;
+	}
+
+	BOOL GetPaneRectById(HWND hParent, int nID, CRect& rc)
+	{
+		HWND hWnd = FindDescendantById(hParent, nID);
+
+		if (!hWnd || !::IsWindowVisible(hWnd))
+			return FALSE;
+
+		::GetWindowRect(hWnd, &rc);
+		return !rc.IsRectEmpty();
 	}
 
 	struct FINDBYCLASSCTX
@@ -579,6 +596,53 @@ namespace
 		TCHAR szClass[64] = { 0 };
 		::GetClassName(hWnd, szClass, 63);
 		return (lstrcmpi(szClass, _T("#32770")) == 0);
+	}
+
+	BOOL CALLBACK EnumDumpChildProc(HWND hWnd, LPARAM /*lParam*/)
+	{
+		if (!::IsWindowVisible(hWnd))
+			return TRUE;
+
+		TCHAR szClass[64] = { 0 };
+		::GetClassName(hWnd, szClass, 63);
+
+		CRect rc;
+		::GetWindowRect(hWnd, &rc);
+
+		LONG_PTR dwStyle = ::GetWindowLongPtr(hWnd, GWL_STYLE);
+		LONG_PTR dwExStyle = ::GetWindowLongPtr(hWnd, GWL_EXSTYLE);
+
+		_tprintf(_T("  %-24s id=%-6d rect=(%d,%d,%d,%d) clipchild=%d clipsib=%d\n"),
+				 szClass, ::GetDlgCtrlID(hWnd), rc.left, rc.top, rc.right, rc.bottom,
+				 (dwStyle & WS_CLIPCHILDREN) ? 1 : 0, (dwStyle & WS_CLIPSIBLINGS) ? 1 : 0);
+
+		return TRUE;
+	}
+
+	void DumpChildWindows(HWND hContainer, CPoint ptBar)
+	{
+		CRect rcContainer;
+		::GetWindowRect(hContainer, &rcContainer);
+
+		_tprintf(_T("  container=(%d,%d,%d,%d)\n"),
+				 rcContainer.left, rcContainer.top, rcContainer.right, rcContainer.bottom);
+
+		::EnumChildWindows(hContainer, EnumDumpChildProc, 0);
+
+		// Which window would receive the drag at the bar point?
+		HWND hAt = ::WindowFromPoint(ptBar);
+		POINT ptClient = { ptBar.x, ptBar.y };
+		::ScreenToClient(hAt, &ptClient);
+
+		TCHAR szClass[64] = { 0 };
+		::GetClassName(hAt, szClass, 63);
+
+		CRect rcAt;
+		::GetWindowRect(hAt, &rcAt);
+
+		_tprintf(_T("  at (%d,%d): %s id=%d client=(%d,%d) root=%d\n"),
+				 ptBar.x, ptBar.y, szClass, ::GetDlgCtrlID(hAt), ptClient.x, ptClient.y,
+				 (hAt == hContainer) ? 1 : 0);
 	}
 
 	struct TOPLEVELCTX
@@ -827,7 +891,11 @@ namespace
 		{
 			bVertical = FALSE;
 
-			int y = ((rcAttribs.top >= rcTask.bottom) ? (rcTask.bottom + 1) : (rcTask.top - 1));
+			// Centre of the gap between the task view and the stacked pane: the
+			// split bar sits there between other stacked controls (for example the
+			// list-view toolbar), so one pixel outside the task view is not enough
+			int yGap = ((rcAttribs.top >= rcTask.bottom) ? ((rcTask.bottom + rcAttribs.top) / 2)
+														 : ((rcAttribs.bottom + rcTask.top) / 2));
 			int xLeft = (std::max)(rcTask.left, rcAttribs.left);
 			int xRight = (std::min)(rcTask.right, rcAttribs.right);
 
@@ -837,8 +905,159 @@ namespace
 				xRight = (std::max)(rcTask.right, rcAttribs.right);
 			}
 
-			ptBar = CPoint(((xLeft + xRight) / 2), y);
+			ptBar = CPoint(((xLeft + xRight) / 2), yGap);
 			return TRUE;
+		}
+
+		return FALSE;
+	}
+
+	BOOL IsSplitterWindowAt(CPoint ptScreen)
+	{
+		HWND hAt = ::WindowFromPoint(ptScreen);
+
+		if (!hAt)
+			return FALSE;
+
+		TCHAR szClass[64] = { 0 };
+		::GetClassName(hAt, szClass, 63);
+
+		return (lstrcmp(szClass, _T("AfxWnd140ud")) == 0);
+	}
+
+	// Locate the split bar next to the task view from geometry alone, so it works
+	// for any neighbouring pane (legacy attributes, grid editor, comments,
+	// extension views). A vertical bar means panes are side by side; a horizontal
+	// bar means they are stacked. Walk outwards and stop at the first splitter.
+	BOOL FindBarBesideTaskCtrl(HWND hContainer, HWND hTaskCtrl, CPoint& ptBar, BOOL& bVertical)
+	{
+		if (!hContainer || !hTaskCtrl)
+			return FALSE;
+
+		CRect rcTask;
+		::GetWindowRect(hTaskCtrl, &rcTask);
+
+		int yMid = ((rcTask.top + rcTask.bottom) / 2);
+		int xMid = ((rcTask.left + rcTask.right) / 2);
+		int xRight = (rcTask.right + 1);
+		int xLeft = (rcTask.left - 1);
+		int yBelow = (rcTask.bottom + 1);
+		int yAbove = (rcTask.top - 1);
+
+		// The splitter is a parent-sized overlay behind the panes, so
+		// WindowFromPoint over most of it returns the covering pane. The bar is
+		// visible (and clickable) only in the few pixels between the panes, so
+		// derive the gap from the pane rectangles and click its centre.
+		CRect rcComments(0, 0, 0, 0), rcAttribs(0, 0, 0, 0);
+		BOOL bHasAttribs = GetPaneRectById(hContainer, TDL_IDC_ATTRIBUTELIST, rcAttribs);
+
+		HWND hComments = FindDescendantByClass(hContainer, _T("RICHEDIT50W"));
+		BOOL bHasComments = FALSE;
+
+		if (hComments && ::IsWindowVisible(hComments))
+		{
+			::GetWindowRect(hComments, &rcComments);
+			bHasComments = !rcComments.IsRectEmpty();
+		}
+
+		// Side by side: find the nearest pane to the right or left and take the
+		// centre of the gap between it and the task view
+		for (int nPass = 0; nPass < 2; nPass++)
+		{
+			if (nPass == 0)
+			{
+				// vertical bar to the right of the task view
+				int nGapLeft = rcTask.right;
+				int nGapRight = -1;
+
+				if (bHasComments && (rcComments.left > rcTask.left) && (rcComments.left - rcTask.right < 40))
+					nGapRight = rcComments.left;
+				else if (bHasAttribs && (rcAttribs.left > rcTask.left) && (rcAttribs.left - rcTask.right < 40))
+					nGapRight = rcAttribs.left;
+
+				if (nGapRight > nGapLeft)
+				{
+					int x = ((nGapLeft + nGapRight) / 2);
+					ptBar = CPoint(x, yMid);
+					bVertical = TRUE;
+					return TRUE;
+				}
+			}
+			else
+			{
+				// horizontal bar below the task view
+				int nGapTop = rcTask.bottom;
+				int nGapBottom = -1;
+
+				if (bHasAttribs && (rcAttribs.top > rcTask.top) && (rcAttribs.top - rcTask.bottom < 40))
+					nGapBottom = rcAttribs.top;
+
+				if (nGapBottom > nGapTop)
+				{
+					int y = ((nGapTop + nGapBottom) / 2);
+					ptBar = CPoint(xMid, y);
+					bVertical = FALSE;
+					return TRUE;
+				}
+			}
+		}
+
+		// Fall back to probing for the splitter window itself
+		const int nMaxReach = 80;
+
+		for (int nOffset = 0; nOffset <= nMaxReach; nOffset++)
+		{
+			for (int nSign = 0; nSign < 2; nSign++)
+			{
+				CPoint pt((nSign ? (xRight + nOffset) : (xLeft - nOffset)), yMid);
+
+				if (IsSplitterWindowAt(pt))
+				{
+					ptBar = pt;
+					bVertical = TRUE;
+					return TRUE;
+				}
+			}
+
+			for (int nSign = 0; nSign < 2; nSign++)
+			{
+				CPoint pt(xMid, (nSign ? (yBelow + nOffset) : (yAbove - nOffset)));
+
+				if (IsSplitterWindowAt(pt))
+				{
+					ptBar = pt;
+					bVertical = FALSE;
+					return TRUE;
+				}
+			}
+		}
+
+		return FALSE;
+	}
+
+	BOOL NudgeToBarPoint(CPoint& ptBar, BOOL bVertical)
+	{
+		for (int nOffset = 0; nOffset <= 12; nOffset++)
+		{
+			for (int nSign = -1; nSign <= 1; nSign += 2)
+			{
+				if (nOffset == 0 && nSign > 0)
+					continue;
+
+				CPoint pt = ptBar;
+
+				// A vertical bar moves with x; a horizontal bar moves with y
+				if (bVertical)
+					pt.x += (nSign * nOffset);
+				else
+					pt.y += (nSign * nOffset);
+
+				if (IsSplitterWindowAt(pt))
+				{
+					ptBar = pt;
+					return TRUE;
+				}
+			}
 		}
 
 		return FALSE;
@@ -847,8 +1066,9 @@ namespace
 	// ---------------------------------------------------------------
 
 	BOOL RunDrag(HWND hContainer, HWND hTaskCtrl, CPoint ptBar, BOOL bVertical, int nDelta,
-				 const int nSteps, const int nStepDelayMs, const int nPixelTolerance,
-				 const CString& sArtifactFolder, HANDLE hProcess, DRAGSTATS& stats)
+				 const int nSteps, const int nStepDelayMs, const int nMeasureEvery,
+				 const int nPixelTolerance, const CString& sArtifactFolder, HANDLE hProcess,
+				 DRAGSTATS& stats)
 	{
 		CPoint ptEnd = ptBar;
 
@@ -879,30 +1099,43 @@ namespace
 			SendMouseAbsolute(MOUSEEVENTF_MOVE, pt);
 			::Sleep(nStepDelayMs);
 
+			// Measure only at intervals: the drag itself runs at full speed and only
+			// the sampled steps pause to drain input and capture
+			if (nMeasureEvery > 1 && ((i % nMeasureEvery) != 0) && (i != nSteps))
+				continue;
+
+			// Let any queued mouse moves drain before taking the on-screen capture,
+			// otherwise a fast drag (-delay 0) re-enters the forced repaint and makes
+			// the oracle unstable (cleanDiff != 0)
+			::Sleep(SETTLE_MS);
+
 			CAPTURE cOnScreen, cClean;
 
 			if (!CaptureClient(hContainer, cOnScreen))
 				break;
 
 			ForceRepaint(hContainer);
-			::Sleep(20);
+			::Sleep(10);
 
 			if (!CaptureClient(hContainer, cClean))
 				break;
 
 			FRAMEDIFF diff = CompareCaptures(cOnScreen, cClean, 6);
 
-			// Verify the clean reference is stable: a second forced repaint must
-			// produce the same pixels, otherwise the oracle itself is unreliable.
-			CAPTURE cClean2;
-
-			ForceRepaint(hContainer);
-			::Sleep(20);
-
-			if (CaptureClient(hContainer, cClean2))
+			// Verify the clean reference is stable at the first sample only: a second
+			// forced repaint must match, otherwise the oracle itself is unreliable
+			if (i == nMeasureEvery && nMeasureEvery > 0)
 			{
-				FRAMEDIFF cleanDiff = CompareCaptures(cClean, cClean2, 6);
-				stats.nMaxCleanDiff = (std::max)(stats.nMaxCleanDiff, cleanDiff.nPixels);
+				CAPTURE cClean2;
+
+				ForceRepaint(hContainer);
+				::Sleep(10);
+
+				if (CaptureClient(hContainer, cClean2))
+				{
+					FRAMEDIFF cleanDiff = CompareCaptures(cClean, cClean2, 6);
+					stats.nMaxCleanDiff = (std::max)(stats.nMaxCleanDiff, cleanDiff.nPixels);
+				}
 			}
 
 			if (diff.nPixels > nPixelTolerance)
@@ -1085,7 +1318,9 @@ CUIPerfTest::PERFOPTIONS::PERFOPTIONS()
 	bScrollKeys(FALSE),
 	bSaveFrames(FALSE),
 	bRecord(FALSE),
-	bRegenerate(FALSE)
+	bRegenerate(FALSE),
+	bLegacyAttributes(FALSE),
+	nMeasureEvery(1)
 {
 }
 
@@ -1156,6 +1391,11 @@ BOOL CUIPerfTest::GetOptions(PERFOPTIONS& opt) const
 	if (!opt.sTasklistPath.IsEmpty())
 		opt.sTasklistPath = FileMisc::GetFullPath(opt.sTasklistPath);
 
+	opt.sIniPath = m_utils.GetCommandlineOption(_T("inifile"));
+
+	if (!opt.sIniPath.IsEmpty())
+		opt.sIniPath = FileMisc::GetFullPath(opt.sIniPath);
+
 	int nValue = _ttoi(m_utils.GetCommandlineOption(_T("steps")));
 
 	if (nValue > 0)
@@ -1216,6 +1456,12 @@ BOOL CUIPerfTest::GetOptions(PERFOPTIONS& opt) const
 	opt.bSaveFrames = m_utils.HasCommandlineFlag(_T("frames"));
 	opt.bRecord = m_utils.HasCommandlineFlag(_T("record"));
 	opt.bRegenerate = m_utils.HasCommandlineFlag(_T("regenerate"));
+	opt.bLegacyAttributes = m_utils.HasCommandlineFlag(_T("legacyattr"));
+
+	sValue = m_utils.GetCommandlineOption(_T("measureevery"));
+
+	if (!sValue.IsEmpty())
+		opt.nMeasureEvery = (std::max)(1, _ttoi(sValue));
 
 	return (!opt.sExePath.IsEmpty() && FileMisc::FileExists(opt.sExePath));
 }
@@ -1375,9 +1621,87 @@ BOOL CUIPerfTest::PrepareFixture(BOOL bTree, const PERFOPTIONS& opt, LPCTSTR szR
 	return ::CopyFile(sCachePath, sTasklistPath, FALSE);
 }
 
-BOOL CUIPerfTest::WriteIniFile(LPCTSTR szIniPath) const
+BOOL CUIPerfTest::WriteIniFile(LPCTSTR szIniPath, const PERFOPTIONS& opt) const
 {
 	CStdioFile file;
+
+	// -inifile: start from a real user configuration (layout, columns, theming)
+	// so the scenario reproduces the user's actual tasklist.
+	if (!opt.sIniPath.IsEmpty())
+	{
+		if (!::CopyFile(opt.sIniPath, szIniPath, FALSE))
+			return FALSE;
+
+		CStringArray aLines;
+		CStdioFile src;
+		CString sLine;
+
+		if (!src.Open(szIniPath, CFile::modeRead | CFile::typeText))
+			return FALSE;
+
+		while (src.ReadString(sLine))
+			aLines.Add(sLine);
+
+		src.Close();
+
+		// Override the isolation keys inside [Preferences], preserving layout and
+		// theming. GetPrivateProfile* uses the first matching key, so the values
+		// must be replaced in place rather than appended as a second block.
+		int nPrefs = -1;
+
+		for (int i = 0; i < aLines.GetSize(); i++)
+		{
+			if (aLines[i].Trim().CompareNoCase(_T("[Preferences]")) == 0)
+			{
+				nPrefs = i;
+				break;
+			}
+		}
+
+		if (nPrefs == -1)
+			return FALSE;
+
+		int nInsertAt = nPrefs + 1;
+
+		for (int i = nPrefs + 1; i < aLines.GetSize(); i++)
+		{
+			CString sTrimmed = aLines[i];
+			sTrimmed.Trim();
+
+			if (!sTrimmed.IsEmpty() && (sTrimmed[0] == _T('[')))
+				break;
+
+			nInsertAt = (i + 1);
+
+			int nEq = sTrimmed.Find(_T('='));
+
+			if (nEq > 0)
+			{
+				CString sKey = sTrimmed.Left(nEq);
+				sKey.Trim();
+
+				if ((sKey.CompareNoCase(_T("MultiInstance")) == 0) ||
+					(sKey.CompareNoCase(_T("AutoCheckForUpdates")) == 0) ||
+					(sKey.CompareNoCase(_T("EnableSourceControl")) == 0) ||
+					(sKey.CompareNoCase(_T("CheckinOnClose")) == 0))
+				{
+					aLines[i] = sKey + _T("=") + ((sKey.CompareNoCase(_T("MultiInstance")) == 0) ? _T("1") : _T("0"));
+				}
+			}
+		}
+
+		aLines.InsertAt(nInsertAt, _T("CheckinOnClose=0"));
+
+		if (!file.Open(szIniPath, CFile::modeCreate | CFile::modeWrite | CFile::typeText))
+			return FALSE;
+
+		for (int i = 0; i < aLines.GetSize(); i++)
+			file.WriteString(aLines[i] + _T("\n"));
+
+		file.Close();
+
+		return TRUE;
+	}
 
 	if (!file.Open(szIniPath, CFile::modeCreate | CFile::modeWrite | CFile::typeText))
 		return FALSE;
@@ -1388,6 +1712,20 @@ BOOL CUIPerfTest::WriteIniFile(LPCTSTR szIniPath) const
 	file.WriteString(_T("EnableSourceControl=0\n"));
 	file.WriteString(_T("CheckoutOnCheckin=0\n"));
 	file.WriteString(_T("CheckinOnClose=0\n"));
+
+	if (opt.bLegacyAttributes)
+	{
+		// Legacy editor, attributes below the task view and comments to the right
+		// (matches the debug configuration). This gives a vertical split bar beside
+		// the task view, where the drag artefacts are most visible.
+		// AttributeEditor=1 stops the UI page from relocating 'bottom' controls when
+		// the editor is first enabled.
+		file.WriteString(_T("AttributeEditorMode=1\n"));
+		file.WriteString(_T("AttributeEditor=1\n"));
+		file.WriteString(_T("VertControls=0\n"));
+		file.WriteString(_T("VertComments=1\n"));
+	}
+
 	file.Close();
 
 	return TRUE;
@@ -1411,7 +1749,7 @@ void CUIPerfTest::TestSplitterDrag(const PERFOPTIONS& opt)
 	if (!bHasFixture)
 		return;
 
-	ExpectTrue(WriteIniFile(sIniPath));
+	ExpectTrue(WriteIniFile(sIniPath, opt));
 
 	CAppRunner app;
 
@@ -1423,7 +1761,14 @@ void CUIPerfTest::TestSplitterDrag(const PERFOPTIONS& opt)
 	if (!ExpectTrue(app.WaitForMainWnd(hMain, 20000)))
 		return;
 
-	if (!ExpectTrue(SetDefaultWindowSize(hMain, opt.nWidth, opt.nHeight)))
+	// With -inifile the run uses the user's real (often maximized, DPI-scaled)
+	// layout, so do not resize it to the harness frame
+	if (!opt.sIniPath.IsEmpty())
+	{
+		ForceForegroundWindow(hMain);
+		::Sleep(500);
+	}
+	else if (!ExpectTrue(SetDefaultWindowSize(hMain, opt.nWidth, opt.nHeight)))
 	{
 		_tprintf(_T("  SplitterDrag: could not bring ToDoList to the foreground\n"));
 		return;
@@ -1436,9 +1781,21 @@ void CUIPerfTest::TestSplitterDrag(const PERFOPTIONS& opt)
 	for (int i = 0; i < 100; i++)
 	{
 		hContainer = FindTaskContainer(hMain);
+		hTaskCtrl = (hContainer ? FindDescendantById(hContainer, TDL_IDC_TASKTREECTRL) : NULL);
 
-		if (hContainer && GetSplitBarPoint(hContainer, hTaskCtrl, ptBar, bVertical))
-			break;
+		if (hContainer && hTaskCtrl)
+		{
+			// Prefer a side-by-side pane (the usual splitter case); fall back to a
+			// stacked pane when the only split bar is horizontal
+			if (FindBarBesideTaskCtrl(hContainer, hTaskCtrl, ptBar, bVertical))
+				break;
+
+			if (GetSplitBarPoint(hContainer, hTaskCtrl, ptBar, bVertical) &&
+				NudgeToBarPoint(ptBar, bVertical))
+			{
+				break;
+			}
+		}
 
 		::Sleep(100);
 	}
@@ -1468,8 +1825,14 @@ void CUIPerfTest::TestSplitterDrag(const PERFOPTIONS& opt)
 		_tprintf(_T("  SplitterDrag: bar=(%d,%d) vertical=%d task=(%d,%d,%d,%d)\n"),
 				 ptBar.x, ptBar.y, bVertical,
 				 rcTaskBefore.left, rcTaskBefore.top, rcTaskBefore.right, rcTaskBefore.bottom);
+
+		if (m_utils.HasCommandlineFlag(_T("uiprobe")))
+			DumpChildWindows(hContainer, ptBar);
+
 		return;
 	}
+
+	HWND hAttribs = FindDescendantById(hContainer, TDL_IDC_ATTRIBUTELIST);
 
 	// Drag right/down, then back
 	for (int nDir = 0; nDir < 2; nDir++)
@@ -1477,13 +1840,24 @@ void CUIPerfTest::TestSplitterDrag(const PERFOPTIONS& opt)
 		CRect rcTaskBefore;
 		::GetWindowRect(hTaskCtrl, &rcTaskBefore);
 
-		GetSplitBarPoint(hContainer, hTaskCtrl, ptBar, bVertical);
+		CRect rcAttribsBefore(0, 0, 0, 0);
 
-		int nDelta = ((nDir == 0) ? 120 : -120);
+		if (hAttribs)
+			::GetWindowRect(hAttribs, &rcAttribsBefore);
+
+		// Sizes change after the previous drag, so re-locate the bar each time
+		if (!FindBarBesideTaskCtrl(hContainer, hTaskCtrl, ptBar, bVertical))
+		{
+			if (GetSplitBarPoint(hContainer, hTaskCtrl, ptBar, bVertical))
+				NudgeToBarPoint(ptBar, bVertical);
+		}
+
+		// -notches is reused as the total drag distance in pixels
+		int nDelta = ((nDir == 0) ? opt.nNotches : -opt.nNotches);
 
 		DRAGSTATS stats;
 		BOOL bDragged = RunDrag(hContainer, hTaskCtrl, ptBar, bVertical, nDelta,
-								opt.nSteps, opt.nStepDelayMs, opt.nPixelTolerance,
+								opt.nSteps, opt.nStepDelayMs, opt.nMeasureEvery, opt.nPixelTolerance,
 								sRunFolder, app.GetProcessHandle(), stats);
 
 		ExpectTrue(bDragged);
@@ -1491,8 +1865,24 @@ void CUIPerfTest::TestSplitterDrag(const PERFOPTIONS& opt)
 		CRect rcTaskAfter;
 		::GetWindowRect(hTaskCtrl, &rcTaskAfter);
 
-		BOOL bGeometryChanged = (bVertical ? (rcTaskAfter.Width() != rcTaskBefore.Width())
-										   : (rcTaskAfter.Height() != rcTaskBefore.Height()));
+		BOOL bTaskChanged = (bVertical ? (rcTaskAfter.Width() != rcTaskBefore.Width())
+									   : (rcTaskAfter.Height() != rcTaskBefore.Height()));
+
+		// The task view is not always the pane on the moving side (for example in
+		// a stacked layout the splitter resizes the attribute pane), so accept
+		// either pane changing size
+		BOOL bAttribsChanged = FALSE;
+
+		if (hAttribs)
+		{
+			CRect rcAttribsAfter;
+			::GetWindowRect(hAttribs, &rcAttribsAfter);
+
+			bAttribsChanged = (bVertical ? (rcAttribsAfter.Width() != rcAttribsBefore.Width())
+										 : (rcAttribsAfter.Height() != rcAttribsBefore.Height()));
+		}
+
+		BOOL bGeometryChanged = (bTaskChanged || bAttribsChanged);
 
 		_tprintf(_T("  SplitterDrag[%d]: steps=%d maxDiff=%d cleanDiff=%d artifactSteps=%d elapsedMs=%d gdi=%u->%u moved=%d\n"),
 				 nDir, stats.nSteps, stats.nMaxDiffPixels, stats.nMaxCleanDiff, stats.nArtifactSteps,
@@ -1524,7 +1914,7 @@ void CUIPerfTest::TestFixtures(const PERFOPTIONS& opt)
 	_tprintf(_T("  Tree: %s (%s)\n"), (LPCTSTR)sTreePath, (bTree ? _T("OK") : _T("FAILED")));
 	_tprintf(_T("  List: %s (%s)\n"), (LPCTSTR)sListPath, (bList ? _T("OK") : _T("FAILED")));
 
-	ExpectTrue(WriteIniFile(sIniPath));
+	ExpectTrue(WriteIniFile(sIniPath, opt));
 
 	// Manual launch:
 	// "<exe>" -f "<fixture>" -i "<ini>"
@@ -1557,7 +1947,7 @@ void CUIPerfTest::TestListScrollSync(const PERFOPTIONS& opt)
 	if (!bHasFixture)
 		return;
 
-	ExpectTrue(WriteIniFile(sIniPath));
+	ExpectTrue(WriteIniFile(sIniPath, opt));
 
 	CAppRunner app;
 

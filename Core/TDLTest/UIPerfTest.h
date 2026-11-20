@@ -28,6 +28,7 @@ protected:
 
 		CString sExePath;
 		CString sTasklistPath;	// optional user fixture
+		CString sIniPath;		// optional user ini to copy as the run config
 		int nSteps;
 		int nStepDelayMs;
 		int nPixelTolerance;
@@ -41,6 +42,8 @@ protected:
 		BOOL bSaveFrames;		// save every on-screen frame for manual inspection
 		BOOL bRecord;			// fast scroll + save frames, no clean-reference comparison
 		BOOL bRegenerate;		// ignore the fixture cache
+		BOOL bLegacyAttributes;	// use the legacy (non-grid) attribute editor
+		int nMeasureEvery;		// drag: capture every Nth step (1 = every step)
 	};
 
 protected:
@@ -51,7 +54,7 @@ protected:
 	BOOL CopyTasklistFixture(LPCTSTR szSrcPath, LPCTSTR szFolderPath, CString& sTasklistPath) const;
 	BOOL EnsureCachedFixture(BOOL bTree, BOOL bRegenerate, CString& sCachePath) const;
 	BOOL PrepareFixture(BOOL bTree, const PERFOPTIONS& opt, LPCTSTR szRunFolder, CString& sTasklistPath) const;
-	BOOL WriteIniFile(LPCTSTR szIniPath) const;
+	BOOL WriteIniFile(LPCTSTR szIniPath, const PERFOPTIONS& opt) const;
 
 	void TestSplitterDrag(const PERFOPTIONS& opt);
 	void TestListScrollSync(const PERFOPTIONS& opt);

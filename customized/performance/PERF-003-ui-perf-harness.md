@@ -40,14 +40,23 @@ No `Core/ToDoList` production file is changed.
   row colours) or a `-tdl` tasklist.
 - Launches the app with an isolated temp `.ini` (`MultiInstance=1`, no update
   checks).
-- Sizes the frame to 1400x900 and brings it to the foreground.
-- Locates the task view and attribute pane, derives the split-bar point next to
-  the task view, and drags it +/-120 px with real mouse input.
-- At every step captures on-screen pixels, forces `RedrawWindow(...UPDATENOW |
-  ALLCHILDREN)` and captures again. A non-zero difference beyond tolerance is an
-  artefact. A second clean capture (`cleanDiff`) verifies the oracle is stable.
-- Fails if the task view geometry did not change or any step failed the artefact
-  check.
+- Sizes the frame to 1400x900 and brings it to the foreground. With `-inifile` it
+  keeps the user's real window/layout instead of resizing.
+- Locates the split bar from the live pane rectangles: the gap between the task
+  view and its neighbouring pane, either side by side (`vertical` bar) or stacked
+  (`horizontal` bar). `-legacyattr` selects the legacy editor with a stacked
+  layout where the artefacts are most visible.
+- Drags the bar with real mouse input using `SetCursorPos` (exact pixels) plus
+  `mouse_event` for the button state; absolute `SendInput` scaling drifted off the
+  few-pixel bar. `-notches` is reused as the total drag distance in pixels.
+- Captures on-screen pixels, forces `RedrawWindow(...UPDATENOW | ALLCHILDREN)` and
+  captures again. A non-zero difference beyond tolerance is an artefact. A second
+  clean capture (`cleanDiff`) verifies the oracle is stable.
+- `-delay 0` sends moves back-to-back like a real fast drag; `-measureevery <n>`
+  captures only every Nth step so a full drag stays fast while still sampling
+  mid-drag. A short settle runs before each sampled capture.
+- Fails if the task view or attribute pane geometry did not change or any step
+  failed the artefact check.
 
 ### `UIPerf::ListScrollSync`
 
@@ -132,6 +141,10 @@ Unicode_Debug\TDLTest.exe -ui > ui-perf-baseline.txt 2>&1
 ::   -uisplitter    run only UIPerf::SplitterDrag
 ::   -uihold        leave ToDoList open after setup; wait for you to close it (manual mode)
 ::   -nodrag        launch and locate windows but do not send mouse input
+::   -uiprobe       with -nodrag: dump child windows/rects and the window under the bar
+::   -legacyattr    use the legacy attribute editor + stacked layout via Perf.ini
+::   -inifile <p>   start from a real user ini (layout/theming); no frame resize
+::   -measureevery <n>  drag: capture only every Nth step (1 = every step)
 ```
 
 Requirements and behaviour:
@@ -188,13 +201,22 @@ Implementation notes:
   command is retried with `ID_VIEW_TOGGLETREEANDLIST` (34238) as a fallback.
 
 First baseline (unmodified build):
-
 - `SplitterDrag[0/1]` (`-ui -steps 3/4/8`): `moved=1`, but every step reported stale
   pixels (`maxDiff` about 59k–78k pixels, `artifactSteps` = `steps`). `cleanDiff=0`
   confirms two consecutive forced repaints are identical, so the diff is real
   stale content, not oracle noise. The saved frames show the task view's right
   edge/Tags column still painted at the previous splitter position, plus the old
   bar strip. This is the PERF-002 artefact reproduced automatically.
+- `SplitterDrag` real layout (`-inifile Core\ToDoList\Unicode_Debug\ToDoList.ini
+  -tdl Examples\biglist.tdl -steps 40 -notches 120 -delay 0 -measureevery 5`):
+  the vertical bar beside the task list, legacy attribute editor, fast drag.
+  `moved=1`, `cleanDiff=0`, ~3 s per direction, and with a 50 ms settle
+  `maxDiff≈62k–77k, artifactSteps=8/8`; with a 150 ms settle the diff collapses to
+  `≈4.7k–5.8k, artifactSteps=2–3`. This split (repaint latency vs a small residual
+  edge omission) is analysed in
+  [PERF-002](PERF-002-splitter-paint-performance.md). With the drag-time double
+  buffer from PERF-002 the run reaches `maxDiff=0, artifactSteps=0` in both
+  directions (occasionally a small comments rich-edit residual).
 - `ListScroll` settled check: `top` advanced, `syncErrors=0`, `maxDiff≈529`,
   `artifactSteps=0`. The title list catches up when the scroll settles.
 - `ListScroll` fast check (`-record -notches 2 -delay 0`): `ListScroll[0]:

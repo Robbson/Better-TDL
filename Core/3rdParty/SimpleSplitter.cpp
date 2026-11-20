@@ -443,7 +443,125 @@ void CSimpleSplitter::ResizePaneWindows()
 			ResizePaneWindow(i);
 	}
 
+	// While the user is dragging, the panes repaint piecemeal and the partial
+	// frames are visible; compose the task-view pane offscreen and blit it once so
+	// a whole frame is shown per mouse move. Outside a drag the normal paint path
+	// is fine and cheaper.
+	if (GetCapture() == this)
+		DoubleBufferPanes();
+
 	Invalidate(TRUE);
+}
+
+namespace
+{
+	BOOL CALLBACK EnumFindTaskViewProc(HWND hWnd, LPARAM lParam)
+	{
+		TCHAR szClass[64] = { 0 };
+		::GetClassName(hWnd, szClass, 63);
+
+		if ((lstrcmpi(szClass, _T("SysTreeView32")) == 0) ||
+			(lstrcmpi(szClass, _T("SysListView32")) == 0))
+		{
+			*((BOOL*)lParam) = TRUE;
+			return FALSE;
+		}
+
+		return TRUE;
+	}
+}
+
+BOOL CSimpleSplitter::PaneHasTaskView(CWnd* pPane) const
+{
+	if (!pPane || !pPane->GetSafeHwnd())
+		return FALSE;
+
+	BOOL bFound = FALSE;
+	::EnumChildWindows(pPane->GetSafeHwnd(), EnumFindTaskViewProc, (LPARAM)&bFound);
+	return bFound;
+}
+
+namespace
+{
+	BOOL CALLBACK EnumFindRichEditProc(HWND hWnd, LPARAM lParam)
+	{
+		TCHAR szClass[64] = { 0 };
+		::GetClassName(hWnd, szClass, 63);
+
+		if (lstrcmpi(szClass, _T("RICHEDIT50W")) == 0)
+		{
+			*((BOOL*)lParam) = TRUE;
+			return FALSE;
+		}
+
+		return TRUE;
+	}
+}
+
+BOOL CSimpleSplitter::PaneHasRichEdit(CWnd* pPane) const
+{
+	if (!pPane || !pPane->GetSafeHwnd())
+		return FALSE;
+
+	BOOL bFound = FALSE;
+	::EnumChildWindows(pPane->GetSafeHwnd(), EnumFindRichEditProc, (LPARAM)&bFound);
+	return bFound;
+}
+
+void CSimpleSplitter::DoubleBufferPanes()
+{
+	for (int i = 0; i < m_aPanes.GetSize(); i++)
+	{
+		CWnd* pPane = m_aPanes[i];
+
+		if (!pPane || !pPane->GetSafeHwnd() || !pPane->IsWindowVisible())
+			continue;
+
+		// The task view and the comments rich edit both show partial frames while
+		// dragging. The attributes frame does not print faithfully (many child
+		// controls), so leave it on the normal path.
+		if (!PaneHasTaskView(pPane) && !PaneHasRichEdit(pPane))
+			continue;
+
+		// Blit over the whole window (including its non-client border): the 1px
+		// border between the blitted client and the split bar is otherwise left
+		// stale for a frame
+		CRect rcWnd;
+		pPane->GetWindowRect(rcWnd);
+
+		if (rcWnd.IsRectEmpty())
+			continue;
+
+		HDC hdcWnd = ::GetWindowDC(pPane->GetSafeHwnd());
+
+		if (!hdcWnd)
+			continue;
+
+		CDC dcMem;
+		BOOL bCreated = dcMem.CreateCompatibleDC(CDC::FromHandle(hdcWnd));
+
+		CBitmap bmpMem;
+		BOOL bBmp = (bCreated && bmpMem.CreateCompatibleBitmap(CDC::FromHandle(hdcWnd),
+															   rcWnd.Width(), rcWnd.Height()));
+
+		if (bBmp)
+		{
+			CBitmap* pOldBmp = dcMem.SelectObject(&bmpMem);
+
+			// Paint into the buffer; fill first so any area a control does not print
+			// shows windows background rather than uninitialised pixels
+			dcMem.FillSolidRect(0, 0, rcWnd.Width(), rcWnd.Height(), ::GetSysColor(COLOR_WINDOW));
+			pPane->SendMessage(WM_PRINT, (WPARAM)dcMem.GetSafeHdc(),
+							   PRF_CLIENT | PRF_CHILDREN | PRF_ERASEBKGND | PRF_NONCLIENT);
+
+			// Single blit to the pane: one complete frame, no partial repaint
+			::BitBlt(hdcWnd, 0, 0, rcWnd.Width(), rcWnd.Height(), dcMem.GetSafeHdc(), 0, 0, SRCCOPY);
+
+			dcMem.SelectObject(pOldBmp);
+		}
+
+		::ReleaseDC(pPane->GetSafeHwnd(), hdcWnd);
+	}
 }
 
 void CSimpleSplitter::ResizePaneWindow(int nPane)

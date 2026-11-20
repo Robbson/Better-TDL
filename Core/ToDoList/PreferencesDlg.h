@@ -398,6 +398,7 @@ protected:
 	afx_msg LRESULT OnNumPriorityRiskLevels(WPARAM wp, LPARAM lp);
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 	afx_msg void OnDestroy();
+	afx_msg void OnFontChange();
 	afx_msg LRESULT OnCopy(WPARAM wp, LPARAM lp);
 	DECLARE_MESSAGE_MAP()
 

@@ -20,10 +20,12 @@
 #include "..\shared\CtrlTextHighlighter.h"
 #include "..\shared\FileIcons.h"
 #include "..\shared\darkmode.h"
+#include "..\shared\ScopedTimer.h"
 
 #include "..\Interfaces\TasklistStorageMgr.h"
 
 #include "..\3rdParty\OSVersion.h"
+#include "..\3rdParty\FontComboBox.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -201,6 +203,7 @@ BEGIN_MESSAGE_MAP(CPreferencesDlg, CPreferencesDlgBase)
 	ON_NOTIFY(NM_CUSTOMDRAW, IDC_PAGES, OnTreeCustomDraw)
 	ON_WM_ERASEBKGND()
 	ON_WM_DESTROY()
+	ON_WM_FONTCHANGE()
 	ON_REGISTERED_MESSAGE(WM_EE_BTNCLICK, OnUpdateSearch)
 	ON_REGISTERED_MESSAGE(WM_PTP_TESTTOOL, OnToolPageTestTool)
 	ON_REGISTERED_MESSAGE(WM_PGP_CLEARMRU, OnGenPageClearMRU)
@@ -236,6 +239,9 @@ BOOL CPreferencesDlg::OnInitDialog()
 {
 	CAutoFlag af(m_bInitialisingDialog, TRUE);
 
+	// Ensure each dialog session starts with a fresh font list
+	CFontNameComboBox::InvalidateFontCache();
+
 	CPreferencesDlgBase::OnInitDialog();
 	CPreferencesDlgCopyHookMgr::Initialize(*this);
 
@@ -259,6 +265,13 @@ void CPreferencesDlg::OnDestroy()
 	CPreferencesDlgCopyHookMgr::Release();
 
 	CDialog::OnDestroy();
+}
+
+void CPreferencesDlg::OnFontChange()
+{
+	CFontNameComboBox::InvalidateFontCache();
+
+	CDialog::OnFontChange();
 }
 
 LRESULT CPreferencesDlg::OnCopy(WPARAM wp, LPARAM lp)
@@ -425,6 +438,9 @@ BOOL CPreferencesDlg::AddPageToTree(CPreferencesPageBase* pPage, UINT nIDPath, U
 				if (CCtrlTextHighlighter::TextContainsOneOf(aPath[nPath], m_aSearchTerms))
 					break;
 			}
+
+			CString sPage = m_ppHost.GetPageTitle(m_ppHost.GetPageIndex(pPage));
+			CScopedLogTimer logPage(_T("    Highlight '%s'"), (LPCTSTR)sPage);
 
 			if (!pPage->HighlightUIText(m_aSearchTerms, HILITE_BACKCOLOUR) && (nPath == -1))
 				return FALSE;
@@ -1003,6 +1019,8 @@ LRESULT CPreferencesDlg::OnUpdateSearch(WPARAM wParam, LPARAM lParam)
 	ASSERT(wParam == IDC_SEARCH);
 	UNREFERENCED_PARAMETER(wParam);
 
+	CScopedLogTimer logSearch(_T("CPreferencesDlg::OnUpdateSearch"));
+
 	// Only act if something has changed
 	CStringArray aSearchText;
 
@@ -1030,6 +1048,8 @@ LRESULT CPreferencesDlg::OnUpdateSearch(WPARAM wParam, LPARAM lParam)
 
 		if (!m_ppHost.PagesAreAllCreated())
 		{
+			CScopedLogTimer logCreateAll(_T("  CreateAllPages"));
+
 			CHoldRedraw hr(m_ppHost);
 			CHoldRedraw hr2(m_stPageTitle);
 
@@ -1045,24 +1065,41 @@ LRESULT CPreferencesDlg::OnUpdateSearch(WPARAM wParam, LPARAM lParam)
 
 				if (!pPage->GetSafeHwnd())
 				{
+					CString sPage;
+					sPage.Format(_T("%d"), nPage);
+
+					CScopedLogTimer logPage(_T("    Page[%s]"), (LPCTSTR)sPage);
+
 					if (!EnsurePageCreated(nPage))
 						return FALSE;
+
+					logPage.LogTimeElapsed(_T("    Created '%s'"), (LPCTSTR)sPage);
 
 					// Showing the page triggers translation
 					// as well as ensuring all content is ready
 					pPage->ShowWindow(SW_SHOWNOACTIVATE);
 					pPage->ShowWindow(SW_HIDE);
+
+					logPage.LogTimeElapsed(_T("    Shown '%s'"), (LPCTSTR)sPage);
 				}
 			}
 		}
 
-		CHoldRedraw hr(m_tcPages);
-		AddPagesToTree(TRUE);
+		{
+			CScopedLogTimer logTree(_T("  AddPagesToTree(search)"));
 
-		if (!m_tcPages.GetCount())
-			AddPagesToTree(FALSE); // add all pages
+			CHoldRedraw hr(m_tcPages);
+			AddPagesToTree(TRUE);
 
-		Resize();
+			if (!m_tcPages.GetCount())
+				AddPagesToTree(FALSE); // add all pages
+		}
+
+		{
+			CScopedLogTimer logResize(_T("  Resize"));
+
+			Resize();
+		}
 	}
 
 	return 0L;

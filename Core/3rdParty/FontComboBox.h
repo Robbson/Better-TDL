@@ -27,6 +27,8 @@ public:
 	int GetMaxWidth() const;
 	BOOL SelectFontName( const CString& font );
 
+	static void InvalidateFontCache();
+
 // Overrides
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(CFontComboBox)

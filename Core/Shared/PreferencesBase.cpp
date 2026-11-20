@@ -11,6 +11,7 @@
 #include "CtrlTextHighlighter.h"
 #include "enstring.h"
 #include "ToolTipCtrlEx.h"
+#include "ScopedTimer.h"
 
 #include "..\3rdParty\OSVersion.h"
 
@@ -156,7 +157,17 @@ END_MESSAGE_MAP()
 
 BOOL CPreferencesPageBase::OnInitDialog() 
 {
+	CString sClass(GetRuntimeClass()->m_lpszClassName);
+	CString sId;
+	sId.Format(_T("%u"), (UINT)(UINT_PTR)m_psp.pszTemplate);
+	CString sName;
+	sName.Format(_T("%s#%s"), (LPCTSTR)sClass, (LPCTSTR)sId);
+
+	CScopedLogTimer logPage(_T("      PageInit(%s)"), (LPCTSTR)sName);
+
 	CPropertyPage::OnInitDialog();
+
+	logPage.LogTimeElapsed(_T("      PageInit::DDX(%s)"), (LPCTSTR)sName);
 	
 	if (m_crBack != CLR_NONE)
 		SetBackgroundColor(m_crBack);
@@ -164,6 +175,9 @@ BOOL CPreferencesPageBase::OnInitDialog()
 		SetBackgroundColor(GetSysColor(COLOR_WINDOW));
 
 	InitTooltips();
+
+	logPage.LogTimeElapsed(_T("      PageInit::Tooltips(%s)"), (LPCTSTR)sName);
+
 	EnableTooltips(m_bEnableTooltips);
 
 	return TRUE;

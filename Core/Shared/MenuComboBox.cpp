@@ -9,6 +9,7 @@
 #include "enString.h"
 #include "dialoghelper.h"
 #include "graphicsmisc.h"
+#include "ScopedTimer.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -40,12 +41,17 @@ END_MESSAGE_MAP()
 
 BOOL CMenuComboBox::Initialise(UINT nMenuID, UINT nSeparatorResID)
 {
+	CScopedLogTimer logMenu(_T("      MenuCombo::Initialise(ID)"));
+
 	CMenu menu;
 
 	if (!menu.LoadMenu(nMenuID))
 		return FALSE;
 
 	CLocalizer::TranslateMenu(menu);
+
+	logMenu.LogTimeElapsed(_T("      MenuCombo::TranslateMenu"));
+
 	CLocalizer::EnableTranslation(*this, FALSE);
 
 	return Initialise(menu, nSeparatorResID);
@@ -55,6 +61,8 @@ BOOL CMenuComboBox::Initialise(const CMenu& menu, UINT nSeparatorResID)
 {
 	ASSERT(GetSafeHwnd());
 	ASSERT(!HasStyle(CBS_SORT));
+
+	CScopedLogTimer logMenu(_T("      MenuCombo::Initialise"));
 
 	ResetContent();
 

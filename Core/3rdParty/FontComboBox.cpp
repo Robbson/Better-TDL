@@ -25,6 +25,8 @@
 #include "stdafx.h"
 #include "FontComboBox.h"
 
+#include "..\shared\ScopedTimer.h"
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
@@ -33,23 +35,80 @@ static char THIS_FILE[] = __FILE__;
 
 // Enumeration callback function for 
 // installed fonts
-BOOL CALLBACK EnumFontProc( LPLOGFONT lplf, LPTEXTMETRIC /*lptm*/, DWORD /*dwType*/, LPARAM lpData )	
-{	
-	CFontNameComboBox *caller = reinterpret_cast< CFontNameComboBox* > ( lpData );	
-	
-	if (caller->FindStringExact(0, lplf->lfFaceName) == CB_ERR)
-		caller->AddString( lplf->lfFaceName );
 
-	CClientDC dc( caller );
-	dc.SelectStockObject( ANSI_VAR_FONT );
+namespace
+{
+	struct FONTNAMECACHE
+	{
+		FONTNAMECACHE() : nMaxWidth(0), bValid(FALSE) {}
 
-	// Add a "0" for the margin.
-	CSize sz = dc.GetTextExtent( CString( lplf->lfFaceName ) + CString( "0" ) );
+		CStringArray aNames;
+		CMap<CString, LPCTSTR, BOOL, BOOL> mapSeen;
+		int nMaxWidth;
+		BOOL bValid;
+	};
 
-	caller->SetMaxWidth( max( caller->GetMaxWidth(), sz.cx ) );
+	FONTNAMECACHE& GetFontNameCache()
+	{
+		static FONTNAMECACHE cache;
+		return cache;
+	}
 
-	return TRUE;
+	int CALLBACK EnumFontFamilyProc(const LOGFONT* lplf, const TEXTMETRIC* /*lptm*/, DWORD /*dwType*/, LPARAM lpData)	
+	{	
+		FONTNAMECACHE* pCache = reinterpret_cast<FONTNAMECACHE*>(lpData);
+		
+		CString sName(lplf->lfFaceName);
+		BOOL bSeen = FALSE;
+		
+		if (!sName.IsEmpty() && !pCache->mapSeen.Lookup(sName, bSeen))
+		{
+			pCache->mapSeen[sName] = TRUE;
+			pCache->aNames.Add(sName);
+		}
+		
+		return TRUE;
+	}
 
+	void BuildFontNameCache(CDC& dc, FONTNAMECACHE& cache)
+	{
+		CScopedLogTimer logCache(_T("      FontCache::Build"));
+
+		cache.aNames.RemoveAll();
+		cache.mapSeen.RemoveAll();
+		cache.nMaxWidth = 0;
+		
+		LOGFONT lf = { 0 };
+		lf.lfCharSet = DEFAULT_CHARSET;
+		
+		::EnumFontFamiliesEx(dc.GetSafeHdc(), &lf, EnumFontFamilyProc, (LPARAM)&cache, 0);
+
+		logCache.LogTimeElapsed(_T("      FontCache::Enumerate"));
+		
+		// measure once per unique font name using the same font as before
+		CGdiObject* pOldFont = dc.SelectStockObject(ANSI_VAR_FONT);
+		
+		for (int nName = 0; nName < cache.aNames.GetSize(); nName++)
+		{
+			// Add a "0" for the margin.
+			CSize sz = dc.GetTextExtent(cache.aNames[nName] + CString(_T("0")));
+			cache.nMaxWidth = max(cache.nMaxWidth, sz.cx);
+		}
+		
+		dc.SelectObject(pOldFont);
+		
+		cache.bValid = TRUE;
+	}
+
+	const FONTNAMECACHE& EnsureFontNameCache(CDC& dc)
+	{
+		FONTNAMECACHE& cache = GetFontNameCache();
+		
+		if (!cache.bValid)
+			BuildFontNameCache(dc, cache);
+		
+		return cache;
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -134,8 +193,28 @@ void CFontNameComboBox::FillCombo()
 
    ============================================================*/
 {
-	CClientDC dc( this );		
-	::EnumFonts( dc, 0, ( FONTENUMPROC ) EnumFontProc, ( LPARAM ) this );
+	CScopedLogTimer logFill(_T("      FontCombo::FillCombo"));
+
+	CClientDC dc( this );
+	const FONTNAMECACHE& cache = EnsureFontNameCache( dc );
+
+	logFill.LogTimeElapsed(_T("      FontCombo::EnsureCache"));
+	
+	SetRedraw( FALSE );
+	ResetContent();
+
+	for ( int nName = 0; nName < cache.aNames.GetSize(); nName++ )
+		AddString( cache.aNames[nName] );
+
+	SetRedraw( TRUE );
+	Invalidate();
+
+	m_maxWidth = cache.nMaxWidth;
+}
+
+void CFontNameComboBox::InvalidateFontCache()
+{
+	GetFontNameCache().bValid = FALSE;
 }
 
 void CFontNameComboBox::SetMaxWidth( int maxWidth )

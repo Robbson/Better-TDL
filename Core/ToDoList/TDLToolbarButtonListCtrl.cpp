@@ -11,6 +11,7 @@
 #include "..\Shared\GraphicsMisc.h"
 #include "..\Shared\Localizer.h"
 #include "..\Shared\Misc.h"
+#include "..\Shared\ScopedTimer.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -92,6 +93,8 @@ UINT CTDLToolbarButtonListCtrl::GetLastButtonID() const
 
 void CTDLToolbarButtonListCtrl::InitState()
 {
+	CScopedLogTimer logList(_T("      ToolbarList::InitState"));
+
 	CInputListCtrl::InitState();
 
 	OverrideSelectionTheming(TRUE, TRUE);
@@ -109,7 +112,11 @@ void CTDLToolbarButtonListCtrl::InitState()
 	CTDCMainMenu menu;
 	VERIFY(menu.LoadMenu());
 
+	logList.LogTimeElapsed(_T("      ToolbarList::LoadMenu"));
+
 	VERIFY(m_cbMenuItems.Initialise(menu, IDS_TOOLBARMENUSEPARATOR));
+
+	logList.LogTimeElapsed(_T("      ToolbarList::InitMenuCombo"));
 
 	PopulateList();
 }

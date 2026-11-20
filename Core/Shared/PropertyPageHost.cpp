@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "PropertyPageHost.h"
 #include "dialoghelper.h"
+#include "ScopedTimer.h"
 
 #if _MSC_VER > 1200
 #	include <afxocc.h>
@@ -226,8 +227,18 @@ BOOL CPropertyPageHost::EnsurePageCreated(int nIndex)
 
 	if (pPage->GetSafeHwnd() == NULL) // first time only
 	{
+		CString sClass(pPage->GetRuntimeClass()->m_lpszClassName);
+		CString sId;
+		sId.Format(_T("%u"), (UINT)(UINT_PTR)pPage->m_psp.pszTemplate);
+		CString sName;
+		sName.Format(_T("%s#%s"), (LPCTSTR)sClass, (LPCTSTR)sId);
+
+		CScopedLogTimer logPage(_T("      PageCreate(%s)"), (LPCTSTR)sName);
+
 		if (!pPage->Create(pPage->m_psp.pszTemplate, this))
 			return FALSE;
+
+		logPage.LogTimeElapsed(_T("      PageCreate::Create(%s)"), (LPCTSTR)sName);
 
 		// make sure we can into/out of the page
 		pPage->ModifyStyleEx(0, WS_EX_CONTROLPARENT | DS_CONTROL);
@@ -243,6 +254,8 @@ BOOL CPropertyPageHost::EnsurePageCreated(int nIndex)
 
 		if (pFont)
 			CDialogHelper::SetFont(pPage, (HFONT)pFont->GetSafeHandle(), FALSE);
+
+		logPage.LogTimeElapsed(_T("      PageCreate::SetFont(%s)"), (LPCTSTR)sName);
 
 		// and our parent
 		pPage->SetParent(this);

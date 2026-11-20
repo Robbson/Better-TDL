@@ -180,6 +180,14 @@ BOOL CPreferencesGenPage::OnSetActive()
 	return bResult;
 }
 
+void CPreferencesGenPage::AddSearchText(CStringArray& aText) const
+{
+	aText.Add(m_sHomeFolder);
+	aText.Add(m_sStickiesPath);
+	aText.Add(m_sTDLExtensionHandler);
+	aText.Add(m_sTDLProtocolHandler);
+}
+
 void CPreferencesGenPage::OnFirstShow()
 {
 	CPreferencesPageBase::OnFirstShow();

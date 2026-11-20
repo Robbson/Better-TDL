@@ -119,6 +119,11 @@ void CPreferencesTaskCalcPage::InitTooltips()
 	AddTooltip(IDC_NOCALCDUEDATE2, IDS_PREFTIP_CALC_STARTASSIGNED);
 }
 
+void CPreferencesTaskCalcPage::AddSearchText(CStringArray& aText) const
+{
+	aText.Add(m_sCompletionStatus);
+}
+
 void CPreferencesTaskCalcPage::OnFirstShow()
 {
 	CPreferencesPageBase::OnFirstShow();

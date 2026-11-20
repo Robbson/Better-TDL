@@ -20,6 +20,9 @@
     <ClCompile Include="..\ToDoList\PreferencesDlg.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\ToDoList\PreferencesSearchIndex.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\ToDoList\PreferencesExportPage.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -533,6 +536,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ToDoList\PreferencesDlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ToDoList\PreferencesSearchIndex.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ToDoList\PreferencesExportPage.h">

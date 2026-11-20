@@ -127,6 +127,11 @@ void CPreferencesUIPage::InitTooltips()
 	AddTooltip(IDC_TASKVIEWVISIBILITY, IDS_PREFTIP_UI_DEFAULTVIEWS);
 }
 
+void CPreferencesUIPage::AddSearchText(CStringArray& aText) const
+{
+	aText.Add(m_sUIThemeFile);
+}
+
 void CPreferencesUIPage::OnFirstShow()
 {
 	CPreferencesPageBase::OnFirstShow();

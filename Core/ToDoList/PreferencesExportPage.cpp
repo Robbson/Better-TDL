@@ -98,6 +98,13 @@ void CPreferencesExportPage::InitTooltips()
 	AddTooltip(IDC_TABWIDTHS, IDS_PREFTIP_EXP_SPACEINDENT);
 }
 
+void CPreferencesExportPage::AddSearchText(CStringArray& aText) const
+{
+	CFontNameComboBox::GetFontNames(aText);
+
+	aText.Add(m_sHtmlFont);
+}
+
 void CPreferencesExportPage::OnFirstShow()
 {
 	CPreferencesPageBase::OnFirstShow();

@@ -9,6 +9,8 @@
 #include "..\shared\misc.h"
 #include "..\shared\filemisc.h"
 
+#include "..\ToDoList\PreferencesSearchIndex.h"
+
 #include "..\interfaces\preferences.h"
 
 #ifdef _DEBUG
@@ -38,6 +40,8 @@ TESTRESULT CPreferencesTest::Run()
 	ClearTotals();
 
 	TestQuotedStrings();
+	TestSearchIndexDialogTemplates();
+	TestSearchIndexMatching();
 	TestArrayPerformance();
 	TestSectionPerformance();
 
@@ -174,6 +178,105 @@ void CPreferencesTest::TestSectionPerformance()
 	// Reset preferences to prevent a save affecting timing
 	CPreferences::Release();
 #endif
+}
+
+void CPreferencesTest::TestSearchIndexDialogTemplates()
+{
+	CTDCScopedTest test(*this, _T("CPreferencesSearchIndex::DialogTemplates"));
+
+	CString sExe = GetToDoListExePath();
+
+	if (!FileMisc::FileExists(sExe))
+	{
+		_tprintf(_T("    Skipped: '%s' not found\n"), (LPCTSTR)sExe);
+		return;
+	}
+
+	HMODULE hMod = ::LoadLibraryEx(sExe, NULL, LOAD_LIBRARY_AS_DATAFILE);
+
+	if (!ExpectTrue(hMod != NULL))
+		return;
+
+	ExpectTrue(ContainsTemplateText(hMod, 139, _T("&Home Folder")));       // IDD_PREFGEN_PAGE
+	ExpectTrue(ContainsTemplateText(hMod, 158, _T("&Preview results")));  // IDD_PREFEXPORT_PAGE
+	ExpectTrue(ContainsTemplateText(hMod, 157, _T("&Tasklist font")));    // IDD_PREFUITASKLISTCOLORS_PAGE
+	ExpectTrue(ContainsTemplateText(hMod, 142, _T("&Show menu item IDs"))); // IDD_PREFSHORTCUTS_PAGE (DIALOGEX)
+
+	::FreeLibrary(hMod);
+}
+
+void CPreferencesTest::TestSearchIndexMatching()
+{
+	CTDCScopedTest test(*this, _T("CPreferencesSearchIndex::Matching"));
+
+	CPreferencesSearchIndex index;
+	index.SetPageCount(3);
+
+	index.AddText(0, _T("Home Folder"));
+	index.AddText(1, _T("Tasklist font"));
+	index.AddText(1, _T("Tahoma"));
+	index.SetAlwaysMatches(2);
+
+	CStringArray aTerms;
+	aTerms.Add(_T("FOLDER"));
+
+	ExpectTrue(index.PageMatches(0, aTerms));
+	ExpectFalse(index.PageMatches(1, aTerms));
+	ExpectTrue(index.PageMatches(2, aTerms));
+
+	aTerms.RemoveAll();
+	aTerms.Add(_T("tahoma"));
+
+	ExpectTrue(index.PageMatches(1, aTerms));
+
+	aTerms.RemoveAll();
+	aTerms.Add(_T("nomatch"));
+
+	ExpectFalse(index.PageMatches(0, aTerms));
+	ExpectFalse(index.PageMatches(1, aTerms));
+}
+
+BOOL CPreferencesTest::ContainsTemplateText(HMODULE hMod, int nID, LPCTSTR szExpected)
+{
+	HRSRC hRes = ::FindResource(hMod, MAKEINTRESOURCE(nID), RT_DIALOG);
+
+	if (!hRes)
+		return FALSE;
+
+	HGLOBAL hMem = ::LoadResource(hMod, hRes);
+
+	if (!hMem)
+		return FALSE;
+
+	const DLGTEMPLATE* pTemplate = reinterpret_cast<const DLGTEMPLATE*>(::LockResource(hMem));
+
+	if (!pTemplate)
+		return FALSE;
+
+	CStringArray aText;
+
+	if (!CPreferencesSearchIndex::ParseDialogTemplate(pTemplate, aText))
+		return FALSE;
+
+	for (int nText = 0; nText < aText.GetSize(); nText++)
+	{
+		if (aText[nText] == szExpected)
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+CString CPreferencesTest::GetToDoListExePath()
+{
+	CString sConfig(FileMisc::GetFileNameFromPath(FileMisc::GetAppFolder()));
+	CString sExe = FileMisc::GetAppFolder();
+
+	sExe += _T("\\..\\..\\ToDoList\\");
+	sExe += sConfig;
+	sExe += _T("\\ToDoList.exe");
+
+	return FileMisc::GetFullPath(sExe);
 }
 
 void CPreferencesTest::TestArrayPerformance()

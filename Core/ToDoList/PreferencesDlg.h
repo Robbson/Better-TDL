@@ -28,6 +28,8 @@
 #include "preferencesfile2page.h"
 #include "preferencestaskcalcpage.h"
 
+#include "PreferencesSearchIndex.h"
+
 #include "..\shared\preferencesbase.h"
 #include "..\shared\enstatic.h"
 #include "..\shared\winhelpbutton.h"
@@ -367,8 +369,10 @@ protected:
 
 	BOOL m_bInitialisingDialog;
 	BOOL m_bBuildingTree;
+	BOOL m_bLegacySearch;
 
 	CPreferences m_prefs;
+	CPreferencesSearchIndex m_searchIndex;
 	CMap<CPreferencesPageBase*, CPreferencesPageBase*, HTREEITEM, HTREEITEM&> m_mapPP2HTI;
 	CMap<HTREEITEM, HTREEITEM, UINT, UINT&> m_mapHTIToSection;
 
@@ -408,6 +412,10 @@ protected:
 protected:
 	void AddPagesToTree(BOOL bDoSearch);
 	BOOL AddPageToTree(CPreferencesPageBase* pPage, UINT nIDPath, UINT nIDSection, BOOL bDoSearch);
+	void BuildSearchIndex();
+	BOOL PageMatchesSearch(const CPreferencesPageBase* pPage) const;
+	void HighlightPageIfSearching(CPreferencesPageBase* pPage);
+	static BOOL WantsLegacySearch();
 	BOOL SetActivePage(int nPage); // override
 	CString GetItemPath(HTREEITEM hti) const;
 	void SynchronizeTree();

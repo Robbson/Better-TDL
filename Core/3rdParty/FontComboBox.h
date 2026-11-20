@@ -28,6 +28,7 @@ public:
 	BOOL SelectFontName( const CString& font );
 
 	static void InvalidateFontCache();
+	static void GetFontNames(CStringArray& aNames);
 
 // Overrides
 	// ClassWizard generated virtual function overrides

@@ -54,6 +54,10 @@ public:
 	virtual void ClearHighlights();
 	virtual CWnd* GetFirstHighlightedItem() const;
 
+	// Adds runtime-generated search text for this page without requiring
+	// the page window to exist.
+	virtual void AddSearchText(CStringArray& /*aText*/) const {}
+
 protected:
 	HBRUSH m_brBack;
 	COLORREF m_crBack;

@@ -27,11 +27,15 @@ public:
 
 protected:
 	void TestQuotedStrings();
+	void TestSearchIndexDialogTemplates();
+	void TestSearchIndexMatching();
 	void TestArrayPerformance();
 	void TestSectionPerformance();
 
 protected:
 	static void InitArray(CDWordArray& aItems, int nSize);
+	static BOOL ContainsTemplateText(HMODULE hMod, int nID, LPCTSTR szExpected);
+	static CString GetToDoListExePath();
 
 };
 

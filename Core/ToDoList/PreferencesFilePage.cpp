@@ -108,6 +108,12 @@ void CPreferencesFilePage::InitTooltips()
 	AddTooltip(IDC_DUETASKPERSON, IDS_PREFTIP_FILE_ONLYPERSON);
 }
 
+void CPreferencesFilePage::AddSearchText(CStringArray& aText) const
+{
+	aText.Add(m_sDueTasksStylesheet);
+	aText.Add(m_sDueTaskPerson);
+}
+
 void CPreferencesFilePage::OnFirstShow()
 {
 	CPreferencesPageBase::OnFirstShow();

@@ -166,6 +166,14 @@ void CPreferencesFile2Page::InitTooltips()
 	AddTooltip(IDC_EXPORTFOLDER, IDS_PREFTIP_FILE2_EXPORTFOLDER);
 }
 
+void CPreferencesFile2Page::AddSearchText(CStringArray& aText) const
+{
+	aText.Add(m_sBackupLocation);
+	aText.Add(m_sExportFolderPath);
+	aText.Add(m_sOtherExportTypeID);
+	aText.Add(m_sSaveExportStylesheet);
+}
+
 void CPreferencesFile2Page::OnFirstShow()
 {
 	CPreferencesPageBase::OnFirstShow();

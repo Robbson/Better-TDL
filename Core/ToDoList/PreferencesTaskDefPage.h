@@ -95,6 +95,7 @@ protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	virtual void OnFirstShow();
 	virtual void InitTooltips();
+	virtual void AddSearchText(CStringArray& aText) const;
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 
 protected:

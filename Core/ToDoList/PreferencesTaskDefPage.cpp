@@ -114,6 +114,19 @@ void CPreferencesTaskDefPage::InitTooltips()
 	AddTooltip(IDC_DEFGROUP, IDS_PREFTIP_DEF_DEFAULTS);
 }
 
+void CPreferencesTaskDefPage::AddSearchText(CStringArray& aText) const
+{
+	aText.Add(m_sDefCreatedBy);
+	aText.Add(m_sDefAllocTo);
+	aText.Add(m_sDefAllocBy);
+	aText.Add(m_sDefStatus);
+	aText.Add(m_sDefTags);
+	aText.Add(m_sDefCategory);
+	aText.Add(m_sDefIcon);
+	aText.Add(m_sReminderSound);
+	aText.Add(m_sDefTextComments);
+}
+
 void CPreferencesTaskDefPage::OnFirstShow()
 {
 	CPreferencesPageBase::OnFirstShow();

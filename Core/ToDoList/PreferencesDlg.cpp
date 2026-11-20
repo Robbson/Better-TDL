@@ -127,6 +127,40 @@ const LPCTSTR PREFSKEY = _T("Preferences");
 
 enum SEARCH_BTNS { BTN_UPDATE = 1, BTN_CLEAR };
 
+const UINT PREFPAGE_PATH_IDS[] =
+{
+	IDS_PREF_GEN,
+	IDS_PREF_MULTIUSER,
+	IDS_PREF_FILE,
+	IDS_PREF_FILEMORE,
+	IDS_PREF_UI,
+	IDS_PREF_UIVISIBILITY,
+	IDS_PREF_UITASK,
+	IDS_PREF_UITASKCOLOR,
+	IDS_PREF_TOOLBAR,
+	IDS_PREF_TASK,
+	IDS_PREF_TASKCALCS,
+	IDS_PREF_TASKDEFATTRIB,
+	IDS_PREF_TASKDEFINHERIT,
+	IDS_PREF_EXPORT,
+	IDS_PREF_TOOLS,
+	IDS_PREF_SHORTCUT,
+};
+
+BOOL CPreferencesDlg::WantsLegacySearch()
+{
+#ifdef _DEBUG
+	TCHAR szValue[8] = { 0 };
+
+	if (::GetEnvironmentVariable(_T("TDL_LEGACY_PREFS_SEARCH"), szValue, _countof(szValue)) <= 0)
+		return FALSE;
+
+	return (szValue[0] != _T('0'));
+#else
+	return FALSE;
+#endif
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // CPreferencesDlg dialog
 
@@ -147,6 +181,7 @@ CPreferencesDlg::CPreferencesDlg(CShortcutManager* pShortcutMgr,
 	m_iconReset(IDI_RESET, 16, FALSE),
 	m_bInitialisingDialog(FALSE),
 	m_bBuildingTree(FALSE),
+	m_bLegacySearch(WantsLegacySearch()),
 	m_pMgrStorage(pMgrStorage)
 {
 	m_eSearchText.AddButton(BTN_UPDATE, m_iconSearch, CEnString(IDS_SEARCHPREFS_PROMPT));
@@ -232,6 +267,9 @@ void CPreferencesDlg::LoadPreferences(const IPreferences* prefs, LPCTSTR szKey)
 
 		OnColorPageTextOption(0, 0);
 		OnNumPriorityRiskLevels(0, 0);
+
+		if (GetSafeHwnd())
+			BuildSearchIndex();
 	}
 }
 
@@ -255,6 +293,7 @@ BOOL CPreferencesDlg::OnInitDialog()
 	CThemed::SetWindowTheme(&m_tcPages, _T("Explorer"));
 
 	GetDlgItem(IDC_APPLY)->EnableWindow(FALSE);
+	BuildSearchIndex();
 	AddPagesToTree(FALSE); // all pages
 
 	return FALSE;  // return TRUE unless you set the focus to a control
@@ -348,6 +387,63 @@ BOOL CPreferencesDlg::PreTranslateMessage(MSG* pMsg)
 	return CPreferencesDlgBase::PreTranslateMessage(pMsg);
 }
 
+void CPreferencesDlg::BuildSearchIndex()
+{
+	CScopedLogTimer logIndex(_T("CPreferencesDlg::BuildSearchIndex"));
+
+	m_searchIndex.Clear();
+
+	const int nNumPages = m_ppHost.GetPageCount();
+	const int nNumPathIDs = _countof(PREFPAGE_PATH_IDS);
+
+	ASSERT(nNumPages == nNumPathIDs);
+
+	m_searchIndex.SetPageCount(nNumPages);
+
+	for (int nPage = 0; nPage < nNumPages; nPage++)
+	{
+		CPreferencesPageBase* pPage = static_cast<CPreferencesPageBase*>(m_ppHost.GetPage(nPage));
+		ASSERT(pPage);
+
+		if (!pPage)
+			continue;
+
+		if (nPage < nNumPathIDs)
+		{
+			CStringArray aPath;
+			Misc::Split(CEnString(PREFPAGE_PATH_IDS[nPage]), aPath, PATHDELIM);
+			m_searchIndex.AddText(nPage, aPath);
+		}
+
+		m_searchIndex.AddDialogTemplate(nPage, pPage->m_psp.pszTemplate);
+
+		CStringArray aText;
+		pPage->AddSearchText(aText);
+		m_searchIndex.AddText(nPage, aText);
+
+		if (nPage == PREFPAGE_SHORTCUT)
+			m_searchIndex.SetAlwaysMatches(nPage);
+	}
+}
+
+BOOL CPreferencesDlg::PageMatchesSearch(const CPreferencesPageBase* pPage) const
+{
+	return m_searchIndex.PageMatches(m_ppHost.GetPageIndex(pPage), m_aSearchTerms);
+}
+
+void CPreferencesDlg::HighlightPageIfSearching(CPreferencesPageBase* pPage)
+{
+	if (!m_bLegacySearch && pPage->GetSafeHwnd() && m_aSearchTerms.GetSize())
+	{
+		CString sPage;
+		sPage.Format(_T("%d"), m_ppHost.GetPageIndex(pPage));
+
+		CScopedLogTimer logPage(_T("    Highlight page[%s]"), (LPCTSTR)sPage);
+
+		pPage->HighlightUIText(m_aSearchTerms, HILITE_BACKCOLOUR);
+	}
+}
+
 void CPreferencesDlg::AddPagesToTree(BOOL bDoSearch)
 {
 	// scope to allow SynchroniseTree to work
@@ -439,10 +535,19 @@ BOOL CPreferencesDlg::AddPageToTree(CPreferencesPageBase* pPage, UINT nIDPath, U
 					break;
 			}
 
-			CString sPage = m_ppHost.GetPageTitle(m_ppHost.GetPageIndex(pPage));
-			CScopedLogTimer logPage(_T("    Highlight '%s'"), (LPCTSTR)sPage);
+			BOOL bMatches;
 
-			if (!pPage->HighlightUIText(m_aSearchTerms, HILITE_BACKCOLOUR) && (nPath == -1))
+			if (m_bLegacySearch)
+			{
+				bMatches = (pPage->HighlightUIText(m_aSearchTerms, HILITE_BACKCOLOUR) > 0);
+			}
+			else
+			{
+				bMatches = PageMatchesSearch(pPage);
+				HighlightPageIfSearching(pPage);
+			}
+
+			if (!bMatches && (nPath == -1))
 				return FALSE;
 		}
 		else
@@ -531,6 +636,8 @@ void CPreferencesDlg::OnTreeSelChanged(NMHDR* /*pNMHDR*/, LRESULT* pResult)
 	
 	if (pPage && CPreferencesDlgBase::SetActivePage(pPage))
 	{
+		HighlightPageIfSearching(pPage);
+
 		CWnd* pScrollTo = NULL;
 
 		// If searching and this is a page-level item, move to the first match
@@ -1046,7 +1153,7 @@ LRESULT CPreferencesDlg::OnUpdateSearch(WPARAM wParam, LPARAM lParam)
 	{
 		m_aSearchTerms.Copy(aSearchText);
 
-		if (!m_ppHost.PagesAreAllCreated())
+		if (m_bLegacySearch && !m_ppHost.PagesAreAllCreated())
 		{
 			CScopedLogTimer logCreateAll(_T("  CreateAllPages"));
 
@@ -1055,7 +1162,6 @@ LRESULT CPreferencesDlg::OnUpdateSearch(WPARAM wParam, LPARAM lParam)
 
 			CWaitCursor cursor;
 
-			// Forcibly create all pages and translate them
 			int nPage = m_ppHost.GetPageCount();
 
 			while (nPage--)
@@ -1065,25 +1171,17 @@ LRESULT CPreferencesDlg::OnUpdateSearch(WPARAM wParam, LPARAM lParam)
 
 				if (!pPage->GetSafeHwnd())
 				{
-					CString sPage;
-					sPage.Format(_T("%d"), nPage);
-
-					CScopedLogTimer logPage(_T("    Page[%s]"), (LPCTSTR)sPage);
-
 					if (!EnsurePageCreated(nPage))
 						return FALSE;
 
-					logPage.LogTimeElapsed(_T("    Created '%s'"), (LPCTSTR)sPage);
-
-					// Showing the page triggers translation
-					// as well as ensuring all content is ready
 					pPage->ShowWindow(SW_SHOWNOACTIVATE);
 					pPage->ShowWindow(SW_HIDE);
-
-					logPage.LogTimeElapsed(_T("    Shown '%s'"), (LPCTSTR)sPage);
 				}
 			}
 		}
+
+		if (!m_bLegacySearch && m_aSearchTerms.GetSize() && m_searchIndex.IsEmpty())
+			BuildSearchIndex();
 
 		{
 			CScopedLogTimer logTree(_T("  AddPagesToTree(search)"));

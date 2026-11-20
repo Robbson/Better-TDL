@@ -217,6 +217,14 @@ void CFontNameComboBox::InvalidateFontCache()
 	GetFontNameCache().bValid = FALSE;
 }
 
+void CFontNameComboBox::GetFontNames(CStringArray& aNames)
+{
+	CClientDC dc(NULL);
+	const FONTNAMECACHE& cache = EnsureFontNameCache(dc);
+
+	aNames.Copy(cache.aNames);
+}
+
 void CFontNameComboBox::SetMaxWidth( int maxWidth )
 /* ============================================================
 	Function :		CFontComboBox::SetMaxWidth

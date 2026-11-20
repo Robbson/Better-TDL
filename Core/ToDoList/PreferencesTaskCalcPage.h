@@ -115,6 +115,7 @@ protected:
 	virtual BOOL OnInitDialog();
 	virtual void OnFirstShow();
 	virtual void InitTooltips();
+	virtual void AddSearchText(CStringArray& aText) const;
 
 // Implementation
 protected:

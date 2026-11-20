@@ -157,6 +157,12 @@ BOOL CPreferencesTaskPage::PreTranslateMessage(MSG* pMsg)
 	return CPreferencesPageBase::PreTranslateMessage(pMsg);
 }
 
+void CPreferencesTaskPage::AddSearchText(CStringArray& aText) const
+{
+	aText.Add(m_sHoursInDay);
+	aText.Add(m_sTrackReminderSoundFile);
+}
+
 void CPreferencesTaskPage::OnFirstShow()
 {
 	CPreferencesPageBase::OnFirstShow();

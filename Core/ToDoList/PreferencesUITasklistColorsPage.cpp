@@ -240,6 +240,18 @@ void CPreferencesUITasklistColorsPage::InitTooltips()
 	AddTooltip(IDC_SETREFERENCECOLOR, IDS_PREFTIP_COL_REFERENCE);
 }
 
+void CPreferencesUITasklistColorsPage::AddSearchText(CStringArray& aText) const
+{
+	CFontNameComboBox::GetFontNames(aText);
+
+	aText.Add(m_sTreeFont);
+	aText.Add(m_sCommentsFont);
+	aText.Add(m_sSelAttribValue);
+
+	for (int nColor = 0; nColor < m_aAttribColors.GetSize(); nColor++)
+		aText.Add(m_aAttribColors[nColor].sAttrib);
+}
+
 void CPreferencesUITasklistColorsPage::OnFirstShow()
 {
 	CPreferencesPageBase::OnFirstShow();

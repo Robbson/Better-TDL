@@ -1,7 +1,7 @@
 # PERF-007: Preferences search is slow on first use
 
-Status: **In progress** (D implemented; instrumented and attributed; Option E index design
-added and recommended; implementation pending)
+Status: **In progress** (D implemented; E core implemented and unit-tested; dynamic
+coverage and the full parity corpus still to be extended)
 
 ## Goal
 
@@ -9,7 +9,8 @@ Remove the multi-second stall the user sees the first time the Preferences searc
 used in a dialog session. Subsequent searches in the same session are already fast; the cost
 is concentrated in the first search and is repeated each time the dialog is reopened.
 
-No source changes were made for this analysis.
+The analysis below is unchanged from the original investigation. Implementation progress is
+recorded under Option E.
 
 ## Bottom line
 
@@ -372,6 +373,62 @@ mandatory), translation-context differences, and keeping a build-time table in s
 that route is chosen. The runtime-reader variant avoids the sync risk and is the safer
 choice for this fork.
 
+#### Implementation (core done)
+
+The runtime-resource-reader variant was chosen:
+
+- **`Core/ToDoList/PreferencesSearchIndex.h/.cpp` (new)** — `page -> CStringArray` index.
+  `AddDialogTemplate` walks the page's `RT_DIALOG` template and extracts static item text
+  (labels, group boxes, buttons, checks/radios). It handles both standard `DLGTEMPLATE`
+  (Unicode strings in this Unicode build) and `DLGTEMPLATEEX`, skips `DS_SETFONT` font
+  data and creation data, strips accelerators, and translates each entry through
+  `CLocalizer::TranslateText`. `PageMatches` reuses
+  `CCtrlTextHighlighter::TextContainsOneOf` so term semantics match the old walk exactly.
+- **`Core/Shared/PreferencesBase.h`** — new `virtual void AddSearchText(CStringArray&)
+  const`, default no-op, for runtime-generated page text.
+- **`Core/ToDoList/PreferencesDlg.*`** — builds the index in `OnInitDialog` (after the
+  initial page exists and `LoadPreferences` has run) and rebuilds it if preferences are
+  reloaded while the dialog is open. `AddPageToTree` now matches the index and no longer
+  calls `HighlightUIText` on uncreated pages. `OnUpdateSearch` no longer creates all pages.
+  Lazy highlighting runs after `SetActivePage` succeeds in `OnTreeSelChanged`, so only
+  visited pages are highlighted. The Shortcuts page is marked always-match, mirroring its
+  existing `HighlightUIText` return of `nNumHighlights + 1`.
+- **`Core/3rdParty/FontComboBox.h/.cpp`** — `GetFontNames` exposes the Option D cache so
+  the Export and Fonts & Colors pages can contribute every font name without creating a
+  combo.
+- **Dynamic `AddSearchText` overrides** — Gen (home/stickies/handler paths), File,
+  File (more), UI (theme file), Task, Task Calc, Task Def, Task Def (more lists/attributes),
+  UITasklist (date/time trail), Tools (tool/command/icon paths), Fonts & Colors (fonts,
+  tree/comments font, attribute colours), Export (fonts). Shortcuts is covered by the
+  always-match rule.
+
+  The Custom Toolbar page is deliberately **not** indexed beyond its static template text.
+  Its menu command names live in a hidden in-place `CMenuComboBox` (created by
+  `CTDLToolbarButtonListCtrl::InitState`), so the old window walk could add the page but had
+  nothing visible to highlight. Indexing it reproduced a result with no visible match.
+  Visible toolbar-button rows are also not indexed yet; doing that properly needs row-level
+  highlighting, which the text highlighter does not provide. The Visibility page similarly
+  contributes no text because the old walk only read its tree window caption, not its rows.
+- **`Core/TDLTest/PreferencesTest.*`** — added
+  `CPreferencesSearchIndex::DialogTemplates`, which loads page resources from the built
+  `ToDoList.exe` and verifies standard and `DIALOGEX` template parsing, and
+  `CPreferencesSearchIndex::Matching`, which covers OR terms, case-insensitivity and the
+  always-match page.
+
+Debug safety valve: set `TDL_LEGACY_PREFS_SEARCH=1` in a Debug build to run the old
+create-all-pages/window-walk path. This is the seed for the mandatory parity check; the
+corpus and automated comparison are still to be added.
+
+Still open:
+
+- Grow the dynamic coverage for remaining generated content (languages, priority/risk
+  levels, attribute names in the colours page, menu/toolbar item text) and decide whether
+  the list-only pages need row text.
+- Add the parity corpus: for a set of terms, compare the index page set with the legacy
+  window-walk page set and log any difference.
+- Measure the new first-search time with `-g`. The expected result is index build plus
+  tree population only; the first selected result still pays one page-creation cost.
+
 ## Recommended sequence
 
 1. Implement D first (cache the font enumeration in `CFontNameComboBox`). It is small,
@@ -386,6 +443,8 @@ choice for this fork.
    when the user visits a result. Keep the current window-walk search behind a debug switch
    and add the parity check from Option E. This is the only option that makes a first
    search in a fresh process instant without pre-creating or stalling on pages.
+   **(Core done — see Option E implementation above. Dynamic coverage and parity corpus
+   remain.)**
 4. Continue reducing per-page content cost (Custom Toolbar menu combo, Shortcuts tree, font
    combo `AddString`, page DDX) because it remains the cost of the first visited page and of
    normal page browsing. A/B are no longer needed for search; a single-batch pre-creation
@@ -444,22 +503,31 @@ choice for this fork.
   result/highlight appears. Repeat after reopening the dialog.
 - Use the existing `CScopedLogTimer` logging pattern (`-g`) if the dialog path can host one;
   otherwise temporary timers around the three stages above.
+- After E, `CPreferencesDlg::BuildSearchIndex` and `AddPagesToTree(search)` are the only
+  new timers. Expect tens of milliseconds for index construction and tree population; the
+  first selected result then pays one page-creation cost (0.4-1.3 s depending on the page).
 - Record before/after in this document when implemented.
 
-## Test notes (to fill in when implemented)
+## Test notes
 
-- Build `Core/ToDoList_Core.sln` (`Unicode Debug`, `Win32`).
-- Verify open-to-visible time and first-search time both drop and the dialog remains
-  responsive (accepts input, repaints) while pages pre-create chunk by chunk.
-- Verify a search typed before pre-creation finishes still returns correct results (the
-  synchronous fallback) and that no pending chunk message/timer outlives the dialog.
-- Verify every page still translates after a language change, and that each page's controls
-  work when visited for the first time (especially shortcuts tree and visibility list).
-- Verify search results and highlights unchanged for label terms, combo-item terms,
-  multi-word terms, path-only terms, and no-match fallback; verify clear (`BTN_CLEAR`).
-- Verify the Fonts & Colors and Import & Export font lists are identical to before
-  (same names, order, selected font, dropdown width) and that a font installed while the
-  app is running appears after invalidation.
+- Builds: `Core/ToDoListLib` and `Core/ToDoList` (`Unicode Release`, `Win32`) link
+  successfully. The Debug exe link was blocked by a pre-existing running instance, so the
+  Release link was used for validation.
+- `Core/TDLTest/Unicode_Debug/TDLTest.exe` passes: 310430/310430, including the new
+  `CPreferencesSearchIndex::DialogTemplates` (5 checks) and
+  `CPreferencesSearchIndex::Matching` (6 checks) tests.
+- Manual acceptance still required:
+  - Open Preferences and search a term that lives on an unvisited page. Only the selected
+    result page should be created; the rest must stay uncreated.
+  - Verify search results and highlights for label terms, combo-item terms (font names),
+    multi-word terms, path-only terms, the always-match Shortcuts page, and the no-match
+    fallback; verify clear (`BTN_CLEAR`).
+  - Verify every page still translates after a language change and that each page's controls
+    work when first visited (especially the shortcuts tree and visibility list).
+  - Compare the index results against `TDL_LEGACY_PREFS_SEARCH=1` for the parity corpus.
+  - Verify the Fonts & Colors and Import & Export font lists are still identical to before
+    (same names, order, selected font, dropdown width) and that a font installed while the
+    app is running appears after invalidation.
 
 ## Related
 

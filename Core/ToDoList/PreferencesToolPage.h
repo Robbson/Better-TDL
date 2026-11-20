@@ -66,6 +66,7 @@ protected:
 	virtual BOOL OnInitDialog();
 	virtual void OnFirstShow();
 	virtual void InitTooltips();
+	virtual void AddSearchText(CStringArray& aText) const;
 
 protected:
 	afx_msg void OnSize(UINT nType, int cx, int cy);

@@ -133,6 +133,11 @@ void CPreferencesUITasklistPage::InitTooltips()
 	AddTooltip(IDC_FILELINKTHUMBNAILS, IDS_PREFTIP_UT_THUMBNAILS);
 }
 
+void CPreferencesUITasklistPage::AddSearchText(CStringArray& aText) const
+{
+	aText.Add(m_sDateTimeTrailText);
+}
+
 void CPreferencesUITasklistPage::OnFirstShow()
 {
 	CPreferencesPageBase::OnFirstShow();

@@ -88,6 +88,7 @@ protected:
 	virtual BOOL OnInitDialog();
 	virtual void OnFirstShow();
 	virtual void InitTooltips();
+	virtual void AddSearchText(CStringArray& aText) const;
 	virtual void OnOK();
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 

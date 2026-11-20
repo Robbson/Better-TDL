@@ -120,6 +120,19 @@ void CPreferencesTaskDef2Page::InitTooltips()
 	AddTooltip(IDC_TAGLIST_READONLY, IDS_PREFTIP_DEF_READONLY);
 }
 
+void CPreferencesTaskDef2Page::AddSearchText(CStringArray& aText) const
+{
+	aText.Add(m_sDefCategoryList);
+	aText.Add(m_sDefStatusList);
+	aText.Add(m_sDefAllocToList);
+	aText.Add(m_sDefAllocByList);
+	aText.Add(m_sDefVersionList);
+	aText.Add(m_sDefTagList);
+
+	for (int nAttrib = 0; nAttrib < m_aAttribPrefs.GetSize(); nAttrib++)
+		aText.Add(m_aAttribPrefs[nAttrib].sName);
+}
+
 void CPreferencesTaskDef2Page::OnFirstShow()
 {
 	CPreferencesPageBase::OnFirstShow();

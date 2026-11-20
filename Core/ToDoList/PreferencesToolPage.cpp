@@ -150,6 +150,13 @@ void CPreferencesToolPage::SetCustomAttributeDefs(const CTDCCustomAttribDefiniti
 	m_aCustomAttribDefs.Copy(aAttribDefs);
 }
 
+void CPreferencesToolPage::AddSearchText(CStringArray& aText) const
+{
+	aText.Add(m_sToolPath);
+	aText.Add(m_sCommandLine);
+	aText.Add(m_sIconPath);
+}
+
 void CPreferencesToolPage::OnFirstShow()
 {
 	CPreferencesPageBase::OnFirstShow();

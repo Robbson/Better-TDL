@@ -115,6 +115,7 @@
     <ClCompile Include="..\ToDoList\FilteredToDoCtrl.cpp" />
     <ClCompile Include="..\ToDoList\MultiTaskFile.cpp" />
     <ClCompile Include="..\ToDoList\PreferencesDlg.cpp" />
+    <ClCompile Include="..\ToDoList\PreferencesSearchIndex.cpp" />
     <ClCompile Include="..\ToDoList\PreferencesExportPage.cpp" />
     <ClCompile Include="..\ToDoList\PreferencesFile2Page.cpp" />
     <ClCompile Include="..\ToDoList\PreferencesFilePage.cpp" />
@@ -288,6 +289,7 @@
     <ClInclude Include="..\ToDoList\FilteredToDoCtrl.h" />
     <ClInclude Include="..\ToDoList\MultiTaskFile.h" />
     <ClInclude Include="..\ToDoList\PreferencesDlg.h" />
+    <ClInclude Include="..\ToDoList\PreferencesSearchIndex.h" />
     <ClInclude Include="..\ToDoList\PreferencesExportPage.h" />
     <ClInclude Include="..\ToDoList\PreferencesFile2Page.h" />
     <ClInclude Include="..\ToDoList\PreferencesFilePage.h" />

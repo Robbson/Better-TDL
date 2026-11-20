@@ -89,6 +89,7 @@ Rules of thumb:
 | GEN-009 | Plugin Manager view over plugin DLLs in the app folder | Proposed (design only) | [GEN-009-plugin-manager-view.md](general/GEN-009-plugin-manager-view.md) |
 | GEN-010 | Sharing session state through a common ToDoList.ini | Proposed (analysis; portability gaps identified) | [GEN-010-shared-ini-session-state.md](general/GEN-010-shared-ini-session-state.md) |
 | GEN-011 | Compact tasklist backups and per-task history | Proposed (design and measurements; no implementation) | [GEN-011-compact-tasklist-history.md](general/GEN-011-compact-tasklist-history.md) |
+| GEN-012 | Single-instance detection must not match foreign windows | Done (built; silent-exit case manually verified) | [GEN-012-single-instance-window-matching.md](general/GEN-012-single-instance-window-matching.md) |
 
 ### Performance (`PERF`)
 

@@ -16001,12 +16001,28 @@ int CToDoListWnd::FindToDoListWnds(TDCFINDWND& find)
 BOOL CALLBACK CToDoListWnd::FindOtherInstance(HWND hWnd, LPARAM lParam)
 {
 	static CString COPYRIGHT(GetAppCopyright());
+	static CString APPEXE(FileMisc::GetAppFilePath());
 
 	CString sCaption;
 	CWnd::FromHandle(hWnd)->GetWindowText(sCaption);
 
 	if (Misc::HasSuffix(COPYRIGHT, sCaption))
 	{
+		// The product name can also be the name of a folder, so a window whose
+		// caption merely ends with it (for example a file manager showing that
+		// folder) must not be mistaken for another instance. Only accept our
+		// own frame class or a window owned by our executable.
+		BOOL bToDoListWnd = CWinClasses::IsClass(hWnd, _T("ToDoListFrame"));
+
+		if (!bToDoListWnd)
+		{
+			CString sWndModule = FileMisc::GetWindowModuleFilePath(hWnd);
+			bToDoListWnd = (!sWndModule.IsEmpty() && FileMisc::IsSamePath(APPEXE, sWndModule, TRUE));
+		}
+
+		if (!bToDoListWnd)
+			return TRUE; // keep looking
+
 		TDCFINDWND* pFind = (TDCFINDWND*)lParam;
 		ASSERT(pFind);
 

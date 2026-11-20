@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="150" viewBox="0 0 640 150" role="img" aria-label="Startup with 12 open tasklists: 26.4 seconds before, 8.7 seconds after">
+  <title>Startup with 12 open tasklists</title>
+  <style>
+    text { font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; font-size: 13px; }
+    .title { font-weight: 600; fill: #24292f; }
+    .label { fill: #57606a; }
+    .value { font-weight: 600; fill: #24292f; }
+    .before { fill: #9aa0a6; }
+    .after { fill: #c64b33; }
+    .note { fill: #57606a; font-size: 12px; }
+  </style>
+
+  <rect x="0.5" y="0.5" width="639" height="149" rx="8" fill="#f6f8fa" stroke="#d0d7de"/>
+
+  <text class="title" x="20" y="34">12 tasklists</text>
+
+  <text class="label" x="20" y="68">Before</text>
+  <rect class="before" x="110" y="54" width="460" height="20" rx="3"/>
+  <text class="value" x="578" y="68">26.4 s</text>
+
+  <text class="label" x="20" y="100">After</text>
+  <rect class="after" x="110" y="86" width="152" height="20" rx="3"/>
+  <text class="value" x="270" y="100">8.7 s</text>
+</svg>

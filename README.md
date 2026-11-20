@@ -12,67 +12,68 @@ So in the end, _Better TDL_ is just what the name implies. And everything that w
 
 ## Features
 
-### 1. The classic attribute editor is back
+### 1. Your whole workspace in one Home Folder
 
-The old familiar horizontal attribute bar from v8.2 returns as an opt-in alternative to the 9.x property grid. If the grid feels heavy and wastes screen space, you can now have a compact bar that only shows the fields you actually use.
+Point Better TDL at a folder and get a browser-style tree of everything in it. `.tdl` files open as tasklists, other files open in their default application, and open lists are marked as such.
 
-- Turn it on under **Preferences → UI → "Use legacy attribute editor (v8.2 style)"**.
-- Works with the built-in task attributes and your custom attributes.
-- The panel sizes itself to the visible fields, so no space is wasted.
-- Includes the time-tracking, add-time and dependency buttons you know from the classic layout.
+- Open a folder, a multi-selection or a tasklist set (`*.tdlset.txt`) in one action; **Open & Replace** swaps the current documents for them.
+- Sets are plain text, can overlap, and group tasklists in a fixed order.
+- The Home Folder is stored per machine, so a shared `ToDoList.ini` still works on different PCs.
 
-### 2. A dramatically faster startup
+### 2. Startup that scales far better with your session
 
-Opening _Better TDL_ with a dozen saved tasklists used to feel like a freeze. Now it's fast.
+Every tasklist beyond the active one used to cost about 1.5 seconds to prepare. Now background tabs create their window only when first opened, and the throwaway "untitled" list is gone.
 
-- Background tasklists no longer build their entire window up front — they are created only when you first open the tab.
-- The pointless "untitled" placeholder list that used to be created and thrown away at startup is gone.
-- Result: startup scales almost flat with the number of open documents, and the window appears in a fraction of the time.
+<p align="center">
+  <img src="docs/images/startup-comparison.svg" width="560" alt="Startup with 12 open tasklists: 26.4 seconds before and 8.7 seconds after">
+</p>
 
-### 3. A cleaner comments editor
+- Restored, menu-opened and Home-opened tasklists load the first document fully and defer the rest.
+- Twelve open tasklists now start in about a third of the time.
 
-The comments area gave up its own toolbar row so you get more room to write.
+### 3. The classic attribute editor is back
 
-- Insert Date, Insert Time and Insert Date and Time now live on the main toolbar, together with the content-format selector.
-- The comments field expands into the space that was reclaimed, giving you more vertical room.
-- Format switching, keyboard shortcuts and menu commands all keep working exactly as before.
+The v8.2 horizontal attribute bar returns as an opt-in alternative to the 9.x property grid: only the fields you actually use, and no wasted space.
 
-### 4. Type without the mouse pointer in the way
+- Enable it under **Preferences → UI → "Use legacy attribute editor (v8.2 style)"**.
+- Works with built-in and custom attributes, including time-tracking and dependency controls.
 
-Just like the classic Windows behaviour: when you start typing, the mouse pointer disappears and only comes back when you move the mouse again.
+### 4. Switch tasklists the way you think
 
-- Works in the comments editor — both plain text and rich text.
-- Works regardless of where the pointer happens to be: over the editor, the toolbar or the window frame.
-- Matches the behaviour you already get in the search, title, tags and category fields.
+Hold **Ctrl+Tab** for an IDE-style most-recently-used switcher.
 
-### 5. Quick Find highlights your matches
+- The previous tasklist is preselected; **Tab**/**Shift+Tab** move, **Enter** accepts, **Esc** cancels.
+- Unsaved tasklists are highlighted, unloaded ones are greyed out.
 
-Searching with Quick Find is now more useful, because you can see exactly where the match is.
+### 5. Quick Find shows you the match
 
-- When Quick Find selects a task because the search term appears in its comments, the matching text is highlighted right in the comments editor.
-- Works while you type and with Quick Find Next/Previous.
-- Supports quoted phrases and multi-word searches the same way Quick Find itself does.
+When Quick Find picks a task because the term is in its comments, the matching text is highlighted in the comments editor.
 
-### 6. Smart auto-indent in the comments editor
+- Works while typing and with Quick Find Next/Previous, including quoted phrases.
 
-Writing structured notes feels natural again.
+### 6. A comments editor that keeps your structure
 
-- Pressing **Enter** keeps the indentation of the current line, so lists and nested notes stay aligned.
-- Bullet lines (`-`, `->`, `=>`) continue neatly under the bullet text instead of repeating the marker.
-- Word-wrapped lines are visually aligned with the text after the indent, so long paragraphs stay readable.
+- **Enter** keeps the current paragraph's indentation.
+- Wrapped lines align under the text after the indent, including `- `, `-> ` and `=> ` bullet prefixes.
+- **Shift+Tab** outdents every selected line.
 
-### 7. Instant tasklist switching with Ctrl+Tab
+### 7. Preferences you can actually search
 
-Jump between open tasklists the way you do in modern IDEs.
+- Search as you type and jump to matching pages.
+- Selecting a section highlights the whole group.
+- Nearly every setting has a tooltip taken from the wiki.
 
-- Hold **Ctrl+Tab** to open a most-recently-used switcher that lists your open tasklists in last-used order.
-- The previously used tasklist is preselected, so releasing **Ctrl** switches straight to it.
-- Tap **Tab** to move through the list, **Shift+Tab** to go back, **Enter** to accept and **Esc** to cancel.
-- Tasklists with unsaved changes are highlighted, and ones that haven't been loaded yet are shown greyed out.
+### 8. Your tree stays the way you left it
 
-### 8. Built for large tasklists
+Clearing a filter now restores the expansion state you had before it was applied.
 
-Performance is treated as a feature, not an afterthought, with an automated UI harness that measures scrolling and resizing of real, large tasklists. It keeps the everyday experience smooth even when your lists grow into the thousands of tasks.
+### 9. Undo and redo that tell you what they will do
+
+The menu, toolbar and their tooltips name the action that will be undone or redone, and the modified marker clears when you return to the saved state.
+
+### 10. Several other fixes and improvements
+
+Too many to list, and none of them need a paragraph.
 
 ## Building from source
 

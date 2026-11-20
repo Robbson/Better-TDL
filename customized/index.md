@@ -87,6 +87,7 @@ Rules of thumb:
 | GEN-007 | TDL set files (`*.tdlset.txt`) in the Home view | In progress (implemented/built; TDLTest passes; interactive check pending) | [GEN-007-tdl-set-files.md](general/GEN-007-tdl-set-files.md) |
 | GEN-008 | Portable build and packaging scripts | In progress (implemented; plugin Release build verified; end-to-end zip pending) | [GEN-008-build-script-portability.md](general/GEN-008-build-script-portability.md) |
 | GEN-009 | Plugin Manager view over plugin DLLs in the app folder | Proposed (design only) | [GEN-009-plugin-manager-view.md](general/GEN-009-plugin-manager-view.md) |
+| GEN-010 | Sharing session state through a common ToDoList.ini | Proposed (analysis; portability gaps identified) | [GEN-010-shared-ini-session-state.md](general/GEN-010-shared-ini-session-state.md) |
 
 ### Performance (`PERF`)
 

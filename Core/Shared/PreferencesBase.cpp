@@ -346,12 +346,110 @@ void CPreferencesPageBase::OnFirstShow()
 
 BOOL CPreferencesPageBase::AddGroupLine(UINT nIDStatic)
 {
-	return m_mgrGroupLines.AddGroupLine(nIDStatic, GetSafeHwnd());
+	if (!m_mgrGroupLines.AddGroupLine(nIDStatic, GetSafeHwnd()))
+		return FALSE;
+
+	for (int n = 0; n < m_aGroupLineIDs.GetSize(); n++)
+	{
+		if (m_aGroupLineIDs[n] == nIDStatic)
+			return TRUE;
+	}
+
+	m_aGroupLineIDs.Add(nIDStatic);
+	return TRUE;
+}
+
+int CPreferencesPageBase::HighlightSection(UINT nIDSection, COLORREF crHighlight)
+{
+	if (!GetSafeHwnd())
+		return 0;
+
+	// Clear any previous band first so that no-op calls leave nothing stale
+	m_ctrlHighlighter.ClearSectionHighlight();
+
+	if (m_aGroupLineIDs.GetSize() == 0)
+		return 0;
+
+	CRect rPage;
+	GetClientRect(rPage);
+
+	// A non-positive section means the ungrouped content at the top of the page
+	BOOL bTopSection = ((int)nIDSection <= 0);
+	int nTop = rPage.top;
+
+	if (!bTopSection)
+	{
+		const CWnd* pSection = GetDlgItem(nIDSection);
+
+		if (!pSection)
+			return 0;
+
+		nTop = CDialogHelper::GetChildRect(pSection).top;
+	}
+
+	CRect rBand;
+
+	// Find the next group heading so the highlight stops there
+	int nBottom = rPage.bottom;
+
+	for (int n = 0; n < m_aGroupLineIDs.GetSize(); n++)
+	{
+		UINT nIDGroup = m_aGroupLineIDs[n];
+
+		if (!bTopSection && (nIDGroup == nIDSection))
+			continue;
+
+		const CWnd* pGroup = GetDlgItem(nIDGroup);
+
+		if (!pGroup)
+			continue;
+
+		CRect rGroup = CDialogHelper::GetChildRect(pGroup);
+
+		if ((rGroup.top > nTop) && (rGroup.top < nBottom))
+			nBottom = rGroup.top;
+	}
+
+	const int PADDING = GraphicsMisc::ScaleByDPIFactor(2);
+	rBand.SetRect(rPage.left, max(nTop - PADDING, rPage.top), rPage.right, min(nBottom - PADDING, rPage.bottom));
+
+	if (rBand.Height() <= 0)
+		return 0;
+
+	CHWndArray aCtrls;
+	const CWnd* pChild = GetWindow(GW_CHILD);
+
+	while (pChild)
+	{
+		if (pChild->GetStyle() & WS_VISIBLE)
+		{
+			CRect rChild = CDialogHelper::GetChildRect(pChild);
+
+			if ((rChild.bottom > rBand.top) && (rChild.top < rBand.bottom))
+			{
+				HWND hwndChild = pChild->GetSafeHwnd();
+				aCtrls.Add(hwndChild);
+			}
+		}
+
+		pChild = pChild->GetNextWindow();
+	}
+
+	// Page-level items with no ungrouped content are left unhighlighted
+	if (aCtrls.GetSize() == 0)
+		return 0;
+
+	return m_ctrlHighlighter.HighlightCtrls(this, rBand, aCtrls, crHighlight);
 }
 
 int CPreferencesPageBase::HighlightUIText(const CStringArray& aSearch, COLORREF crHighlight)
 {
 	return m_ctrlHighlighter.HighlightUIText(this, aSearch, crHighlight, this);
+}
+
+void CPreferencesPageBase::ClearSectionHighlight()
+{
+	m_ctrlHighlighter.ClearSectionHighlight();
 }
 
 void CPreferencesPageBase::ClearHighlights()

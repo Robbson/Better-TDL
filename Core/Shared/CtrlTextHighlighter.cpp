@@ -23,14 +23,15 @@ const int OTHER_PADDING = GraphicsMisc::ScaleByDPIFactor(2);
 
 /////////////////////////////////////////////////////////////////////////////
 
-CCtrlTextHighlighter::CCtrlTextHighlighter() : m_brHighlight(NULL), m_crHighlight(CLR_NONE)
+CCtrlTextHighlighter::CCtrlTextHighlighter() : m_brHighlight(NULL), m_crHighlight(CLR_NONE), m_brBand(NULL), m_crBand(CLR_NONE)
 {
-
+	m_rBand.SetRectEmpty();
 }
 
 CCtrlTextHighlighter::~CCtrlTextHighlighter()
 {
 	GraphicsMisc::VerifyDeleteObject(m_brHighlight);
+	GraphicsMisc::VerifyDeleteObject(m_brBand);
 }
 
 int CCtrlTextHighlighter::HighlightUIText(CWnd* pWnd, const CStringArray& aSearch, COLORREF crHighlight, const CWnd* pWndIgnore)
@@ -48,39 +49,103 @@ int CCtrlTextHighlighter::HighlightUIText(CWnd* pWnd, const CStringArray& aSearc
 		return FALSE;
 	}
 
-	ClearHighlights();
+	ClearTextHighlight();
 
 	m_crHighlight = crHighlight;
 	m_aSearch.Copy(aSearch);
 
 	if (FindMatchingCtrls(pWnd, aSearch, m_aHighlightedCtrls, pWndIgnore))
-	{
-		VERIFY(HookWindow(*pWnd));
-
 		m_brHighlight = ::CreateSolidBrush(crHighlight);
 
-		CDialogHelper::InvalidateAllCtrls(GetCWnd());
-		Invalidate(TRUE);
-	}
+	UpdateHook(pWnd);
+
+	CDialogHelper::InvalidateAllCtrls(pWnd);
+	pWnd->Invalidate(TRUE);
 	
 	return m_aHighlightedCtrls.GetSize();
 }
 
+int CCtrlTextHighlighter::HighlightCtrls(CWnd* pWnd, const CRect& rBand, const CHWndArray& aCtrls, COLORREF crHighlight)
+{
+	if (!pWnd || !pWnd->GetSafeHwnd() || (aCtrls.GetSize() == 0))
+	{
+		ASSERT(0);
+		return 0;
+	}
+
+	ClearBandHighlight();
+
+	m_rBand = rBand;
+	m_crBand = crHighlight;
+	m_aBandCtrls.Copy(aCtrls);
+	m_brBand = ::CreateSolidBrush(crHighlight);
+
+	UpdateHook(pWnd);
+
+	CDialogHelper::InvalidateAllCtrls(pWnd);
+	pWnd->Invalidate(TRUE);
+
+	return m_aBandCtrls.GetSize();
+}
+
 void CCtrlTextHighlighter::ClearHighlights()
 {
-	m_aSearch.RemoveAll();
-	m_crHighlight = CLR_NONE;
-	
+	ClearTextHighlight();
+	ClearBandHighlight();
+
 	if (IsHooked())
 	{
-		m_aHighlightedCtrls.RemoveAll();
-
-		GraphicsMisc::VerifyDeleteObject(m_brHighlight);
-		m_brHighlight = NULL;
-
 		CDialogHelper::InvalidateAllCtrls(GetCWnd());
 		Invalidate(TRUE);
 
+		HookWindow(NULL);
+	}
+}
+
+void CCtrlTextHighlighter::ClearSectionHighlight()
+{
+	ClearBandHighlight();
+
+	if (IsHooked())
+	{
+		CDialogHelper::InvalidateAllCtrls(GetCWnd());
+		Invalidate(TRUE);
+
+		if (m_aHighlightedCtrls.GetSize() == 0)
+			HookWindow(NULL);
+	}
+}
+
+void CCtrlTextHighlighter::ClearTextHighlight()
+{
+	m_aSearch.RemoveAll();
+	m_aHighlightedCtrls.RemoveAll();
+	m_crHighlight = CLR_NONE;
+
+	GraphicsMisc::VerifyDeleteObject(m_brHighlight);
+	m_brHighlight = NULL;
+}
+
+void CCtrlTextHighlighter::ClearBandHighlight()
+{
+	m_aBandCtrls.RemoveAll();
+	m_rBand.SetRectEmpty();
+	m_crBand = CLR_NONE;
+
+	GraphicsMisc::VerifyDeleteObject(m_brBand);
+	m_brBand = NULL;
+}
+
+void CCtrlTextHighlighter::UpdateHook(CWnd* pWnd)
+{
+	BOOL bShouldHook = (m_aHighlightedCtrls.GetSize() || m_aBandCtrls.GetSize());
+
+	if (bShouldHook && !IsHooked())
+	{
+		VERIFY(HookWindow(*pWnd));
+	}
+	else if (!bShouldHook && IsHooked())
+	{
 		HookWindow(NULL);
 	}
 }
@@ -106,31 +171,46 @@ LRESULT CCtrlTextHighlighter::WindowProc(HWND hRealWnd, UINT msg, WPARAM wp, LPA
 	{
 	case WM_ERASEBKGND:
 		{
-			ASSERT(m_aHighlightedCtrls.GetSize());
-
 			CDC* pDC = CDC::FromHandle((HDC)wp);
 			ASSERT(pDC);
 
-			int nNumCtrl = m_aHighlightedCtrls.GetSize();
-			
-			for (int nCtrl = 0; nCtrl < nNumCtrl; nCtrl++)
-				HighlightCtrl(pDC, m_aHighlightedCtrls[nCtrl]);
+			if (pDC)
+			{
+				if (!m_rBand.IsRectEmpty())
+					pDC->FillSolidRect(m_rBand, m_crBand);
+
+				int nNumCtrl = m_aHighlightedCtrls.GetSize();
+				
+				for (int nCtrl = 0; nCtrl < nNumCtrl; nCtrl++)
+					HighlightCtrl(pDC, m_aHighlightedCtrls[nCtrl]);
+			}
 		}
 		break;
 
 	case WM_CTLCOLORSTATIC:
 		{
-			ASSERT(m_aHighlightedCtrls.GetSize());
+			CDC* pDC = CDC::FromHandle((HDC)wp);
+			ASSERT(pDC);
 
 			if (Misc::HasT((HWND)lp, m_aHighlightedCtrls))
 			{
 				lr = (LRESULT)m_brHighlight;
 
-				CDC* pDC = CDC::FromHandle((HDC)wp);
-				ASSERT(pDC);
+				if (pDC)
+				{
+					pDC->SetBkMode(TRANSPARENT);
+					pDC->SetTextColor(GetTextColor());
+				}
+			}
+			else if (Misc::HasT((HWND)lp, m_aBandCtrls))
+			{
+				lr = (LRESULT)m_brBand;
 
-				pDC->SetBkMode(TRANSPARENT);
-				pDC->SetTextColor(GetTextColor());
+				if (pDC && (m_crBand != CLR_NONE))
+				{
+					pDC->SetBkMode(TRANSPARENT);
+					pDC->SetTextColor(GraphicsMisc::GetBestTextColor(m_crBand));
+				}
 			}
 		}
 		break;

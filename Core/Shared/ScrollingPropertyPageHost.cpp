@@ -142,7 +142,8 @@ void CScrollingPropertyPageHost::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* 
 
 	if (m_scroll.GetSafeHwnd())
 	{
-		SCROLLINFO si;
+		SCROLLINFO si = { 0 };
+		si.cbSize = sizeof(si);
 		m_scroll.GetScrollInfo(&si, SIF_PAGE | SIF_POS);
 
 		switch (LOWORD(nSBCode)) 
@@ -288,6 +289,7 @@ BOOL CScrollingPropertyPageHost::ScrollTo(LONG nPos)
 	if (m_scroll.GetSafeHwnd())
 	{
 		SCROLLINFO si = { 0 };
+		si.cbSize = sizeof(si);
 		m_scroll.GetScrollInfo(&si, SIF_PAGE | SIF_POS | SIF_RANGE);
 		
 		nPos = max(nPos, si.nMin);

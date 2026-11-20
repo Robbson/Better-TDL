@@ -19,6 +19,7 @@
 #include "..\shared\holdredraw.h"
 #include "..\shared\CtrlTextHighlighter.h"
 #include "..\shared\FileIcons.h"
+#include "..\shared\darkmode.h"
 
 #include "..\Interfaces\TasklistStorageMgr.h"
 
@@ -34,6 +35,14 @@ static char THIS_FILE[] = __FILE__;
 
 const COLORREF HILITE_BACKCOLOUR = RGB(255, 255, 64); // yellow
 const COLORREF HILITE_TEXTCOLOUR = GraphicsMisc::GetBestTextColor(HILITE_BACKCOLOUR);
+
+const COLORREF HILITE_SECTION_BACKCOLOUR = RGB(224, 239, 252); // pale blue
+const COLORREF HILITE_SECTION_BACKCOLOUR_DARK = RGB(44, 64, 92);
+
+COLORREF GetSectionHiliteColour()
+{
+	return (CDarkMode::IsEnabled() ? HILITE_SECTION_BACKCOLOUR_DARK : HILITE_SECTION_BACKCOLOUR);
+}
 
 /////////////////////////////////////////////////////////////////////////////
 // Private class for tracking mouse middle-button clicking
@@ -340,7 +349,7 @@ void CPreferencesDlg::AddPagesToTree(BOOL bDoSearch)
 
 		if (AddPageToTree(&m_pageMultiUser, IDS_PREF_MULTIUSER, IDC_TOPOFPAGE, bDoSearch))
 		{
-			AddPageToTree(&m_pageMultiUser, IDS_PREF_MULTIUSERFILE, IDC_TOPOFPAGE, FALSE);
+			AddPageToTree(&m_pageMultiUser, IDS_PREF_MULTIUSERFILE, IDC_CHECKGROUP, FALSE);
 			AddPageToTree(&m_pageMultiUser, IDS_PREF_MULTIUSERSS, IDC_SSCGROUP, FALSE);
 		}
 
@@ -382,7 +391,7 @@ void CPreferencesDlg::AddPagesToTree(BOOL bDoSearch)
 		AddPageToTree(&m_pageTaskCalc, IDS_PREF_TASKCALCS, IDC_TOPOFPAGE, bDoSearch);
 		AddPageToTree(&m_pageTaskDef, IDS_PREF_TASKDEFATTRIB, IDC_TOPOFPAGE, bDoSearch);
 
-		if (AddPageToTree(&m_pageTaskDef2, IDS_PREF_TASKDEFINHERIT, IDC_TOPOFPAGE, bDoSearch))
+		if (AddPageToTree(&m_pageTaskDef2, IDS_PREF_TASKDEFINHERIT, IDC_INHERITGROUP, bDoSearch))
 			AddPageToTree(&m_pageTaskDef2, IDS_PREF_TASKDEFLISTS, IDC_DROPLISTGROUP, FALSE);
 
 		AddPageToTree(&m_pageExport, IDS_PREF_EXPORT, IDC_TOPOFPAGE, bDoSearch);
@@ -495,6 +504,8 @@ void CPreferencesDlg::OnTreeSelChanged(NMHDR* /*pNMHDR*/, LRESULT* pResult)
 	UINT nIDSection = 0;
 	m_mapHTIToSection.Lookup(htiSel, nIDSection);
 
+	BOOL bHasChildren = m_tcPages.ItemHasChildren(htiSel);
+
 	// if we got a parent item, move to the first child
 	while (m_tcPages.ItemHasChildren(htiSel))
 		htiSel = m_tcPages.GetChildItem(htiSel);
@@ -506,8 +517,8 @@ void CPreferencesDlg::OnTreeSelChanged(NMHDR* /*pNMHDR*/, LRESULT* pResult)
 	{
 		CWnd* pScrollTo = NULL;
 
-		// If searching, move to the first match
-		if (m_aSearchTerms.GetSize())
+		// If searching and this is a page-level item, move to the first match
+		if (((int)nIDSection <= 0) && m_aSearchTerms.GetSize())
 			pScrollTo = pPage->GetFirstHighlightedItem();
 
 		// else move to the section
@@ -515,6 +526,15 @@ void CPreferencesDlg::OnTreeSelChanged(NMHDR* /*pNMHDR*/, LRESULT* pResult)
 			pScrollTo = pPage->GetDlgItem(nIDSection);
 
 		m_ppHost.ScrollToTop(pScrollTo);
+
+		// Folders and standalone pages must not leave a stale band behind
+		BOOL bGroupSection = ((int)nIDSection > 0);
+		BOOL bPageSection = (nIDSection != 0) && !bGroupSection;
+
+		if (bGroupSection || (bPageSection && bHasChildren && !m_aSearchTerms.GetSize()))
+			pPage->HighlightSection(nIDSection, GetSectionHiliteColour());
+		else
+			pPage->ClearSectionHighlight();
 
 		// Custom page handling
 		OnShowPage(pPage);

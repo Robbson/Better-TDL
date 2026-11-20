@@ -23,7 +23,9 @@ public:
 	virtual ~CCtrlTextHighlighter();
 	
 	int HighlightUIText(CWnd* pWnd, const CStringArray& aSearch, COLORREF crHighlight, const CWnd* pWndIgnore = NULL);
+	int HighlightCtrls(CWnd* pWnd, const CRect& rBand, const CHWndArray& aCtrls, COLORREF crHighlight);
 	void ClearHighlights();
+	void ClearSectionHighlight();
 
 	const CStringArray& GetSearch() const { return m_aSearch; }
 
@@ -43,10 +45,18 @@ protected:
 	HBRUSH m_brHighlight;
 	COLORREF m_crHighlight;
 
+	CRect m_rBand;
+	CHWndArray m_aBandCtrls;
+	HBRUSH m_brBand;
+	COLORREF m_crBand;
+
 protected:
 	LRESULT WindowProc(HWND hRealWnd, UINT msg, WPARAM wp, LPARAM lp);
 
 	void HighlightCtrl(CDC* pDC, HWND hwnd) const;
+	void ClearTextHighlight();
+	void ClearBandHighlight();
+	void UpdateHook(CWnd* pWnd);
 	
 	// This searches 'pWnd', its children, grand-children, etc
 	static int FindMatchingCtrls(const CWnd* pWnd, const CStringArray& aSearch, CHWndArray& aMatching, const CWnd* pWndIgnore = NULL);

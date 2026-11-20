@@ -7,8 +7,9 @@ Status: **Done** (implemented and built; interactive check pending)
 Show a tooltip with an explanatory description for each setting on every page of the
 Preferences dialog. The descriptions come from the ToDoList website preference help
 (sections 1–14), mapped to the matching control on each page. Settings that the website
-documents only as `TODO` show a literal `TODO: description missing` marker so the gaps are
-visible in the UI and easy to find later.
+documents only as `TODO` initially showed a literal `TODO: description missing` marker;
+those 24 gaps have since been replaced with descriptions derived from the relevant control
+labels and implementation.
 
 ## Upstream starting point
 
@@ -65,8 +66,27 @@ Files: `Core/Shared/PreferencesBase.h/.cpp`, all `Core/ToDoList/Preferences*Page
 - Descriptions with an extra sentence (secondary options) are folded into the main tip where
   the doc gives them as sub-bullets (for example RTL input, comment sub-options, calculation
   sub-options).
-- Settings with no website description show `TODO: description missing`.
+- Settings that were missing a website description now use written descriptions based on
+  the control labels and the code paths they affect; see "Follow-up" below.
 - Settings that the website does not document at all get no tooltip and are left unchanged.
+
+## Follow-up: filling the `TODO` descriptions
+
+The following 24 strings were replaced with descriptions (all in
+`Core/ToDoList/ToDoList.rc`):
+
+- General: saved storage passwords.
+- User Interface: comments position, stacked comments, automatic resort, column-header
+  sorting, pasted web links.
+- Task attributes: date/time paste user and trailing text, mixed completion checkbox,
+  hidden zero percent, percent increment, hidden priority number, priority/risk level
+  limit, reminders as dates, hidden pane splitter, auto focus, column width limit, hidden
+  list parents, file-link thumbnails.
+- Fonts & colours: task-list font for Reminders and Find Tasks, priority colour schemes,
+  group-header background colour, no task title colouring.
+
+The unused generic `IDS_PREFTIP_TODO` fallback now reads "No description is available for
+this option."
 
 ## Risks
 

@@ -49,6 +49,8 @@ public:
 	UINT GetHelpID() const { return m_nHelpID; }
 
 	virtual int HighlightUIText(const CStringArray& aSearch, COLORREF crHighlight);
+	virtual int HighlightSection(UINT nIDSection, COLORREF crHighlight);
+	void ClearSectionHighlight();
 	virtual void ClearHighlights();
 	virtual CWnd* GetFirstHighlightedItem() const;
 
@@ -60,6 +62,7 @@ protected:
 
 	CCtrlTextHighlighter m_ctrlHighlighter;
 	CGroupLineManager m_mgrGroupLines;
+	CUIntArray m_aGroupLineIDs;
 	CWndPromptManager m_mgrPrompts;
 
 	CMap<UINT, UINT, CString, CString&> m_mapTooltips;

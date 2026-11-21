@@ -36,6 +36,7 @@ protected:
 	void TestCustomBulletPrefixes();
 	void TestAutoIndentPerformance();
 	void TestTabStopAlignment();
+	void TestCaretChangeNotification();
 
 	CString GetMarkedText(const CTDLSimpleTextContentCtrl& ctrl) const;
 

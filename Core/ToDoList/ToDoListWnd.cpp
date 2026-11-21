@@ -751,6 +751,7 @@ BEGIN_MESSAGE_MAP(CToDoListWnd, CFrameWnd)
 	ON_REGISTERED_MESSAGE(WM_TDCN_ACTIVATETASK, OnTDCNotifyActivateTask)
 	ON_REGISTERED_MESSAGE(WM_TDCN_MODIFY, OnToDoCtrlNotifyMod)
 	ON_REGISTERED_MESSAGE(WM_TDCN_FILTERCHANGE, OnToDoCtrlNotifyFilterChange)
+	ON_REGISTERED_MESSAGE(WM_TDCN_CARETCHANGE, OnToDoCtrlNotifyCaretChange)
 	ON_REGISTERED_MESSAGE(WM_TDCN_RECREATERECURRINGTASK, OnToDoCtrlNotifyRecreateRecurringTask)
 	ON_REGISTERED_MESSAGE(WM_TDCN_REMINDERDISMISSED, OnNotifyReminderModified)
 	ON_REGISTERED_MESSAGE(WM_TDCN_REMINDERSNOOZED, OnNotifyReminderModified)
@@ -1553,6 +1554,9 @@ LRESULT CToDoListWnd::OnFocusChange(WPARAM wp, LPARAM /*lp*/)
 				m_sCurrentFocus = sFocus;
 
 			m_statusBar.UpdateFocusedControl(m_sCurrentFocus);
+
+			if (!tdc.HasFocus(TDCSF_COMMENTS))
+				m_statusBar.ClearCaretPosition();
 		
 			// if the status bar is hidden then add text to title bar
 			if (!m_bShowStatusBar)
@@ -4419,6 +4423,14 @@ LRESULT CToDoListWnd::OnToDoCtrlNotifySelChange(WPARAM /*wp*/, LPARAM /*lp*/)
 	// Selection changes are visualised immediately
 	UpdateStatusBar(TDCA_ALL);
 	UpdateCommentsFormatCombo();
+
+	return 0L;
+}
+
+LRESULT CToDoListWnd::OnToDoCtrlNotifyCaretChange(WPARAM wp, LPARAM lp)
+{
+	if (m_statusBar.GetSafeHwnd())
+		m_statusBar.UpdateCaretPosition((int)wp, (int)lp);
 
 	return 0L;
 }

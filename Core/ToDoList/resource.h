@@ -2930,6 +2930,9 @@
 #define IDS_TABTIP_DUEMORE              51964
 #define IDS_TABTIP_DUEEARLIEST          51965
 #define IDS_TABTIP_DUENOTLOADED         51966
+#define ID_SB_CARET                     51967
+#define IDS_SB_CARET                    51968
+#define IDS_SB_CARET_TIP                51969
 
 // Next default values for new objects
 // 

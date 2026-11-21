@@ -5689,6 +5689,9 @@ BEGIN
     IDS_UNDOACTION_ARCHIVE1 "Archive task"
     IDS_UNDOACTION_ARCHIVEN "Archive %d tasks"
     IDS_UNDOACTION_EDITTEXT "Edit text"
+    ID_SB_CARET             "Ln -, Col -"
+    IDS_SB_CARET            "Ln %d, Col %d"
+    IDS_SB_CARET_TIP        "Caret position in the comments editor"
 END
 
 #endif    // English (Australia) resources

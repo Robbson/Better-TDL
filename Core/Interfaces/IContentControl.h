@@ -34,6 +34,7 @@ const UINT WM_ICC_TASKLINK			= ::RegisterWindowMessageW(L"WM_ICC_TASKLINK");			/
 const UINT WM_ICC_FAILEDLINK		= ::RegisterWindowMessageW(L"WM_ICC_FAILEDLINK");		// wParam = HWND, lParam = URL (LPCWSTR)
 const UINT WM_ICC_GETLINKTOOLTIP	= ::RegisterWindowMessageW(L"WM_ICC_GETLINKTOOLTIP");	// lParam = URL (LPCWSTR)
 const UINT WM_ICC_GETATTRIBUTELIST	= ::RegisterWindowMessageW(L"WM_ICC_GETATTRIBUTELIST");	// wParam = TDC_ATTRIBUTE, lParam = separator (0 -> default separator)
+const UINT WM_ICC_CARETCHANGE		= ::RegisterWindowMessageW(L"WM_ICC_CARETCHANGE");		// wParam = 1-based line, lParam = 1-based column
 
 //////////////////////////////////////////////////////////////////////
 

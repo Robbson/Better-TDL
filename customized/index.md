@@ -143,3 +143,4 @@ Rules of thumb:
 | UI-020 | File Link column defaults to last in the task list | Done (built; TDLTest passes) | [UI-020-filelink-column-default-last.md](ui/UI-020-filelink-column-default-last.md) |
 | UI-021 | Tasklist tab tooltip lists due-status reasons; zero header date no longer marks delay-loaded tabs overdue | Done (built; TDLTest passes) | [UI-021-tab-tooltip-due-reasons.md](ui/UI-021-tab-tooltip-due-reasons.md) |
 | UI-022 | Assertion summary menu instead of assertion dialogs | Done (built Debug/Release; runtime-verified with temporary asserts) | [UI-022-assert-menu.md](ui/UI-022-assert-menu.md) |
+| UI-023 | Status bar caret line/column for the comments editor | Done (built; TDLTest passes; interactive check pending) | [UI-023-status-bar-caret-position.md](ui/UI-023-status-bar-caret-position.md) |

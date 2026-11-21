@@ -84,6 +84,8 @@ BEGIN_MESSAGE_MAP(CTDLCommentsCtrl, CRuntimeDlg)
 	ON_WM_ERASEBKGND()
 	ON_WM_SETFOCUS()
 	ON_CBN_SELENDOK(IDC_COMBO, OnSelchangeCommentsformat)
+	ON_NOTIFY(EN_SELCHANGE, IDC_CTRL, OnCommentsSelChange)
+	ON_CONTROL(EN_SETFOCUS, IDC_CTRL, OnCommentsSetFocus)
 	ON_REGISTERED_MESSAGE(WM_ICC_CONTENTCHANGE, OnCommentsChange)
 	ON_REGISTERED_MESSAGE(WM_ICC_KILLFOCUS, OnCommentsKillFocus)
 	ON_REGISTERED_MESSAGE(WM_ICC_WANTSPELLCHECK, OnCommentsWantSpellCheck)
@@ -328,6 +330,42 @@ void CTDLCommentsCtrl::OnSelchangeCommentsformat()
 
 	// Notify Parent
 	GetParent()->SendMessage(WM_COMMAND, MAKEWPARAM(GetDlgCtrlID(), CBN_SELENDOK), (LPARAM)GetSafeHwnd());
+}
+
+void CTDLCommentsCtrl::OnCommentsSelChange(NMHDR* /*pNMHDR*/, LRESULT* pResult)
+{
+	*pResult = 0;
+
+	SendCaretChange();
+}
+
+void CTDLCommentsCtrl::OnCommentsSetFocus()
+{
+	SendCaretChange();
+}
+
+void CTDLCommentsCtrl::SendCaretChange()
+{
+	HWND hwnd = m_ctrlComments.GetSafeHwnd();
+
+	if (!hwnd || !m_ctrlComments.HasFocus() || !CWinClasses::IsRichEditControl(hwnd))
+		return;
+
+	CHARRANGE cr = { 0 };
+	::SendMessage(hwnd, EM_EXGETSEL, 0, (LPARAM)&cr);
+
+	int nLine = (int)::SendMessage(hwnd, EM_EXLINEFROMCHAR, 0, cr.cpMin);
+	int nLineStart = (int)::SendMessage(hwnd, EM_LINEINDEX, nLine, 0);
+
+	if ((nLine < 0) || (nLineStart < 0))
+		return;
+
+	int nColumn = (cr.cpMin - nLineStart);
+
+	CWnd* pParent = GetParent();
+
+	if (pParent && pParent->GetSafeHwnd())
+		pParent->SendMessage(WM_ICC_CARETCHANGE, (WPARAM)(nLine + 1), (LPARAM)(nColumn + 1));
 }
 
 BOOL CTDLCommentsCtrl::UpdateControlFormat()

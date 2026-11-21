@@ -358,6 +358,7 @@ BEGIN_MESSAGE_MAP(CToDoCtrl, CRuntimeDlg)
 
 	ON_REGISTERED_MESSAGE(WM_ICC_CONTENTCHANGE, OnCommentsChange)
 	ON_REGISTERED_MESSAGE(WM_ICC_KILLFOCUS, OnCommentsKillFocus)
+	ON_REGISTERED_MESSAGE(WM_ICC_CARETCHANGE, OnCommentsCaretChange)
 	ON_REGISTERED_MESSAGE(WM_ICC_WANTSPELLCHECK, OnCommentsWantSpellCheck)
 	ON_REGISTERED_MESSAGE(WM_ICC_DOHELP, OnCommentsDoHelp)
 	ON_REGISTERED_MESSAGE(WM_ICC_HASCLIPBOARD, OnTDCHasClipboard)
@@ -5535,6 +5536,16 @@ LRESULT CToDoCtrl::OnCommentsKillFocus(WPARAM /*wParam*/, LPARAM /*lParam*/)
 		m_ctrlComments.SetFocus();
 		RestoreTreeSelection(cache);
 	}
+
+	return 0L;
+}
+
+LRESULT CToDoCtrl::OnCommentsCaretChange(WPARAM wParam, LPARAM lParam)
+{
+	CWnd* pParent = GetParent();
+
+	if (pParent && pParent->GetSafeHwnd() && m_ctrlComments.HasFocus())
+		pParent->SendMessage(WM_TDCN_CARETCHANGE, wParam, lParam);
 
 	return 0L;
 }

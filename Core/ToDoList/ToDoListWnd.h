@@ -674,6 +674,7 @@ protected:
 	afx_msg LRESULT OnToDoCtrlImportFromDrop(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnToDoCtrlIsTaskDone(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnToDoCtrlNotifyFilterChange(WPARAM wp, LPARAM lp);
+	afx_msg LRESULT OnToDoCtrlNotifyCaretChange(WPARAM wp, LPARAM lp);
 	afx_msg LRESULT OnToDoCtrlNotifyListChange(WPARAM wp, LPARAM lp);
 	afx_msg LRESULT OnToDoCtrlNotifyMod(WPARAM wp, LPARAM lp);
 	afx_msg LRESULT OnToDoCtrlNotifyRecreateRecurringTask(WPARAM wParam, LPARAM lParam);

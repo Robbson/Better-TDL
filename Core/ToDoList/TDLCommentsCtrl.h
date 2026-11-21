@@ -120,6 +120,8 @@ protected:
 	afx_msg void OnDestroy();
 	afx_msg void OnSetFocus(CWnd* pOldWnd);
 	afx_msg void OnEnable(BOOL bEnable);
+	afx_msg void OnCommentsSelChange(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnCommentsSetFocus();
 
 	afx_msg LRESULT OnCommentsChange(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnCommentsDoHelp(WPARAM wParam, LPARAM lParam);
@@ -134,6 +136,7 @@ protected:
 
 protected:
 	void CalcCommentsCtrlRect(CRect& rCtrl, int cx = 0, int cy = 0) const;
+	void SendCaretChange();
 	BOOL UpdateControlFormat();
 	BOOL UpdateControlFormat(const CONTENTFORMAT& cf);
 	CString GetPreferencesKey() const;

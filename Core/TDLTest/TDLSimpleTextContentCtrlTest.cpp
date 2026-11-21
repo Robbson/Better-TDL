@@ -94,6 +94,41 @@ static void SetEditorTextAndSelection(CTDLSimpleTextContentCtrl& ctrl, LPCTSTR s
 
 //////////////////////////////////////////////////////////////////////
 
+class CSelChangeHost : public CWnd
+{
+public:
+	CSelChangeHost() : m_nSelChanges(0) {}
+
+	int m_nSelChanges;
+
+protected:
+	afx_msg void OnSelChange(NMHDR* pNMHDR, LRESULT* pResult);
+	DECLARE_MESSAGE_MAP()
+};
+
+BEGIN_MESSAGE_MAP(CSelChangeHost, CWnd)
+	ON_NOTIFY(EN_SELCHANGE, 100, OnSelChange)
+END_MESSAGE_MAP()
+
+void CSelChangeHost::OnSelChange(NMHDR* /*pNMHDR*/, LRESULT* pResult)
+{
+	m_nSelChanges++;
+	*pResult = 0;
+}
+
+static void PumpMessages()
+{
+	MSG msg;
+
+	while (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+	{
+		::TranslateMessage(&msg);
+		::DispatchMessage(&msg);
+	}
+}
+
+//////////////////////////////////////////////////////////////////////
+
 CTDLSimpleTextContentCtrlTest::CTDLSimpleTextContentCtrlTest(const CTestUtils& utils)
 	:
 	CTDLTestBase(_T("CTDLSimpleTextContentCtrlTest"), utils)
@@ -121,6 +156,7 @@ TESTRESULT CTDLSimpleTextContentCtrlTest::Run()
 		TestCustomBulletPrefixes();
 		TestAutoIndentPerformance();
 		TestTabStopAlignment();
+		TestCaretChangeNotification();
 	}
 	else
 	{
@@ -676,6 +712,41 @@ void CTDLSimpleTextContentCtrlTest::TestTabStopAlignment()
 
 	CTDLSimpleTextContentCtrl::SetTabIndentWithSpaces(TRUE);
 }
+
+void CTDLSimpleTextContentCtrlTest::TestCaretChangeNotification()
+{
+	CTDCScopedTest test(*this, _T("CTDLSimpleTextContentCtrl::CaretChangeNotification"));
+
+	CSelChangeHost host;
+
+	if (!ExpectTrue(host.CreateEx(0, AfxRegisterWndClass(0), _T("TDLTestSelChangeHost"),
+								  WS_OVERLAPPEDWINDOW, CRect(0, 0, 500, 400), NULL, 0)))
+	{
+		return;
+	}
+
+	CTDLSimpleTextContentCtrl ctrl;
+
+	if (!ExpectTrue(ctrl.Create(WS_CHILD | WS_VISIBLE, CRect(0, 0, 400, 300), &host, 100)))
+		return;
+
+	// EN_SELCHANGE is only sent when the control's event mask requests it
+	ExpectTrue((ctrl.GetEventMask() & ENM_SELCHANGE) == ENM_SELCHANGE);
+
+	ctrl.SetTextContent(_T("abc\rdef"), TRUE);
+	PumpMessages();
+
+	host.m_nSelChanges = 0;
+
+	ctrl.SetSel(5, 5);
+	PumpMessages();
+	ExpectEQ(host.m_nSelChanges, 1);
+
+	ctrl.SetSel(0, 0);
+	PumpMessages();
+	ExpectEQ(host.m_nSelChanges, 2);
+}
+
 CString CTDLSimpleTextContentCtrlTest::GetMarkedText(const CTDLSimpleTextContentCtrl& ctrl) const
 {
 	// Use the control's character positions, which use a single CR

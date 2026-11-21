@@ -1667,6 +1667,9 @@ int CTDLSimpleTextContentCtrl::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	EnableToolTips();
 	InitMenuIconManager();
 
+	// Required for the status bar caret position
+	SetEventMask(GetEventMask() | ENM_SELCHANGE);
+
 	CUrlRichEditCtrl::EnableInlineSpellChecking(s_bInlineSpellChecking);
 	
 	return 0;

@@ -40,6 +40,8 @@ public:
 	void SetUITheme(const CUIThemeFile& theme);
 	void UpdateTasks(const CFilteredToDoCtrl& tdc, const CTDCAttributeMap& mapAttrib);
 	void UpdateFocusedControl(const CString& sFocus);
+	void UpdateCaretPosition(int nLine, int nColumn);
+	void ClearCaretPosition() { UpdateCaretPosition(0, 0); }
 
 	BOOL BeginProgress(const CString& sPrompt) { return m_progress.BeginProgress(*this, sPrompt); }
 	void EndProgress() { m_progress.EndProgress(); }
@@ -47,6 +49,8 @@ public:
 protected:
 	HIMAGELIST m_hilTaskIcons;
 	int m_iSelTaskIcon;
+	int m_nCaretLine;
+	int m_nCaretColumn;
 	CStatusBarProgress m_progress;
 
 	const TODOITEM& m_tdiDefault;

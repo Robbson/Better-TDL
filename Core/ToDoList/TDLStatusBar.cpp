@@ -40,6 +40,7 @@ static SBACTPANEINFO SB_PANES[] =
 	{ ID_SB_SELTIMESPENT,	MAKEINTRESOURCE(IDS_SB_SELTIMESPENT_TIP), SBACTF_AUTOFIT | SBACTF_RESOURCETIP },
 	{ ID_SB_SELCOST,		MAKEINTRESOURCE(IDS_SB_SELCOST_TIP), SBACTF_AUTOFIT | SBACTF_RESOURCETIP },
 	//{ ID_SB_SPACER }, 
+	{ ID_SB_CARET,			MAKEINTRESOURCE(IDS_SB_CARET_TIP), SBACTF_AUTOFIT | SBACTF_RESOURCETIP },
 	{ ID_SB_FOCUS,			MAKEINTRESOURCE(IDS_SB_FOCUS_TIP), SBACTF_AUTOFIT | SBACTF_RESOURCETIP },
 };
 
@@ -52,6 +53,8 @@ CTDLStatusBar::CTDLStatusBar(const TODOITEM& tdiDefault)
 	:
 	m_tdiDefault(tdiDefault),
 	m_iSelTaskIcon(-1),
+	m_nCaretLine(-1),
+	m_nCaretColumn(-1),
 	m_hilTaskIcons(NULL)
 {
 }
@@ -93,6 +96,11 @@ int CTDLStatusBar::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		SetPaneText(nPane, CEnString().Format(SB_PANES[nPane].nID, _T("")));
 		SetPaneTooltip(nPane, CEnString((UINT)SB_PANES[nPane].lpszTip));
 	}
+
+	int nCaretPane = CommandToIndex(ID_SB_CARET);
+
+	if (nCaretPane >= 0)
+		SetPaneText(nCaretPane, _T(""));
 
 	return 0;
 }
@@ -329,6 +337,25 @@ void CTDLStatusBar::UpdateFocusedControl(const CString& sFocus)
 	SetPaneTextAndTooltip(ID_SB_FOCUS, 0, sFocus, IDS_SB_FOCUS_TIP);
 }
 
+void CTDLStatusBar::UpdateCaretPosition(int nLine, int nColumn)
+{
+	if (!GetSafeHwnd() || m_progress.IsActive())
+		return;
+
+	if ((nLine == m_nCaretLine) && (nColumn == m_nCaretColumn))
+		return;
+
+	m_nCaretLine = nLine;
+	m_nCaretColumn = nColumn;
+
+	CEnString sText;
+
+	if (nLine > 0)
+		sText.Format(IDS_SB_CARET, nLine, nColumn);
+
+	SetPaneTextAndTooltip(ID_SB_CARET, 0, sText, IDS_SB_CARET_TIP);
+}
+
 CString CTDLStatusBar::FormatTime(double dAmount, TDC_UNITS nUnits, BOOL bHMS)
 {
 	TH_UNITS nTHUnits = TDC::MapUnitsToTHUnits(nUnits);
@@ -363,6 +390,9 @@ void CTDLStatusBar::SetPaneTextAndTooltip(UINT nIDPane, UINT nIDTextFormat, cons
 
 	int nPane = CommandToIndex(nIDPane);
 	ASSERT(nPane != -1);
+
+	if (nPane == -1)
+		return;
 
 	SetPaneText(nPane, sText);
 	SetPaneTooltipIndex(nPane, sTooltip);

@@ -49,6 +49,7 @@ typedef int (CALLBACK *PFNTLSCOMPARE)(LPARAM, LPARAM, LPARAM);
 /////////////////////////////////////////////////////////////////////////////
 
 class CTreeListSyncer;
+class CHoldRedraw;
 
 // --------------------------------------------------------------------------
 
@@ -177,6 +178,7 @@ protected:
 	HWND m_hwndPrimaryHeader;
 	TLS_LINKAGE m_nLinkage;
 	BOOL m_bTreeExpanding;
+	CHoldRedraw* m_pExpandHold;
 	CSubclassWnd m_scLeft, m_scRight;
 	DWORD m_dwFlags;
 	BOOL m_bSplitting, m_bSplittingEnabled;

@@ -206,6 +206,7 @@ CTreeListSyncer::CTreeListSyncer(DWORD dwFlags)
 	m_bResyncing(FALSE),
 	m_dwFlags(dwFlags),
 	m_bTreeExpanding(FALSE),
+	m_pExpandHold(NULL),
 	m_bResyncPending(FALSE),
 	m_bResizePending(FALSE),
 	m_bResyncEnabled(TRUE),
@@ -228,6 +229,7 @@ CTreeListSyncer::CTreeListSyncer(DWORD dwFlags)
 
 CTreeListSyncer::~CTreeListSyncer()
 {
+	delete m_pExpandHold;
 	ImageList_Destroy(m_hilSize);
 }
 
@@ -1777,6 +1779,13 @@ LRESULT CTreeListSyncer::WindowProc(HWND hRealWnd, UINT msg, WPARAM wp, LPARAM l
 				
 			case TVN_ITEMEXPANDING:
 				m_bTreeExpanding = TRUE;
+
+				// Freeze both panes until the list has been brought into
+				// step, otherwise the tree paints its new rows against an
+				// attribute pane that does not contain them yet.
+				if (!m_pExpandHold)
+					m_pExpandHold = new CHoldRedraw(GetHwnd());
+
 				PostResync(hwnd, FALSE);
 				break;
 				
@@ -2059,18 +2068,19 @@ void CTreeListSyncer::HandleItemExpanded(HWND hwndTree, HTREEITEM hti, BOOL bExp
 							(htiParent == TVI_ROOT) ||
 							IsTreeItemExpanded(hwndTree, htiParent));
 
+	HWND hwndList = OtherWnd(hwndTree);
+
 	if (bParentExpanded)
 	{
-		RefreshSize();
-
-		// make sure the tree is redrawn first before resyncing the list
-		::InvalidateRect(hwndTree, NULL, FALSE);
-		::UpdateWindow(hwndTree);
-
-		HWND hwndList = OtherWnd(hwndTree);
-		
+		// Hold redraw across the whole operation so that the tree and the
+		// list are repainted together. WM_SETREDRAW is forwarded to both
+		// panes while resync is enabled. If a hold was already taken in
+		// TVN_ITEMEXPANDING this one is a no-op.
 		CHoldRedraw hr(GetHwnd());
+
 		EnableResync(FALSE);
+
+		RefreshSize();
 		
 		if (bExpand)
 		{
@@ -2083,6 +2093,17 @@ void CTreeListSyncer::HandleItemExpanded(HWND hwndTree, HTREEITEM hti, BOOL bExp
 		}
 		
 		EnableResync(TRUE, hwndTree);
+	}
+
+	// Release the redraw hold taken in TVN_ITEMEXPANDING
+	delete m_pExpandHold;
+	m_pExpandHold = NULL;
+
+	if (bParentExpanded)
+	{
+		// Neither pane may have marked itself dirty while redraw was held
+		::InvalidateRect(hwndTree, NULL, FALSE);
+		::InvalidateRect(hwndList, NULL, FALSE);
 	}
 }
 

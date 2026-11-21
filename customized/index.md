@@ -104,6 +104,7 @@ Rules of thumb:
 | PERF-006 | Fixed per-tasklist open/activation cost in a running app | Measured (steps 1-2: instrumentation + attribution done; fix pending) | [PERF-006-tasklist-open-activation-cost.md](performance/PERF-006-tasklist-open-activation-cost.md) |
 | PERF-007 | Preferences search slow on first use | In progress (D font cache done; E search index core done and unit-tested; dynamic coverage/parity corpus pending) | [PERF-007-preferences-search-first-use-cost.md](performance/PERF-007-preferences-search-first-use-cost.md) |
 | PERF-008 | Delayed loading for multi-document menu and Home opens | Done (built; TDLTest passes; interactive check pending) | [PERF-008-delay-load-multi-document-opens.md](performance/PERF-008-delay-load-multi-document-opens.md) |
+| PERF-009 | Flicker when expanding or collapsing a task | In progress (implemented and built; TDLTest passes; interactive check pending) | [PERF-009-expand-collapse-repaint-flicker.md](performance/PERF-009-expand-collapse-repaint-flicker.md) |
 
 ### Text editor (`TED`)
 

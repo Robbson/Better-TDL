@@ -171,6 +171,11 @@ machine and waste a turn. Preferred forms:
 - **Do not chain independent commands with `;`.** Run them as separate parallel tool
   calls in one message. If they must be sequential, use `&&`. `;` runs even after a
   failure and obscures which command broke.
+- **Quote argument values that contain `;`.** PowerShell also treats `;` as a statement
+  terminator inside an unquoted token, so an MSBuild switch like
+  `/clp:ErrorsOnly;Summary` splits into `/clp:ErrorsOnly` plus a `Summary` command and
+  fails with `Der Begriff „Summary“ wird nicht als Name ...`. Quote the whole argument:
+  `'/clp:ErrorsOnly;Summary'`, or escape the semicolon as `/clp:ErrorsOnly`;`Summary`.
 - `Select-Object -First N` can also break a native pipe; prefer the commands' own
   `-n`/`-m` limits shown above.
 

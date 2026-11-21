@@ -45,6 +45,9 @@ const UINT IDC_DROPLIST = 100;
 
 const int MAX_AUTOINDENT_LENGTH = (1024 * 1024);
 
+// Tab stops are every two characters (see CUrlRichEditCtrl::OnSetFont)
+const int TAB_WIDTH = 2;
+
 const DWORD SIMPLETEXT_COMMENTS = (DWORD)(LPCTSTR)_T("SIMPLETEXT_COMMENTS");
 
 /////////////////////////////////////////////////////////////////////////////
@@ -182,8 +185,28 @@ static int FindLineStartInText(const CString& sText, int nPos)
 	return nStart;
 }
 
+// Returns the number of spaces needed to reach the next tab stop from nPos.
+// Tabs already in the line advance to the following stop.
+static int GetSpacesToNextTabStop(const CRichEditBaseCtrl& ctrl, int nPos)
+{
+	const int nParaStart = FindParagraphStart(ctrl, nPos);
+	CString sPrefix = ctrl.GetTextRange(CHARRANGE{ nParaStart, nPos });
+
+	int nCol = 0;
+
+	for (int nChar = 0; nChar < sPrefix.GetLength(); nChar++)
+	{
+		if (sPrefix[nChar] == _T('\t'))
+			nCol += (TAB_WIDTH - (nCol % TAB_WIDTH));
+		else
+			nCol++;
+	}
+
+	return (TAB_WIDTH - (nCol % TAB_WIDTH));
+}
+
 // Returns the length of the indentation to remove from a line start:
-// one tab or up to two spaces (the editor's tab width).
+// one tab or up to one tab width of spaces.
 static int GetRemovableIndentLength(const CString& sText, int nStart)
 {
 	if ((nStart < 0) || (nStart >= sText.GetLength()))
@@ -194,7 +217,7 @@ static int GetRemovableIndentLength(const CString& sText, int nStart)
 
 	int nSpaces = 0;
 
-	while ((nSpaces < 2) && ((nStart + nSpaces) < sText.GetLength()) &&
+	while ((nSpaces < TAB_WIDTH) && ((nStart + nSpaces) < sText.GetLength()) &&
 		   (sText[nStart + nSpaces] == _T(' ')))
 	{
 		nSpaces++;
@@ -410,7 +433,7 @@ bool CTDLSimpleTextContentCtrl::ProcessEditingKey(UINT nVKey, BOOL bCtrl, BOOL b
 			GetSel(cr);
 
 			const LPCTSTR CR = _T("\r");
-			const CString sIndent = (s_bTabIndentWithSpaces ? _T("  ") : _T("\t"));
+			const CString sIndent = (s_bTabIndentWithSpaces ? CString(_T(' '), TAB_WIDTH) : CString(_T("\t")));
 			const CString sCRIndent = (CString(CR) + sIndent);
 			const int nIndentLen = sIndent.GetLength();
 
@@ -420,11 +443,19 @@ bool CTDLSimpleTextContentCtrl::ProcessEditingKey(UINT nVKey, BOOL bCtrl, BOOL b
 			}
 			else // insert leading indentation
 			{
-				CString sSel = (sIndent + GetTextRange(cr));
+				CString sFirstIndent = sIndent;
+
+				// With spaces a caret Tab must advance only as far as the
+				// next tab stop, not by a whole indent level
+				if (s_bTabIndentWithSpaces && (cr.cpMin == cr.cpMax))
+					sFirstIndent = CString(_T(' '), GetSpacesToNextTabStop(*this, cr.cpMin));
+
+				const int nFirstIndentLen = sFirstIndent.GetLength();
+				CString sSel = (sFirstIndent + GetTextRange(cr));
 
 				// Don't include the first indent in the resulting selection
-				cr.cpMin += nIndentLen;
-				cr.cpMax += nIndentLen;
+				cr.cpMin += nFirstIndentLen;
+				cr.cpMax += nFirstIndentLen;
 
 				// Insert an indent after every subsequent new line
 				cr.cpMax += (nIndentLen * sSel.Replace(CR, sCRIndent));
@@ -762,6 +793,9 @@ void CTDLSimpleTextContentCtrl::SavePreferences(IPreferences* pPrefs, LPCWSTR sz
 
 void CTDLSimpleTextContentCtrl::LoadPreferences(const IPreferences* pPrefs, LPCWSTR szKey, bool bAppOnly)
 {
+	// Applies to the control itself, so do it even for app-only updates
+	SetTabIndentWithSpaces(pPrefs->GetProfileInt(_T("Preferences"), _T("InsertSpacesForCommentsIndent"), TRUE));
+
 	if (!bAppOnly)
 	{
 		BOOL bWordWrap = pPrefs->GetProfileInt(szKey, _T("WordWrap"), TRUE);

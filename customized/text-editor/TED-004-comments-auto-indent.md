@@ -113,6 +113,15 @@ Files: `Core/ToDoList/TDLSimpleTextContentCtrl.cpp` and
     non-indented lines still took ~780 ms, so the cost was the per-paragraph RichEdit
     calls (selection moves, `GetTextRange`, `GetParaFormat`), not painting or word
     wrapping. `TestAutoIndentPerformance` in `TDLTest` prints these figures with `-p`.
+12. `Tab` honours the saved “insert spaces” preference and aligns either mode to the
+    two-character tab stops. In spaces mode the handler inserts `TAB_WIDTH - (column %
+    TAB_WIDTH)` spaces, where a pre-existing tab advances the column to the next stop, so
+    a caret at column 1 inserts one space and lands on column 2 (previously it always
+    inserted two spaces and landed on column 3). A multi-line selection still inserts one
+    full indent level per line. In real-tab mode the literal tab is inserted and RichEdit's
+    own tab stops do the alignment. The preference is now also read by the control's
+    `LoadPreferences()`, because reading it only from the content object meant a saved
+    “real tabs” value could be ignored until the preferences dialog was applied.
 
 ## Tab-indented wrapped lines: options
 
@@ -197,13 +206,20 @@ tests.
 The user can choose to indent new lines with spaces instead of tabs under
 **Preferences → User Interface → General → Task Comments → “Insert spaces instead of
 tabs when indenting”**. The setting is app-wide (`Preferences\
-InsertSpacesForCommentsIndent`, default `FALSE`) and is applied immediately by
-`UpdateAppPreferences()`.
+InsertSpacesForCommentsIndent`, default `TRUE`) and is applied immediately by
+`UpdateAppPreferences()`. It is also read by
+`CTDLSimpleTextContentCtrl::LoadPreferences()` so that a saved value takes effect when the
+comments control is created, not only when the preferences dialog is applied. Previously
+only the content object read it, so a value saved in an earlier session could be ignored
+while the control stayed on its compiled-in default and kept inserting spaces even when
+“real tabs” was selected.
 
 When enabled:
 
-- `Tab` inserts two spaces per level (matching the editor's two-character tab stops)
-  immediately, including after every line of a multi-line selection.
+- `Tab` at the caret inserts only enough spaces to reach the next two-character tab stop,
+  so column 0 → column 2 (two spaces) but column 1 → column 2 (one space) and column 3 →
+  column 4 (one space). A multi-line selection still indents every selected line by one
+  full level (two spaces).
 - A selection ending at a line start does not indent the following line.
 - Existing tabs, pasted text and loaded comments are left exactly as they are; nothing is
   normalised later and no timer is involved.
@@ -212,6 +228,10 @@ When enabled:
   continue with spaces and tab-indented lines continue with tabs.
 - New space-indented lines get the normal wrapped-line hanging indent and therefore align;
   old tab-indented lines remain unaligned until they are re-indented with spaces.
+
+With the option disabled, `Tab` inserts a literal tab and RichEdit aligns it to the
+two-character tab stops configured by `CUrlRichEditCtrl::OnSetFont()`
+(`UrlRichEditCtrl.cpp:176`). `TestTabStopAlignment` checks both modes at columns 0–3.
 
 The `SpaceIndent` test covers single-line and multi-line Tab insertion, the
 selection-ending-at-line-start case, preservation of an existing tab, and the following
@@ -333,12 +353,16 @@ states after every call (auto-repeat).
 ## Verification
 
 - `Core/ToDoListLib/ToDoListLib.vcxproj` builds successfully in `Unicode Debug`.
-- `TDLTest` builds and passes: 310436/310436 tests, including the new
-  `CTDLSimpleTextContentCtrlTest` suite (126 assertions). The suite covers every row of the
+- `TDLTest` builds and passes: 310449/310449 tests, including the
+  `CTDLSimpleTextContentCtrlTest` suite (139 assertions). The suite covers every row of the
   behaviour table below, tab preservation, and space-indented/space-bullet wrapped-line
   alignment. It also asserts that tab-indented paragraphs are not re-indented (the
   `Shift+Tab` regression) and that inserting a leading tab into a `-> item` paragraph
   clears the old hanging indent immediately, so the visible tab jump cannot return.
+- `TabStopAlignment` checks spaces mode at columns 0–3 (two, one, two and one inserted
+  spaces) and real tabs mode at columns 0–3 using the caret's pixel position, verifying
+  that a tab after a leading space lands on the same stop as a tab at column 0.
+
 - `FormattingScope` proves the scope on a ten-line document: typing formats 1 paragraph,
   Tab with a caret formats 1, Return at a line start formats at most 2, and Tab on a
   two-line selection formats at most 3. Tab indentation therefore no longer scales with
@@ -351,7 +375,7 @@ states after every call (auto-repeat).
 - `RepeatedIndentKeys` presses Tab four times and then Shift+Tab four times, checking the
   text and caret after every keydown. This covers the auto-repeat case where the
   intermediate indentation states must be applied immediately, before the key is released.
-- `SpaceIndent` enables the new preference and checks: two-space caret Tab, multi-line
+- `SpaceIndent` enables the new preference and checks: next-tab-stop caret Tab, multi-line
   insertion, a selection ending at a line start, preservation of an existing tab, and
   `Shift+Tab` removing the inserted spaces. The preference control is
   `IDC_INSERTSPACESFORCOMMENTSTABS` on the UI General page under Task Comments.

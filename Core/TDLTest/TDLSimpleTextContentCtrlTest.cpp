@@ -120,6 +120,7 @@ TESTRESULT CTDLSimpleTextContentCtrlTest::Run()
 		TestWrappedLineAlignment();
 		TestCustomBulletPrefixes();
 		TestAutoIndentPerformance();
+		TestTabStopAlignment();
 	}
 	else
 	{
@@ -607,6 +608,74 @@ void CTDLSimpleTextContentCtrlTest::TestAutoIndentPerformance()
 			 N, dwLoadIndented, dwFullIndented, NPASTE, dwPasteRange, dwFullPlain);
 }
 
+void CTDLSimpleTextContentCtrlTest::TestTabStopAlignment()
+{
+	CTDCScopedTest test(*this, _T("CTDLSimpleTextContentCtrl::TabStopAlignment"));
+
+	CTDLSimpleTextContentCtrl ctrl;
+
+	if (!ExpectTrue(CreateEditor(ctrl)))
+		return;
+
+	auto InsertTab = [&](LPCTSTR szText, int nCaret) -> CString
+	{
+		ctrl.SetTextContent(szText, TRUE);
+		ctrl.SetSel(nCaret, nCaret);
+		ctrl.ProcessEditingKey(VK_TAB, FALSE, FALSE, FALSE);
+
+		return ctrl.GetTextRange(CHARRANGE{ 0, ctrl.GetTextLength() });
+	};
+
+	// Spaces mode advances only to the next tab stop
+	CTDLSimpleTextContentCtrl::SetTabIndentWithSpaces(TRUE);
+
+	ExpectEQ(InsertTab(_T(""), 0), _T("  "));
+	ExpectEQ(InsertTab(_T("a"), 1), _T("a "));
+	ExpectEQ(InsertTab(_T("ab"), 2), _T("ab  "));
+	ExpectEQ(InsertTab(_T("abc"), 3), _T("abc "));
+
+	ctrl.SetTextContent(_T("a"), TRUE);
+	ctrl.SetSel(1, 1);
+	ctrl.ProcessEditingKey(VK_TAB, FALSE, FALSE, FALSE);
+
+	CHARRANGE cr;
+	ctrl.GetSel(cr);
+	ExpectEQ((int)cr.cpMin, 2);
+	ExpectEQ((int)cr.cpMax, 2);
+
+	// Real tabs mode inserts a tab and RichEdit aligns it to the tab stops
+	CTDLSimpleTextContentCtrl::SetTabIndentWithSpaces(FALSE);
+
+	ExpectEQ(InsertTab(_T(""), 0), _T("\t"));
+	ExpectEQ(InsertTab(_T(" "), 1), _T(" \t"));
+
+	auto GetTabX = [&](LPCTSTR szPrefix) -> int
+	{
+		const int nCaret = (int)_tcslen(szPrefix);
+
+		ctrl.SetTextContent(szPrefix, TRUE);
+		ctrl.SetSel(nCaret, nCaret);
+		ctrl.ProcessEditingKey(VK_TAB, FALSE, FALSE, FALSE);
+
+		CHARRANGE crTab;
+		ctrl.GetSel(crTab);
+
+		CPoint ptLineStart, ptCaret;
+		ctrl.PointFromChar(0, ptLineStart);
+		ctrl.PointFromChar(crTab.cpMin, ptCaret);
+
+		return (ptCaret.x - ptLineStart.x);
+	};
+
+	const int nTabStop = GetTabX(_T(""));
+
+	ExpectTrue(nTabStop > 0);
+	ExpectEQ(GetTabX(_T(" ")), nTabStop);
+	ExpectEQ(GetTabX(_T("  ")), (2 * nTabStop));
+	ExpectEQ(GetTabX(_T("   ")), (2 * nTabStop));
+
+	CTDLSimpleTextContentCtrl::SetTabIndentWithSpaces(TRUE);
+}
 CString CTDLSimpleTextContentCtrlTest::GetMarkedText(const CTDLSimpleTextContentCtrl& ctrl) const
 {
 	// Use the control's character positions, which use a single CR

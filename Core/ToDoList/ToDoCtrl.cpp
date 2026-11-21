@@ -683,6 +683,16 @@ void CToDoCtrl::SetUseLegacyRowHeight(BOOL bLegacy)
 	m_taskTree.SetLegacyItemHeight(bLegacy);
 }
 
+void CToDoCtrl::SetUseLegacyHorizontalPadding(BOOL bLegacy)
+{
+	m_taskTree.SetUseLegacyHorizontalPadding(bLegacy);
+}
+
+void CToDoCtrl::SetUseLegacyCommentBrackets(BOOL bLegacy)
+{
+	m_taskTree.SetUseLegacyCommentBrackets(bLegacy);
+}
+
 BOOL CToDoCtrl::SetCommentsFont(HFONT hFont)
 {
 	ASSERT(hFont);

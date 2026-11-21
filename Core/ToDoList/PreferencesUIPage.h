@@ -44,6 +44,7 @@ public:
 	PUIP_LOCATION GetControlsPos() const { return m_nCtrlsPos; }
 	BOOL GetUseLegacyAttributeEditor() const { return m_bUseLegacyAttributeEditor; }
 	BOOL GetUseLegacyRowHeight() const { return m_bUseLegacyRowHeight; }
+	BOOL GetUseLegacyHorizontalPadding() const { return m_bUseLegacyHorizontalPadding; }
 	BOOL GetMultiSelFilters() const { return m_bMultiSelFilters; }
 	BOOL GetRestoreTasklistFilters() const { return m_bRestoreTasklistFilters; }
 	BOOL GetReFilterOnModify() const { return m_bAutoRefilter; }
@@ -93,6 +94,7 @@ protected:
 	BOOL	m_bSortDoneTasksAtBottom;
 	BOOL	m_bUseLegacyAttributeEditor;
 	BOOL	m_bUseLegacyRowHeight;
+	BOOL	m_bUseLegacyHorizontalPadding;
 
 	PUIP_NEWTASKPOS	m_nNewTaskPos;
 	PUIP_NEWTASKPOS	m_nNewSubtaskPos;

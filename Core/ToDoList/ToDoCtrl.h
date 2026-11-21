@@ -413,6 +413,8 @@ public:
 	BOOL SetTreeFont(HFONT hFont); // setter responsible for deleting
 	BOOL SetCommentsFont(HFONT hFont); // setter responsible for deleting
 	virtual void SetUseLegacyRowHeight(BOOL bLegacy);
+	virtual void SetUseLegacyHorizontalPadding(BOOL bLegacy);
+	virtual void SetUseLegacyCommentBrackets(BOOL bLegacy);
 
 	BOOL GetCommentsFormat(CONTENTFORMAT& cf) const { return m_ctrlComments.GetSelectedFormat(cf); }
 	BOOL SetCommentsFormat(const CONTENTFORMAT& cf) { return m_ctrlComments.ChangeSelectedFormat(cf); }

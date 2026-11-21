@@ -245,6 +245,7 @@ public:
 	PUIP_LOCATION GetControlsPos() const { return m_pageUI.GetControlsPos(); }
 	BOOL GetUseLegacyAttributeEditor() const { return m_pageUI.GetUseLegacyAttributeEditor(); }
 	BOOL GetUseLegacyRowHeight() const { return m_pageUI.GetUseLegacyRowHeight(); }
+	BOOL GetUseLegacyHorizontalPadding() const { return m_pageUI.GetUseLegacyHorizontalPadding(); }
 	BOOL GetMultiSelFilters() const { return m_pageUI.GetMultiSelFilters(); }
 	BOOL GetRestoreTasklistFilters() const { return m_pageUI.GetRestoreTasklistFilters(); }
 	BOOL GetReFilterOnModify() const { return m_pageUI.GetReFilterOnModify(); }
@@ -278,6 +279,7 @@ public:
 	BOOL GetShowWeekdayInDates() const { return m_pageUITasklist.GetShowWeekdayInDates(); }
 	BOOL GetShowParentsAsFolders() const { return m_pageUITasklist.GetShowParentsAsFolders(); }
 	BOOL GetDisplayFirstCommentLine() const { return m_pageUITasklist.GetDisplayFirstCommentLine(); }
+	BOOL GetLegacyCommentBrackets() const { return m_pageUITasklist.GetLegacyCommentBrackets(); }
 	int GetMaxInfoTipCommentsLength() const { return m_pageUITasklist.GetMaxInfoTipCommentsLength(); }
 	int GetMaxColumnWidth() const { return m_pageUITasklist.GetMaxColumnWidth(); }
 	BOOL GetHidePercentForDoneTasks() const { return m_pageUITasklist.GetHidePercentForDoneTasks(); }

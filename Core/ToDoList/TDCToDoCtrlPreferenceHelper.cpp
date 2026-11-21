@@ -118,6 +118,8 @@ void CTDCToDoCtrlPreferenceHelper::UpdateToDoCtrlPrefs(CFilteredToDoCtrl& tdc, c
 							(TDC_UILOCATION)prefs.GetCommentsPos());
 	tdc.SetAttributeEditorMode(prefs.GetUseLegacyAttributeEditor() ? TDCAEM_LEGACY : TDCAEM_GRID);
 	tdc.SetUseLegacyRowHeight(prefs.GetUseLegacyRowHeight());
+	tdc.SetUseLegacyHorizontalPadding(prefs.GetUseLegacyHorizontalPadding());
+	tdc.SetUseLegacyCommentBrackets(prefs.GetLegacyCommentBrackets());
 
 	log.LogTimeElapsed(_T("UpdateToDoCtrlPrefs(Layout/AttributeEditor)"));
 

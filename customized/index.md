@@ -134,4 +134,4 @@ Rules of thumb:
 | UI-014 | Preferences index section highlighting | In progress (implemented and built; interactive check pending) | [UI-014-preferences-section-highlight.md](ui/UI-014-preferences-section-highlight.md) |
 | UI-015 | Preferences page grouping and information architecture | Proposed | [UI-015-preferences-reorganization.md](ui/UI-015-preferences-reorganization.md) |
 | UI-016 | Custom toolbar default configuration | Done (built; TDLTest passes) | [UI-016-default-custom-toolbar.md](ui/UI-016-default-custom-toolbar.md) |
-| UI-017 | Legacy task row height preference and General section | Done (built; TDLTest passes; live 20/19 px toggle verified) | [UI-017-legacy-task-row-height.md](ui/UI-017-legacy-task-row-height.md) |
+| UI-017 | Legacy tasklist display options (row height, icon spacing, comment brackets) | Done (built; TDLTest passes; runtime checks) | [UI-017-legacy-task-row-height.md](ui/UI-017-legacy-task-row-height.md) |

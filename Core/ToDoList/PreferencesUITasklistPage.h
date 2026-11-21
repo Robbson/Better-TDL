@@ -34,6 +34,7 @@ public:
 	BOOL GetShowWeekdayInDates() const { return m_bShowWeekdayInDates; }
 	BOOL GetShowParentsAsFolders() const { return m_bShowParentsAsFolders; }
 	BOOL GetDisplayFirstCommentLine() const { return m_bShowComments && m_bDisplayFirstCommentLine; }
+	BOOL GetLegacyCommentBrackets() const { return m_bShowComments && m_bLegacyCommentBrackets; }
 	int GetMaxInfoTipCommentsLength() const;
 	BOOL GetHidePercentForDoneTasks() const { return m_bHidePercentForDoneTasks; }
 	BOOL GetHideZeroTimeCost() const { return m_bHideZeroTimeCost; }
@@ -67,6 +68,7 @@ protected:
 	BOOL	m_bShowWeekdayInDates;
 	BOOL	m_bShowParentsAsFolders;
 	BOOL	m_bDisplayFirstCommentLine;
+	BOOL	m_bLegacyCommentBrackets;
 	BOOL	m_bHidePriorityNumber;
 	int		m_nMaxInfoTipCommentsLength;
 	BOOL	m_bLimitInfoTipCommentsLength;

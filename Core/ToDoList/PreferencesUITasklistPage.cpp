@@ -41,6 +41,7 @@ void CPreferencesUITasklistPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_SHOWWEEKDAYINDATES, m_bShowWeekdayInDates);
 	DDX_Check(pDX, IDC_SHOWPARENTSASFOLDERS, m_bShowParentsAsFolders);
 	DDX_Check(pDX, IDC_DISPLAYFIRSTCOMMENTLINE, m_bDisplayFirstCommentLine);
+	DDX_Check(pDX, IDC_LEGACYCOMMENTBRACKETS, m_bLegacyCommentBrackets);
 	DDX_Check(pDX, IDC_LIMITINFOTIPCOMMENTS, m_bLimitInfoTipCommentsLength);
 	DDX_Check(pDX, IDC_AUTOFOCUSTASKLIST, m_bAutoFocusTasklist);
 	DDX_Check(pDX, IDC_RIGHTSIDECOLUMNS, m_bShowColumnsOnRight);
@@ -123,6 +124,7 @@ void CPreferencesUITasklistPage::InitTooltips()
 	AddTooltip(IDC_INFOTIPCOMMENTSMAX, IDS_PREFTIP_UT_INFOTIPLIMIT);
 	AddTooltip(IDC_SHOWCOMMENTS, IDS_PREFTIP_UT_SHOWCOMMENTS);
 	AddTooltip(IDC_DISPLAYFIRSTCOMMENTLINE, IDS_PREFTIP_UT_FIRSTLINE);
+	AddTooltip(IDC_LEGACYCOMMENTBRACKETS, IDS_PREFTIP_UT_LEGACYCOMMENTBRACKETS);
 	AddTooltip(IDC_SHOWPARENTSASFOLDERS, IDS_PREFTIP_UT_FOLDERS);
 	AddTooltip(IDC_RIGHTSIDECOLUMNS, IDS_PREFTIP_UT_RIGHTSIDECOLS);
 	AddTooltip(IDC_AUTOFOCUSTASKLIST, IDS_PREFTIP_UT_AUTOFOCUS);
@@ -147,6 +149,7 @@ void CPreferencesUITasklistPage::OnFirstShow()
 	AddGroupLine(IDC_OTHERGROUP);
 
 	GetDlgItem(IDC_DISPLAYFIRSTCOMMENTLINE)->EnableWindow(m_bShowComments);
+	GetDlgItem(IDC_LEGACYCOMMENTBRACKETS)->EnableWindow(m_bShowComments);
 	GetDlgItem(IDC_LIMITINFOTIPCOMMENTS)->EnableWindow(m_bShowInfoTips);
 	GetDlgItem(IDC_INFOTIPCOMMENTSMAX)->EnableWindow(m_bShowInfoTips && m_bLimitInfoTipCommentsLength);
 	GetDlgItem(IDC_COLWIDTHS)->EnableWindow(m_bLimitColumnWidths);
@@ -172,6 +175,7 @@ void CPreferencesUITasklistPage::OnShowcomments()
 	UpdateData();
 
 	GetDlgItem(IDC_DISPLAYFIRSTCOMMENTLINE)->EnableWindow(m_bShowComments);
+	GetDlgItem(IDC_LEGACYCOMMENTBRACKETS)->EnableWindow(m_bShowComments);
 }
 
 void CPreferencesUITasklistPage::OnShowinfotips() 
@@ -199,6 +203,7 @@ void CPreferencesUITasklistPage::LoadPreferences(const IPreferences* pPrefs, LPC
 	m_bShowInfoTips = pPrefs->GetProfileInt(szKey, _T("ShowInfoTips"), FALSE);
 	m_bShowComments = pPrefs->GetProfileInt(szKey, _T("ShowComments"), TRUE);
 	m_bDisplayFirstCommentLine = pPrefs->GetProfileInt(szKey, _T("DisplayFirstCommentLine"), FALSE);
+	m_bLegacyCommentBrackets = pPrefs->GetProfileInt(szKey, _T("LegacyCommentBrackets"), TRUE);
 	m_bStrikethroughDone = pPrefs->GetProfileInt(szKey, _T("StrikethroughDone"), TRUE);
 	m_bShowPathInHeader = pPrefs->GetProfileInt(szKey, _T("ShowPathInHeader"), TRUE);
 	m_bUseISOForDates = pPrefs->GetProfileInt(szKey, _T("DisplayDatesInISO"), FALSE);
@@ -239,6 +244,7 @@ void CPreferencesUITasklistPage::SavePreferences(IPreferences* pPrefs, LPCTSTR s
 	pPrefs->WriteProfileInt(szKey, _T("ShowInfoTips"), m_bShowInfoTips);
 	pPrefs->WriteProfileInt(szKey, _T("ShowComments"), m_bShowComments);
 	pPrefs->WriteProfileInt(szKey, _T("DisplayFirstCommentLine"), m_bDisplayFirstCommentLine);
+	pPrefs->WriteProfileInt(szKey, _T("LegacyCommentBrackets"), m_bLegacyCommentBrackets);
 	pPrefs->WriteProfileInt(szKey, _T("StrikethroughDone"), m_bStrikethroughDone);
 	pPrefs->WriteProfileInt(szKey, _T("ShowPathInHeader"), m_bShowPathInHeader);
 	pPrefs->WriteProfileInt(szKey, _T("DisplayDatesInISO"), m_bUseISOForDates);

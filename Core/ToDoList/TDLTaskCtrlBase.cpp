@@ -244,6 +244,8 @@ CTDLTaskCtrlBase::CTDLTaskCtrlBase(const CTDCImageList& ilIcons,
 	m_bAutoFitSplitter(TRUE),
 	m_nColumnsItemHeight(0),
 	m_bUpdatingColumnsHeight(FALSE),
+	m_bLegacyHorizontalPadding(FALSE),
+	m_bLegacyCommentBrackets(TRUE),
 	m_imageIcons(FALSE),
 	m_mgrContent(mgrContent),
 	m_nHeaderContextMenuItem(-1),
@@ -985,6 +987,33 @@ void CTDLTaskCtrlBase::UpdateAttributePaneVisibility()
 		SetHidden(TLSH_NONE);
 	else
 		SetHidden(IsLeft(m_lcColumns) ? TLSH_LEFT : TLSH_RIGHT);
+}
+
+void CTDLTaskCtrlBase::SetUseLegacyHorizontalPadding(BOOL bLegacy)
+{
+	if (m_bLegacyHorizontalPadding == bLegacy)
+		return;
+
+	m_bLegacyHorizontalPadding = bLegacy;
+
+	if (Tasks())
+		::InvalidateRect(Tasks(), NULL, TRUE);
+}
+
+void CTDLTaskCtrlBase::SetUseLegacyCommentBrackets(BOOL bLegacy)
+{
+	if (m_bLegacyCommentBrackets == bLegacy)
+		return;
+
+	m_bLegacyCommentBrackets = bLegacy;
+
+	if (Tasks())
+		::InvalidateRect(Tasks(), NULL, TRUE);
+}
+
+int CTDLTaskCtrlBase::GetLegacyHorizontalPadding() const
+{
+	return (m_bLegacyHorizontalPadding ? 2 : 0);
 }
 
 void CTDLTaskCtrlBase::OnMeasureItem(int nIDCtl, LPMEASUREITEMSTRUCT lpMeasureItemStruct)
@@ -2527,11 +2556,24 @@ void CTDLTaskCtrlBase::DrawTrailingComments(CDC* pDC, const CRect& rRow, const C
 			sComments.ReleaseBuffer(nDrawLength);
 		}
 
-		DrawColumnText(pDC, sComments, rComments, DT_LEFT, crText, TRUE, nDrawLength);
+		// A leading newline means there is no first line to show
+		if (HasStyle(TDCS_SHOWFIRSTCOMMENTLINEINLIST) && (nDrawLength == 0))
+			return;
+
+		CString sDraw = ((nDrawLength < 0) ? sComments : sComments.Left(nDrawLength));
+
+		if (m_bLegacyCommentBrackets)
+		{
+			CString sBracketed;
+			sBracketed.Format(_T("[%s]"), sDraw);
+			sDraw = sBracketed;
+		}
+
+		DrawColumnText(pDC, sDraw, rComments, DT_LEFT, crText, TRUE, -1, DT_TOP);
 	}
 	else
 	{
-		DrawColumnText(pDC, _T("[...]"), rComments, DT_LEFT, crText, FALSE, 5); // No ellipsis
+		DrawColumnText(pDC, _T("[...]"), rComments, DT_LEFT, crText, FALSE, 5, DT_TOP); // No ellipsis
 	}
 }
 
@@ -2798,6 +2840,7 @@ DWORD CTDLTaskCtrlBase::OnPostPaintTaskTitle(const NMCUSTOMDRAW& nmcd, BOOL bFil
 			// Draw title text ---------------------------------------
 			CRect rText;
 			GetItemTitleRect(nmcd, TDCTR_TEXT, rText);
+			rText.left += GetLegacyHorizontalPadding();
 
 			HFONT hOldFont = PrepareDCFont(pDC, pTDI, pTDS, TRUE);
 			DrawColumnText(pDC, pTDI->sTitle, rText, DT_LEFT, crText, TRUE);
@@ -2819,6 +2862,7 @@ DWORD CTDLTaskCtrlBase::OnPostPaintTaskTitle(const NMCUSTOMDRAW& nmcd, BOOL bFil
 			{
 				// Get the actual text extent this time
 				GetItemTitleRect(nmcd, TDCTR_TEXT, rText, pDC, pTDI->sTitle);
+				rText.left += GetLegacyHorizontalPadding();
 
 				hOldFont = PrepareDCFont(pDC, pTDI, pTDS, FALSE);
 				DrawTrailingComments(pDC, rBack, rText, pTDI, pTDS, crBack);
@@ -3790,7 +3834,7 @@ BOOL CTDLTaskCtrlBase::IsDateWithin7DaysOfToday(const COleDateTime& date, TDC_DA
 }
 
 void CTDLTaskCtrlBase::DrawColumnText(CDC* pDC, const CString& sText, const CRect& rect, int nAlign, 
-										COLORREF crText, BOOL bTaskTitle, int nTextLen)
+										COLORREF crText, BOOL bTaskTitle, int nTextLen, int nVAlign)
 {
 	ASSERT(crText != CLR_NONE);
 
@@ -3819,7 +3863,7 @@ void CTDLTaskCtrlBase::DrawColumnText(CDC* pDC, const CString& sText, const CRec
 		}
 	}
 	
-	UINT nFlags = (nAlign | DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX);
+	UINT nFlags = (nAlign | DT_SINGLELINE | nVAlign | DT_NOPREFIX);
 
 	if (!m_bSavingToImage && bTaskTitle)
 		nFlags |= DT_END_ELLIPSIS;

@@ -203,6 +203,8 @@ public:
 	void SetGridlineColor(COLORREF crGridLine);
 	void SetSplitBarColor(COLORREF crSplitBar) { CTreeListSyncer::SetSplitBarColor(crSplitBar); }
 	void SetLegacyItemHeight(BOOL bLegacy) { CTreeListSyncer::SetLegacyItemHeight(bLegacy); }
+	void SetUseLegacyHorizontalPadding(BOOL bLegacy);
+	void SetUseLegacyCommentBrackets(BOOL bLegacy);
 
 	BOOL SetPriorityColors(const CDWordArray& aColors); // must have 12 elements
 	void GetPriorityColors(CDWordArray& aColors) const { aColors.Copy(m_aPriorityColors); }
@@ -293,6 +295,8 @@ private:
 	BOOL m_bAutoFitSplitter;
 	int m_nColumnsItemHeight;
 	BOOL m_bUpdatingColumnsHeight;
+	BOOL m_bLegacyHorizontalPadding;
+	BOOL m_bLegacyCommentBrackets;
 
 	IDLETASKS m_idleTasks;
 	
@@ -363,6 +367,7 @@ protected:
 	BOOL IsAlternateColumnLine(int nItem) const;
 	void UpdateColumnsItemHeight();
 	int GetNaturalColumnsItemHeight();
+	int GetLegacyHorizontalPadding() const;
 	void SetColor(COLORREF& color, COLORREF crNew);
 	BOOL HasStyle(TDC_STYLE nStyle) const { return m_styles.IsStyleEnabled(nStyle); }
 	BOOL IsShowingColumnsOnRight() const;
@@ -468,7 +473,7 @@ protected:
 	void DrawColumnRowText(CDC* pDC, DWORD dwTaskID, const TODOITEM* pTDI, const TODOSTRUCTURE* pTDS, 
 							TDC_COLUMN nColID, const CRect& rColumn, COLORREF crText);
 	void DrawColumnText(CDC* pDC, const CString& sText, const CRect& rect, int nAlign, 
-						COLORREF crText, BOOL bTaskTitle = FALSE, int nTextLen = -1);
+						COLORREF crText, BOOL bTaskTitle = FALSE, int nTextLen = -1, int nVAlign = DT_VCENTER);
 	void DrawColumnFileLinks(CDC* pDC, const CStringArray& aFileLinks, const CRect& rect);
 	void DrawColumnImage(CDC* pDC, TDC_COLUMN nColID, const CRect& rect, BOOL bAlternate = FALSE);
 	void DrawGridlines(CDC* pDC, const CRect& rect, BOOL bSelected, BOOL bHorz, BOOL bVert);

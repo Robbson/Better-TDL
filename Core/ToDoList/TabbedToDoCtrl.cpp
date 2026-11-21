@@ -4683,6 +4683,18 @@ void CTabbedToDoCtrl::SetUseLegacyRowHeight(BOOL bLegacy)
 	m_taskList.SetLegacyItemHeight(bLegacy);
 }
 
+void CTabbedToDoCtrl::SetUseLegacyHorizontalPadding(BOOL bLegacy)
+{
+	CToDoCtrl::SetUseLegacyHorizontalPadding(bLegacy);
+	m_taskList.SetUseLegacyHorizontalPadding(bLegacy);
+}
+
+void CTabbedToDoCtrl::SetUseLegacyCommentBrackets(BOOL bLegacy)
+{
+	CToDoCtrl::SetUseLegacyCommentBrackets(bLegacy);
+	m_taskList.SetUseLegacyCommentBrackets(bLegacy);
+}
+
 BOOL CTabbedToDoCtrl::SetTreeFont(HFONT hFont)
 {
 	if (CToDoCtrl::SetTreeFont(hFont))

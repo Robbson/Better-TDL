@@ -214,8 +214,8 @@ Reference only (do not copy blindly):
 
 ## Settings
 
-> Placement update: UI-017 moved this option to the `General` section at the top of the
-> User Interface preferences page, next to the legacy task-row-height option.
+> Placement update: UI-017 moved this option into the `Legacy` group below the
+> `General` section of the User Interface preferences page.
 
 Recommended preference:
 

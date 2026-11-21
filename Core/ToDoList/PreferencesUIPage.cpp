@@ -111,6 +111,7 @@ void CPreferencesUIPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_COMMENTBULLETPREFIXES, m_sCommentBulletPrefixes);
 	DDX_Check(pDX, IDC_USELEGACYATTRIBUTEEDITOR, m_bUseLegacyAttributeEditor);
 	DDX_Check(pDX, IDC_USELEGACYROWHEIGHT, m_bUseLegacyRowHeight);
+	DDX_Check(pDX, IDC_USELEGACYHORIZONTALPADDING, m_bUseLegacyHorizontalPadding);
 
 	m_cbThemes.DDX(pDX, m_sUIThemeFile);
 }
@@ -166,6 +167,7 @@ void CPreferencesUIPage::InitTooltips()
 	AddTooltip(IDC_KEEPTABSORDERED, IDS_PREFTIP_UI_TABORDER);
 	AddTooltip(IDC_TASKVIEWVISIBILITY, IDS_PREFTIP_UI_DEFAULTVIEWS);
 	AddTooltip(IDC_USELEGACYROWHEIGHT, IDS_PREFTIP_UI_LEGACYROWHEIGHT);
+	AddTooltip(IDC_USELEGACYHORIZONTALPADDING, IDS_PREFTIP_UI_LEGACYHORIZONTALPADDING);
 }
 
 void CPreferencesUIPage::AddSearchText(CStringArray& aText) const
@@ -179,6 +181,7 @@ void CPreferencesUIPage::OnFirstShow()
 	CPreferencesPageBase::OnFirstShow();
 
 	AddGroupLine(IDC_GENERALGROUP);
+	AddGroupLine(IDC_LEGACYGROUP);
 	AddGroupLine(IDC_TOOLBARGROUP);
 	AddGroupLine(IDC_SORTGROUP);
 	AddGroupLine(IDC_TABBARGROUP);
@@ -245,6 +248,7 @@ void CPreferencesUIPage::LoadPreferences(const IPreferences* pPrefs, LPCTSTR szK
 	m_bInsertSpacesForCommentsIndent = pPrefs->GetProfileInt(szKey, _T("InsertSpacesForCommentsIndent"), TRUE);
 	m_bUseLegacyAttributeEditor = pPrefs->GetProfileInt(szKey, _T("AttributeEditorMode"), 0) != 0;
 	m_bUseLegacyRowHeight = pPrefs->GetProfileInt(szKey, _T("LegacyRowHeight"), FALSE);
+	m_bUseLegacyHorizontalPadding = pPrefs->GetProfileInt(szKey, _T("LegacyHorizontalPadding"), FALSE);
 
 	CStringArray aBulletPrefixes;
 
@@ -304,6 +308,7 @@ void CPreferencesUIPage::SavePreferences(IPreferences* pPrefs, LPCTSTR szKey) co
 	pPrefs->WriteProfileInt(szKey, _T("VertControls"), m_nCtrlsPos);
 	pPrefs->WriteProfileInt(szKey, _T("AttributeEditorMode"), (m_bUseLegacyAttributeEditor ? 1 : 0));
 	pPrefs->WriteProfileInt(szKey, _T("LegacyRowHeight"), m_bUseLegacyRowHeight);
+	pPrefs->WriteProfileInt(szKey, _T("LegacyHorizontalPadding"), m_bUseLegacyHorizontalPadding);
 	pPrefs->WriteProfileInt(szKey, _T("MultiSelFilters"), m_bMultiSelFilters);
 	pPrefs->WriteProfileInt(szKey, _T("RestoreTasklistFilters"), m_bRestoreTasklistFilters);
 	pPrefs->WriteProfileInt(szKey, _T("AutoRefilter"), m_bAutoRefilter);

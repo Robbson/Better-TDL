@@ -87,6 +87,8 @@ public:
 	
 	BOOL SetTreeFont(HFONT hFont); // caller responsible for deleting
 	virtual void SetUseLegacyRowHeight(BOOL bLegacy);
+	virtual void SetUseLegacyHorizontalPadding(BOOL bLegacy);
+	virtual void SetUseLegacyCommentBrackets(BOOL bLegacy);
 	BOOL SaveTaskViewToImage(const CString& sFilePath);
 	BOOL CanSaveTaskViewToImage() const;
 

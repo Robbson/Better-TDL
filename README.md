@@ -71,7 +71,7 @@ Clearing a filter now restores the expansion state you had before it was applied
 
 The menu, toolbar and their tooltips name the action that will be undone or redone, and the modified marker clears when you return to the saved state.
 
-### 10. Several other fixes and improvements
+### 10. Several other fixes, improvements and legacy options
 
 Too many to list, and none of them need a paragraph.
 

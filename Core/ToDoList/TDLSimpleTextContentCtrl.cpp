@@ -333,10 +333,25 @@ bool CTDLSimpleTextContentCtrl::InsertTextContent(LPCWSTR szContent, bool bAtEnd
 
 	CHoldRedraw hr(GetSafeHwnd(), NCR_PAINT | NCR_ERASEBKGND);
 
+	CHARRANGE crBefore;
+	GetSel(crBefore);
+
+	const int nLenBefore = GetTextLength();
+
 	if (!InsertSimpleText(szContent, (bAtEnd ? TRUE : FALSE)))
 		return false;
 
-	ApplyAutoIndent();
+	CHARRANGE crAfter;
+	GetSel(crAfter);
+
+	// Only the inserted paragraphs need formatting. Append-at-end inserts
+	// after the old end of the document, so use the text lengths there
+	// instead of the (possibly remote) pre-insert selection.
+	const int nFrom = (bAtEnd ? nLenBefore : min(crBefore.cpMin, crAfter.cpMin));
+	const int nTo = (bAtEnd ? GetTextLength() : max(crBefore.cpMax, crAfter.cpMax));
+
+	ApplyAutoIndentRange(nFrom, nTo, FALSE);
+
 	return true;
 }
 
@@ -876,9 +891,17 @@ LRESULT CTDLSimpleTextContentCtrl::OnPaste(WPARAM /*wp*/, LPARAM /*lp*/)
 	// See Paste(): hold painting across the paste and the indent pass
 	CHoldRedraw hr(GetSafeHwnd(), NCR_PAINT | NCR_ERASEBKGND);
 
+	CHARRANGE crBefore;
+	GetSel(crBefore);
+
 	LRESULT lr = Default(); // let the rich edit paste
 
-	ApplyAutoIndent();
+	CHARRANGE crAfter;
+	GetSel(crAfter);
+
+	ApplyAutoIndentRange(min(crBefore.cpMin, crAfter.cpMin),
+						 max(crBefore.cpMax, crAfter.cpMax), FALSE);
+
 	return lr;
 }
 
@@ -1372,6 +1395,9 @@ BOOL CTDLSimpleTextContentCtrl::Paste()
 	// duplicated while RichEdit scrolls them down
 	CHoldRedraw hr(GetSafeHwnd(), NCR_PAINT | NCR_ERASEBKGND);
 
+	CHARRANGE crBefore;
+	GetSel(crBefore);
+
 	CStringArray aFiles;
 	int nNumFiles = CClipboard().GetDropFilePaths(aFiles);
 	BOOL bPasted = FALSE;
@@ -1392,7 +1418,15 @@ BOOL CTDLSimpleTextContentCtrl::Paste()
 	}
 
 	if (bPasted)
-		ApplyAutoIndent();
+	{
+		CHARRANGE crAfter;
+		GetSel(crAfter);
+
+		// Only the inserted paragraphs need formatting, so do not walk the
+		// whole document when text is pasted near the beginning
+		ApplyAutoIndentRange(min(crBefore.cpMin, crAfter.cpMin),
+							 max(crBefore.cpMax, crAfter.cpMax), FALSE);
+	}
 
 	return bPasted;
 }

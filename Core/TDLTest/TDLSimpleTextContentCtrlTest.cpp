@@ -119,6 +119,7 @@ TESTRESULT CTDLSimpleTextContentCtrlTest::Run()
 		TestImmediateIndentUpdate();
 		TestWrappedLineAlignment();
 		TestCustomBulletPrefixes();
+		TestAutoIndentPerformance();
 	}
 	else
 	{
@@ -548,6 +549,62 @@ void CTDLSimpleTextContentCtrlTest::TestCustomBulletPrefixes()
 
 	// Restore the defaults for any later tests
 	CTDLSimpleTextContentCtrl::SetBulletPrefixes(aDefaults);
+}
+
+void CTDLSimpleTextContentCtrlTest::TestAutoIndentPerformance()
+{
+	if (!m_utils.GetWantPerformanceTests())
+	{
+		_tprintf(_T("Add '-p' to run CTDLSimpleTextContentCtrlTest::TestAutoIndentPerformance\n"));
+		return;
+	}
+
+	CTDCScopedTest test(*this, _T("CTDLSimpleTextContentCtrl::AutoIndentPerformance"));
+
+	CTDLSimpleTextContentCtrl ctrl;
+
+	if (!ExpectTrue(CreateEditor(ctrl)))
+		return;
+
+	const int N = 3000;
+	const int NPASTE = 200;
+	CString sIndented, sPlain, sPaste, sLine;
+
+	for (int i = 0; i < NPASTE; i++)
+	{
+		sLine.Format(_T("  pasted %d with enough words to wrap onto a second display line\r"), i);
+		sPaste += sLine;
+	}
+
+	for (int i = 0; i < N; i++)
+	{
+		sLine.Format(_T("  line %d with enough words to wrap onto a second display line in a narrow comments field\r"), i);
+		sIndented += sLine;
+
+		sLine.Format(_T("line %d with enough words to wrap onto a second display line in a narrow comments field\r"), i);
+		sPlain += sLine;
+	}
+
+	DWORD t0 = GetTickCount();
+	ctrl.SetTextContent(sIndented, TRUE);
+	const DWORD dwLoadIndented = (GetTickCount() - t0);
+
+	t0 = GetTickCount();
+	ctrl.ApplyAutoIndent();
+	const DWORD dwFullIndented = (GetTickCount() - t0);
+
+	t0 = GetTickCount();
+	ctrl.ApplyAutoIndentRange(0, sPaste.GetLength(), FALSE);
+	const DWORD dwPasteRange = (GetTickCount() - t0);
+
+	ctrl.SetTextContent(sPlain, TRUE);
+
+	t0 = GetTickCount();
+	ctrl.ApplyAutoIndent();
+	const DWORD dwFullPlain = (GetTickCount() - t0);
+
+	_tprintf(_T("AutoIndentPerformance: %d lines, load+full=%lu ms, full indented=%lu ms, %d-line range=%lu ms, full plain=%lu ms\n"),
+			 N, dwLoadIndented, dwFullIndented, NPASTE, dwPasteRange, dwFullPlain);
 }
 
 CString CTDLSimpleTextContentCtrlTest::GetMarkedText(const CTDLSimpleTextContentCtrl& ctrl) const

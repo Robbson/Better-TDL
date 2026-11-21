@@ -34,6 +34,7 @@ protected:
 	void TestImmediateIndentUpdate();
 	void TestWrappedLineAlignment();
 	void TestCustomBulletPrefixes();
+	void TestAutoIndentPerformance();
 
 	CString GetMarkedText(const CTDLSimpleTextContentCtrl& ctrl) const;
 

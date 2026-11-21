@@ -58,10 +58,11 @@ Files: `Core/ToDoList/TDLSimpleTextContentCtrl.cpp` and
    the caret paragraph (`ApplyAutoIndentToCaretParagraph()`), so ordinary typing does not
    walk the whole document. `Tab`, `Return` and `Shift+Tab` format only the paragraphs
    they touch (`ApplyAutoIndentRange()`), not the whole document. Content loads
-   (`WM_SETTEXT`), font changes (`WM_SETFONT`), paste, dropped text/files, multi-line
-   insertion, find/replace all, undo and redo run the full document pass
-   (`ApplyAutoIndent()`). `EM_SETPARAFORMAT` is sent directly rather than through
-   `CRichEditBaseCtrl::SetParaFormat()` to avoid that helper's synthetic `EN_CHANGE`. The
+   (`WM_SETTEXT`), font changes (`WM_SETFONT`), dropped text/files, find/replace all, undo
+   and redo run the full document pass (`ApplyAutoIndent()`); paste and multi-line
+   insertion format only the inserted range (see item 11). `EM_SETPARAFORMAT` is sent
+   directly rather than through `CRichEditBaseCtrl::SetParaFormat()` to avoid that
+   helper's synthetic `EN_CHANGE`. The
    operation is wrapped in `CRePauseUndo` so the visual formatting does not create undo
    entries. The range pass does not toggle redraw, does not invalidate the whole control,
    and does not move the selection when it is already inside the paragraph being
@@ -96,12 +97,22 @@ Files: `Core/ToDoList/TDLSimpleTextContentCtrl.cpp` and
     the Ctrl+V/menu path and `WM_PASTE`), `SetTextContent()`, `InsertTextContent()`,
     `FindReplaceAll()`, `Undo()`/`Redo()`, `WM_SETTEXT`, `WM_SETFONT`, `WM_DROPFILES` and
     OLE drops now hold `WM_SETREDRAW` via `CHoldRedraw` across both the text change and
-    the following `ApplyAutoIndent()` pass. `ApplyAutoIndentRange()` detects an active
-    hold (`CHoldRedraw::IsHeld()`) and does not re-enable redraw in the middle of the
+    the formatting pass. `ApplyAutoIndentRange()` detects an active hold
+    (`CHoldRedraw::IsHeld()`) and does not re-enable redraw in the middle of the
     operation. The full pass now invalidates with `Invalidate(TRUE)` so the background is
     erased before repainting. Previously a multi-line paste was painted while RichEdit
     scrolled the existing lines down (leaving copies of them on screen) and then again
     after auto-indent, which made the intermediate frames visible.
+11. Paste and insertion format only the range they changed instead of the whole document.
+    `Paste()`/`OnPaste()` capture the selection before and after the insertion and run a
+    range pass over `[min(before, after), max(before, after)]`; `InsertTextContent()`
+    uses the same range and handles append-at-end via the text lengths. Paragraphs after
+    a paste near the top keep their existing `dxOffset`, so re-walking them is
+    unnecessary. Measured offscreen with 3000 wrapped lines, a full pass took ~1000 ms
+    (Debug) while formatting a 200-line pasted block took ~47 ms; a full pass on
+    non-indented lines still took ~780 ms, so the cost was the per-paragraph RichEdit
+    calls (selection moves, `GetTextRange`, `GetParaFormat`), not painting or word
+    wrapping. `TestAutoIndentPerformance` in `TDLTest` prints these figures with `-p`.
 
 ## Tab-indented wrapped lines: options
 
@@ -234,9 +245,12 @@ removed:
 - `OnChangeText()` formats only the caret paragraph
   (`ApplyAutoIndentToCaretParagraph()`), so ordinary typing is immediate and does not walk
   the whole comments field.
-- `WM_SETTEXT`, `WM_SETFONT`, `WM_PASTE`, OLE drops (`QueryAcceptData`),
-  `WM_DROPFILES`, `InsertTextContent()`, `FindReplaceAll()`, `Undo()` and `Redo()` run the
-  full `ApplyAutoIndent()` pass.
+- `WM_SETTEXT`, `WM_SETFONT`, OLE drops (`QueryAcceptData`), `WM_DROPFILES`,
+  `FindReplaceAll()`, `Undo()` and `Redo()` run the full `ApplyAutoIndent()` pass.
+- `Paste()` and `WM_PASTE` run a range pass over only the inserted text and the
+  paragraphs it touches, and `InsertTextContent()` does the same. Pasting a large block
+  at the top of a long comments field therefore costs time proportional to the pasted
+  block, not to the rest of the document.
 - `Tab`, `Return` and `Shift+Tab` run `ApplyAutoIndentRange()` synchronously over only the
   paragraphs they touch. A single-line Tab no longer walks the whole document, so its
   response time no longer grows with the comments length.
@@ -244,10 +258,10 @@ removed:
 The range pass neither toggles redraw nor invalidates the whole control, and it avoids
 moving the selection when the caret is already in the paragraph being formatted. This
 prevents unrelated/far-away text from repainting or the view from scrolling on every
-keystroke. The full pass still uses redraw suppression and one final invalidate for bulk
-changes, and the bulk entry points listed above hold redraw across the text change as well
-so no intermediate layout is painted (see item 10 in “What changed”). The final
-invalidation erases the background because a full pass can move existing lines.
+keystroke. All bulk entry points listed above still hold redraw across the text change and
+the formatting pass, so no intermediate layout is painted (see item 10 in “What changed”).
+A full pass additionally invalidates the whole control once with background erase because
+it can move existing lines; a range pass only repaints the area RichEdit invalidated.
 
 This removes the delayed hanging indent that produced the visible “basic state → wrapped
 state” flash when setting/loading comments, because `WM_SETTEXT` is formatted before the
@@ -310,6 +324,11 @@ states after every call (auto-repeat).
   paragraph.
 - A paragraph whose leading whitespace exceeds 1024 characters is truncated to the first
   1024 characters, which is well beyond realistic comment indentation.
+- Paste and insertion only format the inserted range. Existing paragraphs are assumed to
+  be correctly formatted already, which is true for content loaded or edited through the
+  control. A document whose paragraphs were left unformatted (for example because the
+  1 MB auto-indent limit was exceeded) is not repaired by a later paste; only a load,
+  font change, undo/redo or find/replace full pass would do that.
 
 ## Verification
 
@@ -324,6 +343,11 @@ states after every call (auto-repeat).
   Tab with a caret formats 1, Return at a line start formats at most 2, and Tab on a
   two-line selection formats at most 3. Tab indentation therefore no longer scales with
   the total comments length.
+- `TestAutoIndentPerformance` (`TDLTest -p`) measures a 3000-line wrapped document: a full pass
+  took ~1000 ms, formatting a 200-line pasted block took ~47 ms, and a full pass on
+  non-indented lines took ~780 ms. This confirms the remaining cost of a full pass is the
+  per-paragraph RichEdit work, not painting, and that scoping paste to the inserted range
+  removes the dependence on the total document length.
 - `RepeatedIndentKeys` presses Tab four times and then Shift+Tab four times, checking the
   text and caret after every keydown. This covers the auto-repeat case where the
   intermediate indentation states must be applied immediately, before the key is released.

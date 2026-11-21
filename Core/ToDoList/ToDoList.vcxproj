@@ -89,7 +89,11 @@
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <Culture>0x0c09</Culture>
+      <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
+    <PreBuildEvent>
+      <Command>powershell -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)..\..\tools\version.ps1" -Output "$(IntDir)version.h"</Command>
+    </PreBuildEvent>
     <Link>
       <OutputFile>.\Unicode_Debug/ToDoList.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -154,7 +158,11 @@ copy unicode_debug\ToDoList.pdb ..\..\Plugins\debug /y
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <Culture>0x0c09</Culture>
+      <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
+    <PreBuildEvent>
+      <Command>powershell -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)..\..\tools\version.ps1" -Output "$(IntDir)version.h"</Command>
+    </PreBuildEvent>
     <Link>
       <OutputFile>.\Unicode_Release/ToDoList.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>

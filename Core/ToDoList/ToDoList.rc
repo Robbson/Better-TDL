@@ -1,6 +1,7 @@
 // Microsoft Visual C++ generated resource script.
 //
 #include "resource.h"
+#include "version.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
 /////////////////////////////////////////////////////////////////////////////
@@ -25,8 +26,8 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,0
- PRODUCTVERSION 1,0,0,0
+ FILEVERSION TDL_VER_FILEVERSION
+ PRODUCTVERSION TDL_VER_FILEVERSION
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x21L
@@ -43,12 +44,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Robbson"
             VALUE "FileDescription", "Better TDL"
-            VALUE "FileVersion", "1.0.0.0"
+            VALUE "FileVersion", TDL_VER_FILEVERSION_STR
             VALUE "InternalName", "BetterTDL"
             VALUE "LegalCopyright", "Based on ToDoList 9.3 by AbstractSpoon, Copyright (c) 2003-26"
             VALUE "OriginalFilename", "ToDoList.exe"
             VALUE "ProductName", "Better TDL"
-            VALUE "ProductVersion", "1, 0, 0, 0"
+            VALUE "ProductVersion", TDL_VER_PRODUCTVERSION_STR
             VALUE "SpecialBuild", "Alpha"
         END
     END

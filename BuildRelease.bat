@@ -15,7 +15,7 @@ ECHO:
 IF NOT EXIST %REPO%\Core EXIT
 IF NOT EXIST %REPO%\Plugins EXIT
 
-ECHO [106m[30m Remember to update ToDoList version number[0m
+ECHO [106m[30m Remember to update version.txt (last released version)[0m
 ECHO [106m[30m Remember to pull latest translations[0m
 ECHO:
 PAUSE

@@ -205,6 +205,7 @@ public:
 	void SetLegacyItemHeight(BOOL bLegacy) { CTreeListSyncer::SetLegacyItemHeight(bLegacy); }
 	void SetUseLegacyHorizontalPadding(BOOL bLegacy);
 	void SetUseLegacyCommentBrackets(BOOL bLegacy);
+	void SetUseLegacyHeaderFont(BOOL bLegacy);
 
 	BOOL SetPriorityColors(const CDWordArray& aColors); // must have 12 elements
 	void GetPriorityColors(CDWordArray& aColors) const { aColors.Copy(m_aPriorityColors); }
@@ -297,6 +298,7 @@ private:
 	BOOL m_bUpdatingColumnsHeight;
 	BOOL m_bLegacyHorizontalPadding;
 	BOOL m_bLegacyCommentBrackets;
+	BOOL m_bLegacyHeaderFont;
 
 	IDLETASKS m_idleTasks;
 	
@@ -368,6 +370,10 @@ protected:
 	void UpdateColumnsItemHeight();
 	int GetNaturalColumnsItemHeight();
 	int GetLegacyHorizontalPadding() const;
+	void UpdateHeaderFont();
+	void UpdateHeaderAlignment();
+	HFONT GetAncestorFont() const;
+	int GetHeaderItemTextWidth(int nItem, CDC* pDC) const;
 	void SetColor(COLORREF& color, COLORREF crNew);
 	BOOL HasStyle(TDC_STYLE nStyle) const { return m_styles.IsStyleEnabled(nStyle); }
 	BOOL IsShowingColumnsOnRight() const;

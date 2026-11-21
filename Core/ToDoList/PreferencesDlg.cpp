@@ -476,8 +476,9 @@ void CPreferencesDlg::AddPagesToTree(BOOL bDoSearch)
 			AddPageToTree(&m_pageFile2, IDS_PREF_FILESAVE, IDC_SAVEGROUP, FALSE);
 		}
 
-		if (AddPageToTree(&m_pageUI, IDS_PREF_UI, IDC_TOPOFPAGE, bDoSearch))
+		if (AddPageToTree(&m_pageUI, IDS_PREF_UI, IDC_GENERALGROUP, bDoSearch))
 		{
+			AddPageToTree(&m_pageUI, IDS_PREF_UILEGACY, IDC_LEGACYGROUP, FALSE);
 			AddPageToTree(&m_pageUI, IDS_PREF_UIFILTERING, IDC_FILTERGROUP, FALSE);
 			AddPageToTree(&m_pageUI, IDS_PREF_UISORTING, IDC_SORTGROUP, FALSE);
 			AddPageToTree(&m_pageUI, IDS_PREF_UITOOLBAR, IDC_TOOLBARGROUP, FALSE);

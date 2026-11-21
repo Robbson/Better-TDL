@@ -693,6 +693,11 @@ void CToDoCtrl::SetUseLegacyCommentBrackets(BOOL bLegacy)
 	m_taskTree.SetUseLegacyCommentBrackets(bLegacy);
 }
 
+void CToDoCtrl::SetUseLegacyHeaderFont(BOOL bLegacy)
+{
+	m_taskTree.SetUseLegacyHeaderFont(bLegacy);
+}
+
 BOOL CToDoCtrl::SetCommentsFont(HFONT hFont)
 {
 	ASSERT(hFont);

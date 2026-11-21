@@ -51,10 +51,15 @@ changing when label icons are hidden. It did not create the difference.
   - **User Interface > Legacy > Use legacy task row height (v6.8 style)** — default off.
   - **User Interface > Legacy > Use legacy icon-to-title spacing (v6.8 style)** — default
     off. Adds a fixed 2 px between the task icon and title (easy to tune later).
+  - **User Interface > Legacy > Use legacy header font (v6.8 style)** — default off.
+    Draws the tasklist column headers with the application's UI font (6.8 used the
+    parent control's font), left-aligns the header text, and makes
+    header-only/empty columns smaller.
   - **User Interface > Tasklist Attributes > Display comments in brackets (v6.8 style)**
     — default on, below *Display comments after a task's title*.
 - Persisted in the existing `[Preferences]` section of `ToDoList.ini` as
-  `LegacyRowHeight=0|1`, `LegacyHorizontalPadding=0|1` and `LegacyCommentBrackets=0|1`.
+  `LegacyRowHeight=0|1`, `LegacyHorizontalPadding=0|1`, `LegacyHeaderFont=0|1` and
+  `LegacyCommentBrackets=0|1`.
 - Switching any option and pressing OK updates open tasklists immediately; no restart.
 - Font zoom and DPI changes recalculate row heights in both modes, because the height is
   re-derived from the current task font on every `WM_SETFONT`/image-list change.
@@ -72,12 +77,13 @@ changing when label icons are hidden. It did not create the difference.
 ## Preferences layout
 
 The UI page has a visible **General** group at the top and a visible **Legacy** group
-immediately before **Filtering**, containing the three legacy options (attribute editor,
-row height and icon-to-title spacing). The Tasklist Attributes page has the comment
-brackets option directly below *Display comments after a task's title*.
+immediately before **Filtering**, containing the four legacy options (attribute editor,
+row height, icon-to-title spacing and header font). The Tasklist Attributes page has the
+comment brackets option directly below *Display comments after a task's title*.
 
-The tree/display label for the UI page was already `User Interface>General`, so the new
-groups also make the visible layout match the preferences index.
+The preferences index now also has a **User Interface > General > Legacy** entry that
+scrolls directly to the Legacy group, and the page-level **General** entry now targets
+the General group so that it is highlighted when selected.
 
 ## Files
 
@@ -112,13 +118,16 @@ groups also make the visible layout match the preferences index.
 - A screenshot check in legacy mode confirmed that the title text, attribute text, icons,
   gridlines and selection band still render correctly and stay aligned across the
   splitter.
-- With `LegacyHorizontalPadding=1` the title text shifted 3 px further from the task
+- With `LegacyHorizontalPadding=1` the title text shifted 2 px further from the task
   icon; with `LegacyCommentBrackets=1` the trailing comment rendered as `[comment]` and
   with it off as `comment`.
-- The UI page layout was checked live: **General**, **Legacy** (three options) and
-  **Filtering** appear in that vertical order. The Tasklist Attributes page shows the
-  brackets option directly below *Display comments after a task's title* and disables it
-  with the parent option.
+- With `LegacyHeaderFont=1` the tasklist headers changed from `Arial -13` to
+  `Tahoma -11` (the UI font) and an empty column whose width was header-driven shrank
+  from 36 px to 33 px.
+- The UI page layout was checked live: **General**, **Legacy** (four options) and
+  **Filtering** appear in that vertical order, with the same inter-group spacing as the
+  other sections. The Tasklist Attributes page shows the brackets option directly below
+  *Display comments after a task's title* and disables it with the parent option.
 
 ## Related
 

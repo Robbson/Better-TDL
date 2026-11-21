@@ -4695,6 +4695,12 @@ void CTabbedToDoCtrl::SetUseLegacyCommentBrackets(BOOL bLegacy)
 	m_taskList.SetUseLegacyCommentBrackets(bLegacy);
 }
 
+void CTabbedToDoCtrl::SetUseLegacyHeaderFont(BOOL bLegacy)
+{
+	CToDoCtrl::SetUseLegacyHeaderFont(bLegacy);
+	m_taskList.SetUseLegacyHeaderFont(bLegacy);
+}
+
 BOOL CTabbedToDoCtrl::SetTreeFont(HFONT hFont)
 {
 	if (CToDoCtrl::SetTreeFont(hFont))

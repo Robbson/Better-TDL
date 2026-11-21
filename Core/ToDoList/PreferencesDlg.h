@@ -246,6 +246,7 @@ public:
 	BOOL GetUseLegacyAttributeEditor() const { return m_pageUI.GetUseLegacyAttributeEditor(); }
 	BOOL GetUseLegacyRowHeight() const { return m_pageUI.GetUseLegacyRowHeight(); }
 	BOOL GetUseLegacyHorizontalPadding() const { return m_pageUI.GetUseLegacyHorizontalPadding(); }
+	BOOL GetUseLegacyHeaderFont() const { return m_pageUI.GetUseLegacyHeaderFont(); }
 	BOOL GetMultiSelFilters() const { return m_pageUI.GetMultiSelFilters(); }
 	BOOL GetRestoreTasklistFilters() const { return m_pageUI.GetRestoreTasklistFilters(); }
 	BOOL GetReFilterOnModify() const { return m_pageUI.GetReFilterOnModify(); }

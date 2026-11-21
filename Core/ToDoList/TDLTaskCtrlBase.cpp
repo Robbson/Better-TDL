@@ -246,6 +246,7 @@ CTDLTaskCtrlBase::CTDLTaskCtrlBase(const CTDCImageList& ilIcons,
 	m_bUpdatingColumnsHeight(FALSE),
 	m_bLegacyHorizontalPadding(FALSE),
 	m_bLegacyCommentBrackets(TRUE),
+	m_bLegacyHeaderFont(FALSE),
 	m_imageIcons(FALSE),
 	m_mgrContent(mgrContent),
 	m_nHeaderContextMenuItem(-1),
@@ -343,7 +344,7 @@ int CTDLTaskCtrlBase::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		return FALSE;
 
 	m_hdrColumns.EnableToolTips();
-	m_hdrTasks.SetFont(m_hdrColumns.GetFont());
+	UpdateHeaderFont();
 
 	// Add some padding to the right of the checkbox for tree/list
 	// so that the checkboxes, icons and labels have consistent positioning
@@ -1016,6 +1017,116 @@ int CTDLTaskCtrlBase::GetLegacyHorizontalPadding() const
 	return (m_bLegacyHorizontalPadding ? 2 : 0);
 }
 
+HFONT CTDLTaskCtrlBase::GetAncestorFont() const
+{
+	HWND hwnd = GetSafeHwnd();
+
+	while (hwnd)
+	{
+		HFONT hFont = (HFONT)::SendMessage(hwnd, WM_GETFONT, 0, 0);
+
+		if (hFont)
+			return hFont;
+
+		hwnd = ::GetParent(hwnd);
+	}
+
+	return NULL;
+}
+
+void CTDLTaskCtrlBase::UpdateHeaderFont()
+{
+	HFONT hFont = NULL;
+
+	if (m_bLegacyHeaderFont)
+		hFont = GetAncestorFont();
+
+	if (!hFont)
+		hFont = (HFONT)m_lcColumns.SendMessage(WM_GETFONT);
+
+	if (!hFont)
+		hFont = GetAncestorFont();
+
+	CFont* pFont = CFont::FromHandle(hFont);
+
+	if (m_hdrTasks.GetSafeHwnd())
+		m_hdrTasks.SetFont(pFont);
+
+	if (m_hdrColumns.GetSafeHwnd())
+		m_hdrColumns.SetFont(pFont);
+
+	UpdateHeaderAlignment();
+}
+
+void CTDLTaskCtrlBase::UpdateHeaderAlignment()
+{
+	if (!m_hdrColumns.GetSafeHwnd())
+		return;
+
+	int nNumItems = m_hdrColumns.GetItemCount();
+
+	for (int nItem = 1; nItem < nNumItems; nItem++)
+	{
+		int nFmt = m_hdrColumns.GetItemFormat(nItem);
+		UINT nAlign = HDF_LEFT;
+
+		if (!m_bLegacyHeaderFont)
+		{
+			TDC_COLUMN nColID = (TDC_COLUMN)m_hdrColumns.GetItemData(nItem);
+			const TDCCOLUMN* pCol = GetColumn(nColID);
+
+			if (pCol)
+			{
+				nAlign = pCol->GetColumnHeaderAlignment();
+			}
+			else
+			{
+				int nAtt = m_aCustomAttribDefs.Find(nColID);
+
+				if (nAtt != -1)
+					nAlign = m_aCustomAttribDefs[nAtt].GetColumnHeaderAlignment();
+			}
+		}
+
+		m_hdrColumns.SetItemFormat(nItem, ((nFmt & ~HDF_JUSTIFYMASK) | nAlign));
+	}
+
+	if (m_hdrTasks.GetSafeHwnd() && (m_hdrTasks.GetItemCount() > 0))
+	{
+		int nFmt = m_hdrTasks.GetItemFormat(0);
+		m_hdrTasks.SetItemFormat(0, ((nFmt & ~HDF_JUSTIFYMASK) | HDF_LEFT));
+	}
+}
+
+void CTDLTaskCtrlBase::SetUseLegacyHeaderFont(BOOL bLegacy)
+{
+	if (m_bLegacyHeaderFont == bLegacy)
+		return;
+
+	m_bLegacyHeaderFont = bLegacy;
+
+	UpdateHeaderFont();
+	RecalcUntrackedColumnWidths();
+	PostResize(TRUE);
+}
+
+int CTDLTaskCtrlBase::GetHeaderItemTextWidth(int nItem, CDC* pDC) const
+{
+	if (!m_bLegacyHeaderFont)
+		return m_hdrColumns.GetItemTextWidth(nItem, pDC);
+
+	HFONT hFont = (HFONT)::SendMessage(m_hdrColumns.GetSafeHwnd(), WM_GETFONT, 0, 0);
+
+	if (!hFont)
+		return m_hdrColumns.GetItemTextWidth(nItem, pDC);
+
+	HFONT hOldFont = (HFONT)::SelectObject(pDC->GetSafeHdc(), hFont);
+	int nWidth = m_hdrColumns.GetItemTextWidth(nItem, pDC);
+	::SelectObject(pDC->GetSafeHdc(), hOldFont);
+
+	return nWidth;
+}
+
 void CTDLTaskCtrlBase::OnMeasureItem(int nIDCtl, LPMEASUREITEMSTRUCT lpMeasureItemStruct)
 {
 	if ((nIDCtl == IDC_TASKTREECOLUMNS) && (m_nColumnsItemHeight > 0))
@@ -1393,6 +1504,7 @@ BOOL CTDLTaskCtrlBase::BuildColumns()
 		m_hdrColumns.ShowItem(nItem, TRUE);
 	}
 
+	UpdateHeaderAlignment();
 	RecalcUntrackedColumnWidths();
 	
 	// Force the recalculation first time only
@@ -1552,7 +1664,7 @@ void CTDLTaskCtrlBase::RecalcUntrackedColumnWidths(const CTDCColumnIDMap& aColID
 						nColWidth = max((nColWidth + (2 * LV_COLPADDING)), MIN_RESIZE_WIDTH);
 
 					// take max of this and column title
-					int nTitleWidth = (m_hdrColumns.GetItemTextWidth(nItem, &dc) + (2 * HD_COLPADDING));
+					int nTitleWidth = (GetHeaderItemTextWidth(nItem, &dc) + (2 * HD_COLPADDING));
 
 					nColWidth = max(nTitleWidth, nColWidth);
 				}
@@ -1889,6 +2001,8 @@ BOOL CTDLTaskCtrlBase::SetFont(HFONT hFont)
 
 		CHoldRedraw hr(*this);
 		::SendMessage(Tasks(), WM_SETFONT, (WPARAM)hFont, TRUE);
+
+		UpdateHeaderFont();
 
 		m_dateTimeWidths.ResetWidths();
 		m_fAveCharWidth = GraphicsMisc::GetAverageCharWidth(Tasks(), hFont);
@@ -5790,7 +5904,7 @@ int CTDLTaskCtrlBase::CalcColumnWidth(int nCol, CDC* pDC, const CDWordArray& aTa
 		nColWidth = max((nColWidth + (2 * LV_COLPADDING)), MIN_RESIZE_WIDTH);
 	
 	// take max of this and column title
-	int nTitleWidth = (m_hdrColumns.GetItemTextWidth(nCol, pDC) + (2 * HD_COLPADDING));
+	int nTitleWidth = (GetHeaderItemTextWidth(nCol, pDC) + (2 * HD_COLPADDING));
 
 	return max(nTitleWidth, nColWidth);
 }

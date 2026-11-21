@@ -120,6 +120,7 @@ void CTDCToDoCtrlPreferenceHelper::UpdateToDoCtrlPrefs(CFilteredToDoCtrl& tdc, c
 	tdc.SetUseLegacyRowHeight(prefs.GetUseLegacyRowHeight());
 	tdc.SetUseLegacyHorizontalPadding(prefs.GetUseLegacyHorizontalPadding());
 	tdc.SetUseLegacyCommentBrackets(prefs.GetLegacyCommentBrackets());
+	tdc.SetUseLegacyHeaderFont(prefs.GetUseLegacyHeaderFont());
 
 	log.LogTimeElapsed(_T("UpdateToDoCtrlPrefs(Layout/AttributeEditor)"));
 

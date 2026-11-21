@@ -184,9 +184,9 @@ Suggested target order:
   unless it is deliberately re-exposed.)
 
 > Update: UI-017 moved the legacy attribute-editor option into a new `Legacy`
-> group below `General`, together with the legacy task-row-height and
-> icon-to-title-spacing options. If the wider reorganisation is implemented,
-> keep those legacy options together there.
+> group below `General`, together with the legacy task-row-height,
+> icon-to-title-spacing and header-font options. If the wider reorganisation is
+> implemented, keep those legacy options together there.
 
 Rationale:
 

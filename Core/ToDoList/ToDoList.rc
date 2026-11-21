@@ -3038,6 +3038,7 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "Enable Debug Lo&gging",       ID_TOOLS_TOGGLE_LOGGING
         MENUITEM "&View Debug Log File",        ID_TOOLS_VIEWLOG
+        MENUITEM "View Asse&rtion Log File",    ID_TOOLS_VIEWASSERTLOG, GRAYED
         MENUITEM SEPARATOR
         MENUITEM "Anon&ymise Tasklist",         ID_TOOLS_ANONYMIZE_TASKLIST
         MENUITEM "Anon&ymise Task Log File",    ID_TOOLS_ANONYMIZE_TASKTIMELOG

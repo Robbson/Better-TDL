@@ -35,6 +35,14 @@ Files: `Core/ToDoList/ToDoList.cpp`.
 
 `TDLTest` already logs by default to `%TEMP%\TDLTest_asserts.log` and is unchanged.
 
+## Tools menu access
+
+`Tools > View Assertion Log File` opens the same file in the default text editor,
+immediately below `View Debug Log File`. It uses
+`CToDoListApp::GetAssertLogPath()` (`ToDoList.cpp`) so it honours `TDL_ASSERT_LOG`,
+including a custom path. The item is enabled only in Debug builds and only while the log
+file exists; Release builds leave the menu entry greyed out.
+
 ## Risks
 
 - Every assertion now writes to `%TEMP%`; repeated assertions grow the log until it is
@@ -47,6 +55,7 @@ Files: `Core/ToDoList/ToDoList.cpp`.
 ## Verification
 
 - `Unicode Debug` compilation of `Core/ToDoList/ToDoList.cpp` succeeds.
+- `ToDoListLib` (including `ToDoListWnd.cpp` and the new menu handler) compiles.
 - `TDLTest` builds and all 310,419 tests pass.
 - The full solution link could not finish because
   `Core/ToDoList/Unicode_Debug/ToDoList.exe` is currently running from an interactive

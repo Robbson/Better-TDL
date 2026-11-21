@@ -203,6 +203,7 @@ void CPreferences::Release()
 	{
 		// Ini update of app version happens in SaveInternal
 		WritePreferenceString(_T("AppVer"), _T("Version"), FileMisc::GetAppVersion(), FALSE);
+		WritePreferenceString(_T("AppVer"), _T("Name"), FileMisc::GetAppProductName(), FALSE);
 	}
 }
 
@@ -345,6 +346,7 @@ BOOL CPreferences::SaveInternal(BOOL bExternal)
 	
 	// insert application version
 	WriteIniString(_T("AppVer"), _T("Version"), FileMisc::GetAppVersion(), FALSE);
+	WriteIniString(_T("AppVer"), _T("Name"), FileMisc::GetAppProductName(), FALSE);
 
 	// Build output as a single formatted string so that the 
 	// time the preferences file is open is as short as possible

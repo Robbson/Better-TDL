@@ -115,7 +115,7 @@ BOOL CTDCSearchParamHelper::DecodeAttribute(const CString& sAttrib, DWORD dwFlag
 	case 1:
 		if (Misc::IsNumber(sAttrib))
 		{
-			nAttribID = (TDC_ATTRIBUTE)_ttoi(sAttrib);
+			nAttribID = MapLegacyAttributeID((TDC_ATTRIBUTE)_ttoi(sAttrib), dwFlags);
 			ASSERT (nAttribID != TDCA_NONE);
 
 			if (TDCCUSTOMATTRIBUTEDEFINITION::IsCustomAttribute(nAttribID))
@@ -172,6 +172,34 @@ BOOL CTDCSearchParamHelper::DecodeAttribute(const CString& sAttrib, DWORD dwFlag
 	}
 
 	return ((nAttribID != TDCA_NONE) && (nFindType != FT_NONE));
+}
+
+TDC_ATTRIBUTE CTDCSearchParamHelper::MapLegacyAttributeID(TDC_ATTRIBUTE nAttribID, DWORD dwFlags)
+{
+	if ((nAttribID <= TDCA_LAST_REALATTRIBUTE) ||
+		TDCCUSTOMATTRIBUTEDEFINITION::IsCustomAttribute(nAttribID))
+	{
+		return nAttribID;
+	}
+
+	if (SEARCHPARAM::GetAttributeType(nAttribID, dwFlags) != FT_NONE)
+		return nAttribID;
+
+	// Pre-8.0.997.4 builds assigned the pseudo attributes
+	// one or two positions higher than the current enum
+	for (int nDelta = 1; nDelta <= 2; nDelta++)
+	{
+		TDC_ATTRIBUTE nLegacyID = (TDC_ATTRIBUTE)(nAttribID - nDelta);
+
+		if ((nLegacyID > TDCA_LAST_REALATTRIBUTE) &&
+			!TDCCUSTOMATTRIBUTEDEFINITION::IsCustomAttribute(nLegacyID) &&
+			(SEARCHPARAM::GetAttributeType(nLegacyID, dwFlags) != FT_NONE))
+		{
+			return nLegacyID;
+		}
+	}
+
+	return nAttribID;
 }
 
 FIND_ATTRIBTYPE CTDCSearchParamHelper::GetAttributeFindType(const CString& sUniqueID, BOOL bRelativeDate,

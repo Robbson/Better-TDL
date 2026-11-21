@@ -18,6 +18,7 @@
 #include "tdcanonymizetasklist.h"
 #include "TDLDebugFormatGetLastErrorDlg.h"
 #include "TDCDarkMode.h"
+#include "TDCSearchParamHelper.h"
 
 #include "..\shared\encommandlineinfo.h"
 #include "..\shared\driveinfo.h"
@@ -190,6 +191,20 @@ static void InitAssertLogging()
 	_CrtSetReportHook2(_CRT_RPTHOOK_INSTALL, TDLAssertReportHook);
 }
 #endif
+
+BOOL CToDoListApp::GetAssertLogPath(CString& sPath)
+{
+	sPath.Empty();
+
+#ifdef _DEBUG
+	if (s_sAssertLogPath.IsEmpty())
+		::GetAssertLogPath(s_sAssertLogPath);
+
+	sPath = s_sAssertLogPath;
+#endif
+
+	return !sPath.IsEmpty();
+}
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -1074,6 +1089,7 @@ BOOL CToDoListApp::InitPreferences(CEnCommandLineInfo& cmdInfo)
 
 		CPreferences prefs;
 		sPrevVer = prefs.GetProfileString(_T("AppVer"), _T("Version"));
+		CString sPrevName = prefs.GetProfileString(_T("AppVer"), _T("Name"));
 
 		// Save language choice 
 		FileMisc::MakeRelativePath(m_sLanguageFile, FileMisc::GetAppFolder(), FALSE);
@@ -1099,7 +1115,7 @@ BOOL CToDoListApp::InitPreferences(CEnCommandLineInfo& cmdInfo)
 		}
 
 		CleanupAppFolder(sPrevVer);
-		UpgradePreferences(prefs, sPrevVer);
+		UpgradePreferences(prefs, sPrevVer, sPrevName);
 	}
 	else  // first time so no ini file exists. show wizard
 	{
@@ -1274,7 +1290,68 @@ BOOL CToDoListApp::InitTranslation(BOOL bFirstTime, BOOL bQuiet)
 	return TRUE;
 }
 
-void CToDoListApp::UpgradePreferences(CPreferences& prefs, LPCTSTR szPrevVer)
+static int MigrateLegacySearchRuleAttributes(CPreferences& prefs, LPCTSTR szPrevProduct, LPCTSTR szPrevVer)
+{
+	CStringArray aSections;
+
+	if (!prefs.GetProfileSectionNames(aSections, _T("FindTasks\\Searches")))
+		return 0;
+
+	CStringArray aChangedSections;
+	CDWordArray aChangedIDs;
+
+	for (int nSection = 0; nSection < aSections.GetSize(); nSection++)
+	{
+		const CString& sSection = aSections[nSection];
+
+		CString sLeaf = sSection.Mid(sSection.ReverseFind('\\') + 1);
+
+		if ((sLeaf.Find(_T("Rule")) != 0) || !Misc::IsNumber(sLeaf.Mid(4)))
+			continue;
+
+		CString sAttrib = prefs.GetProfileString(sSection, _T("Attribute"));
+
+		if (!Misc::IsNumber(sAttrib))
+			continue;
+
+		int nAttribID = _ttoi(sAttrib);
+		DWORD dwFlags = prefs.GetProfileInt(sSection, _T("Flags"));
+		TDC_ATTRIBUTE nMappedID = CTDCSearchParamHelper::MapLegacyAttributeID((TDC_ATTRIBUTE)nAttribID, dwFlags);
+
+		if (nMappedID != nAttribID)
+		{
+			aChangedSections.Add(sSection);
+			aChangedIDs.Add(nMappedID);
+		}
+	}
+
+	if (!aChangedSections.GetSize())
+		return 0;
+
+	// Leave a copy of the original ini before making changes
+	CString sIniPath = CPreferences::GetPath();
+
+	if (!sIniPath.IsEmpty() && FileMisc::FileExists(sIniPath))
+	{
+		CString sBackupProduct(szPrevProduct);
+		sBackupProduct.Replace(' ', '_');
+
+		CString sBackupPath = sIniPath + _T(".pre-") + sBackupProduct + _T("-") + szPrevVer + _T(".bak");
+
+		if (!FileMisc::FileExists(sBackupPath))
+			FileMisc::CopyFile(sIniPath, sBackupPath, FALSE, TRUE);
+	}
+
+	for (int nChange = 0; nChange < aChangedSections.GetSize(); nChange++)
+	{
+		prefs.WriteProfileString(aChangedSections[nChange], _T("Attribute"),
+								 Misc::Format(aChangedIDs[nChange]));
+	}
+
+	return aChangedSections.GetSize();
+}
+
+void CToDoListApp::UpgradePreferences(CPreferences& prefs, LPCTSTR szPrevVer, LPCTSTR szPrevName)
 {
 	UNREFERENCED_PARAMETER(prefs);
 
@@ -1282,7 +1359,13 @@ void CToDoListApp::UpgradePreferences(CPreferences& prefs, LPCTSTR szPrevVer)
 	if (!CPreferences::UsesIni())
 		return;
 
-	if (FileMisc::CompareVersions(szPrevVer, _T("7.2.10")) < 0)
+	// 'Better TDL' uses its own version numbering so it must not be
+	// compared with the original ToDoList version numbers
+	CString sCurName(FileMisc::GetAppProductName());
+	BOOL bPrevIsBetterTDL = (!Misc::IsEmpty(szPrevName) && (sCurName.CompareNoCase(szPrevName) == 0)) ||
+							(Misc::IsEmpty(szPrevName) && (FileMisc::CompareVersions(szPrevVer, _T("2.0")) < 0));
+
+	if (!bPrevIsBetterTDL && (FileMisc::CompareVersions(szPrevVer, _T("7.2.10")) < 0))
 	{
 		// Rename 'Tasklists' resource folder to 'Examples'
 		LPCTSTR szTasklists = _T(".\\Resources\\Tasklists\\");
@@ -1320,7 +1403,7 @@ void CToDoListApp::UpgradePreferences(CPreferences& prefs, LPCTSTR szPrevVer)
 		}
 	}
 
-	if (FileMisc::CompareVersions(szPrevVer, _T("7.999.999.7")) < 0)
+	if (!bPrevIsBetterTDL && (FileMisc::CompareVersions(szPrevVer, _T("7.999.999.7")) < 0))
 	{
 		// Each importer and exporter now gets its own preference section
 		prefs.DeleteProfileSection(_T("Exporters"));
@@ -1356,6 +1439,18 @@ void CToDoListApp::UpgradePreferences(CPreferences& prefs, LPCTSTR szPrevVer)
 			}
 		}
 	}
+
+	// Repair attribute IDs in saved searches that were written by
+	// older versions using a different attribute enumeration
+	CString sPrevProduct(szPrevName);
+
+	if (sPrevProduct.IsEmpty())
+		sPrevProduct = (bPrevIsBetterTDL ? _T("Better TDL") : _T("ToDoList"));
+
+	int nMigrated = MigrateLegacySearchRuleAttributes(prefs, sPrevProduct, szPrevVer);
+
+	if (nMigrated)
+		FileMisc::LogText(_T("Migrated %d legacy search rule attribute(s)"), nMigrated);
 
 	// Upgrade user prefs storage to latest format
 	CPreferencesDlg().SavePreferences(prefs, PREFSKEY);

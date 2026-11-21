@@ -33,6 +33,9 @@ class CToDoListApp : public CWinApp
 public:
 	CToDoListApp();
 	~CToDoListApp();
+
+	// Returns the assertion log path used by Debug builds
+	static BOOL GetAssertLogPath(CString& sPath);
 	
 protected:
 	virtual BOOL InitInstance();
@@ -84,7 +87,7 @@ protected:
 	BOOL SetPreferences(BOOL bIni, LPCTSTR szPrefs, BOOL bExisting);
 	BOOL InitTranslation(BOOL bFirstTime, BOOL bQuiet);
 	void InitDarkMode(const CEnCommandLineInfo& cmdInfo, CPreferences& prefs);
-	void UpgradePreferences(CPreferences& prefs, LPCTSTR szPrevVer);
+	void UpgradePreferences(CPreferences& prefs, LPCTSTR szPrevVer, LPCTSTR szPrevName);
 	void ParseCommandLine(CEnCommandLineInfo& cmdInfo);
 	void RunUninstaller() const;
 	void RunUpdater(BOOL bPreRelease, BOOL bTestDownload = FALSE) const;

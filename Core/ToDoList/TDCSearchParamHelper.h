@@ -33,6 +33,9 @@ public:
 
 	static BOOL AppendCustomAttributeFilterRules(const CTDCCustomAttributeDataMap& mapData,
 								  const CTDCCustomAttribDefinitionArray& aAttribDefs, CSearchParamArray& aRules);
+
+	// Maps attribute IDs saved by pre-8.0.997.4 builds to their current values
+	static TDC_ATTRIBUTE MapLegacyAttributeID(TDC_ATTRIBUTE nAttribID, DWORD dwFlags);
 	
 	static BOOL AppendDateFilter(FILTER_DATE nDate, const COleDateTime& dateUser, int nNextNDays, 
 								 TDC_ATTRIBUTE nDateAttribID, TDC_ATTRIBUTE nTimeAttribID, CSearchParamArray& aRules);

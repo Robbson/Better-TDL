@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "resource.h"
 #include "ToDoListWnd.h"
+#include "todolist.h"
 
 #include "multitaskfile.h"
 #include "TaskClipboard.h"
@@ -624,6 +625,7 @@ BEGIN_MESSAGE_MAP(CToDoListWnd, CFrameWnd)
 	ON_COMMAND(ID_TOOLS_TOGGLE_LOGGING, OnToolsToggleLogging)
 	ON_COMMAND(ID_TOOLS_TRANSFORM, OnToolsTransformactivetasklist)
 	ON_COMMAND(ID_TOOLS_VIEWLOG, OnToolsViewLogFile)
+	ON_COMMAND(ID_TOOLS_VIEWASSERTLOG, OnToolsViewAssertLogFile)
 	ON_COMMAND(ID_TRAYICON_CLOSE, OnTrayiconClose)
 	ON_COMMAND(ID_TRAYICON_CREATETASK, OnTrayiconCreatetask)
 	ON_COMMAND(ID_TRAYICON_SHOW, OnTrayiconShow)
@@ -890,6 +892,7 @@ BEGIN_MESSAGE_MAP(CToDoListWnd, CFrameWnd)
 	ON_UPDATE_COMMAND_UI(ID_TOOLS_TOGGLE_LOGGING, OnUpdateToolsToggleLogging)
 	ON_UPDATE_COMMAND_UI(ID_TOOLS_TRANSFORM, OnUpdateExport) // use same text as export
 	ON_UPDATE_COMMAND_UI(ID_TOOLS_VIEWLOG, OnUpdateToolsViewLogFile)
+	ON_UPDATE_COMMAND_UI(ID_TOOLS_VIEWASSERTLOG, OnUpdateToolsViewAssertLogFile)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_CLEARFILTER, OnUpdateViewClearfilter)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_CUSTOMTOOLBAR, OnUpdateViewCustomToolbar)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_CYCLETASKVIEWS, AlwaysEnabled)
@@ -16072,6 +16075,20 @@ void CToDoListWnd::OnToolsViewLogFile()
 void CToDoListWnd::OnUpdateToolsViewLogFile(CCmdUI* pCmdUI)
 {
 	pCmdUI->Enable(FileMisc::FileExists(FileMisc::GetLogFilePath()));
+}
+
+void CToDoListWnd::OnToolsViewAssertLogFile()
+{
+	CString sPath;
+
+	if (CToDoListApp::GetAssertLogPath(sPath) && FileMisc::FileExists(sPath))
+		FileMisc::Run(*this, sPath);
+}
+
+void CToDoListWnd::OnUpdateToolsViewAssertLogFile(CCmdUI* pCmdUI)
+{
+	CString sPath;
+	pCmdUI->Enable(CToDoListApp::GetAssertLogPath(sPath) && FileMisc::FileExists(sPath));
 }
 
 void CToDoListWnd::OnToolsAnonymizeTaskTimeLog() 

@@ -1651,7 +1651,8 @@ BOOL CTDLTaskListCtrl::HandleClientColumnClick(const CPoint& pt, BOOL bDblClk)
 				{
 					nColID = TDCC_DONE;
 				}
-				else if (!IsColumnShowing(TDCC_ICON) && HasHitTestFlag(nFlags, LVHT_ONITEMICON))
+				else if (!IsColumnShowing(TDCC_ICON) && HasHitTestFlag(nFlags, LVHT_ONITEMICON) && 
+						 HasStyle(TDCS_EDITICONONCLICK))
 				{
 					nColID = TDCC_ICON;
 				}
@@ -1700,7 +1701,7 @@ BOOL CTDLTaskListCtrl::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 				return GraphicsMisc::SetAppCursor(_T("Locked"), _T("Resources\\Cursors"));
 
 			// else
-			if (HasHitTestFlag(nHitFlags, LVHT_ONITEMICON))
+			if (HasHitTestFlag(nHitFlags, LVHT_ONITEMICON) && HasStyle(TDCS_EDITICONONCLICK))
 				return GraphicsMisc::SetHandCursor();
 		}
 	}

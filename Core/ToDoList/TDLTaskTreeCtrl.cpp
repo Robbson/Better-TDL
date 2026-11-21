@@ -784,7 +784,7 @@ BOOL CTDLTaskTreeCtrl::HandleClientColumnClick(const CPoint& pt, BOOL bDblClk)
 				{
 					nClickCol = TDCC_DONE;
 				}
-				else if (nHitFlags & TVHT_ONITEMICON)
+				else if ((nHitFlags & TVHT_ONITEMICON) && HasStyle(TDCS_EDITICONONCLICK))
 				{
 					nClickCol = TDCC_ICON;
 				}
@@ -821,7 +821,7 @@ BOOL CTDLTaskTreeCtrl::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 		{
 			return GraphicsMisc::SetAppCursor(_T("Locked"), _T("Resources\\Cursors"));
 		}
-		else if (nHitFlags & TVHT_ONITEMICON)
+		else if ((nHitFlags & TVHT_ONITEMICON) && HasStyle(TDCS_EDITICONONCLICK))
 		{
 			return GraphicsMisc::SetHandCursor();
 		}

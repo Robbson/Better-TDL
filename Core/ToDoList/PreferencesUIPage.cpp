@@ -92,6 +92,7 @@ void CPreferencesUIPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_AUTOREFILTER, m_bAutoRefilter);
 	DDX_Check(pDX, IDC_USEUITHEME, m_bUseUITheme);
 	DDX_Check(pDX, IDC_SHOWDEFAULTTASKICONS, m_bShowDefaultTaskIcons);
+	DDX_Check(pDX, IDC_CLICKTASKICONEDITICON, m_bClickTaskIconEditsIcon);
 	DDX_Check(pDX, IDC_SHOWDEFAULTFILTERS, m_bShowDefaultFilters);
 	DDX_Check(pDX, IDC_AUTORESORT, m_bAutoResort);
 	DDX_Check(pDX, IDC_ENABLECOLUMNHEADERSORTING, m_bEnableColumnHeaderSorting);
@@ -146,6 +147,7 @@ void CPreferencesUIPage::InitTooltips()
 	AddTooltip(IDC_USEUITHEME, IDS_PREFTIP_UI_THEME);
 	AddTooltip(IDC_UITHEMEFILE, IDS_PREFTIP_UI_THEME);
 	AddTooltip(IDC_SHOWDEFAULTTASKICONS, IDS_PREFTIP_UI_DEFAULTICONS);
+	AddTooltip(IDC_CLICKTASKICONEDITICON, IDS_PREFTIP_UI_CLICKTASKICON);
 	AddTooltip(IDC_SHOWTASKLISTCLOSEBTNONTAB, IDS_PREFTIP_UI_CLOSEBTN);
 	AddTooltip(IDC_SHOWDEFAULTFILTERS, IDS_PREFTIP_UI_SHOWDEFAULTFILTERS);
 	AddTooltip(IDC_MULTISELFILTER, IDS_PREFTIP_UI_MULTISEL);
@@ -242,6 +244,7 @@ void CPreferencesUIPage::LoadPreferences(const IPreferences* pPrefs, LPCTSTR szK
 	m_sUIThemeFile = pPrefs->GetProfileString(szKey, _T("UIThemeFile"), _T(".\\ThemeBlue.xml"));
 	m_nTitleFilterOption = pPrefs->GetProfileEnum(szKey, _T("TitleFilterOption"), PUIP_MATCHONTITLECOMMENTS);
 	m_bShowDefaultTaskIcons = pPrefs->GetProfileInt(szKey, _T("ShowDefaultTaskIcons"), TRUE);
+	m_bClickTaskIconEditsIcon = pPrefs->GetProfileInt(szKey, _T("ClickTaskIconEditsIcon"), TRUE);
 	m_bShowDefaultFilters = pPrefs->GetProfileInt(szKey, _T("ShowDefaultFilters"), TRUE);
 	m_bEnableColumnHeaderSorting = pPrefs->GetProfileInt(szKey, _T("EnableColumnHeaderSorting"), TRUE);
 	m_bStackEditFieldsAndComments = pPrefs->GetProfileInt(szKey, _T("StackEditFieldsAndComments"), TRUE);
@@ -320,6 +323,7 @@ void CPreferencesUIPage::SavePreferences(IPreferences* pPrefs, LPCTSTR szKey) co
 	pPrefs->WriteProfileInt(szKey, _T("UseUITheme"), m_bUseUITheme);
 	pPrefs->WriteProfileInt(szKey, _T("TitleFilterOption"), m_nTitleFilterOption);
 	pPrefs->WriteProfileInt(szKey, _T("ShowDefaultTaskIcons"), m_bShowDefaultTaskIcons);
+	pPrefs->WriteProfileInt(szKey, _T("ClickTaskIconEditsIcon"), m_bClickTaskIconEditsIcon);
 	pPrefs->WriteProfileInt(szKey, _T("ShowDefaultFilters"), m_bShowDefaultFilters);
 	pPrefs->WriteProfileInt(szKey, _T("EnableColumnHeaderSorting"), m_bEnableColumnHeaderSorting);
 	pPrefs->WriteProfileInt(szKey, _T("StackEditFieldsAndComments"), m_bStackEditFieldsAndComments);

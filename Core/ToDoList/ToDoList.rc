@@ -435,61 +435,63 @@ BEGIN
     COMBOBOX        IDC_UITHEMEFILE,17,154,184,126,CBS_DROPDOWNLIST | CBS_OWNERDRAWFIXED | CBS_SORT | CBS_HASSTRINGS | WS_VSCROLL | WS_TABSTOP
     CONTROL         "Show &default task icons in icon selection dialog",IDC_SHOWDEFAULTTASKICONS,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,172,381,10
+    CONTROL         "Click task &icons to open the icon selection dialog",IDC_CLICKTASKICONEDITICON,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,186,387,10
     CONTROL         "&Show close buttons on tabs",IDC_SHOWTASKLISTCLOSEBTNONTAB,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,186,381,10
-    LTEXT           "Legacy",IDC_LEGACYGROUP,7,205,381,8
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,200,381,10
+    LTEXT           "Legacy",IDC_LEGACYGROUP,7,219,381,8
     CONTROL         "Use &legacy attribute editor (v8.2 style)",IDC_USELEGACYATTRIBUTEEDITOR,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,219,381,10
-    CONTROL         "Use legacy task &row height (v6.8 style)",IDC_USELEGACYROWHEIGHT,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,233,381,10
-    CONTROL         "Use legacy &icon-to-title spacing (v6.8 style)",IDC_USELEGACYHORIZONTALPADDING,
+    CONTROL         "Use legacy task &row height (v6.8 style)",IDC_USELEGACYROWHEIGHT,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,247,381,10
-    CONTROL         "Use legacy &header font (v6.8 style)",IDC_USELEGACYHEADERFONT,
+    CONTROL         "Use legacy &icon-to-title spacing (v6.8 style)",IDC_USELEGACYHORIZONTALPADDING,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,261,381,10
-    LTEXT           "Filtering",IDC_FILTERGROUP,7,280,381,8
+    CONTROL         "Use legacy &header font (v6.8 style)",IDC_USELEGACYHEADERFONT,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,275,381,10
+    LTEXT           "Filtering",IDC_FILTERGROUP,7,294,381,8
     CONTROL         "S&how default filters in 'Filter Bar'",IDC_SHOWDEFAULTFILTERS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,294,387,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,308,387,10
     CONTROL         "&Allow multi selection in the filter droplists",IDC_MULTISELFILTER,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,310,381,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,324,381,10
     CONTROL         "Rest&ore tasklist filters when restarting ToDoList",IDC_RESTORETASKLISTFILTERS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,325,381,10
-    CONTROL         "A&utomatically refilter after editing",IDC_AUTOREFILTER,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,339,381,10
-    LTEXT           "When filtering by 'Title', match on",IDC_STATIC,7,355,371,10,SS_CENTERIMAGE
-    CONTROL         "&Titles only",IDC_MATCHTITLES,"Button",BS_AUTORADIOBUTTON | WS_GROUP,17,369,371,10
-    CONTROL         "Titles and &comments",IDC_MATCHTITLESCOMMENTS,"Button",BS_AUTORADIOBUTTON,17,385,371,10
+    CONTROL         "A&utomatically refilter after editing",IDC_AUTOREFILTER,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,353,381,10
+    LTEXT           "When filtering by 'Title', match on",IDC_STATIC,7,369,371,10,SS_CENTERIMAGE
+    CONTROL         "&Titles only",IDC_MATCHTITLES,"Button",BS_AUTORADIOBUTTON | WS_GROUP,17,383,371,10
+    CONTROL         "Titles and &comments",IDC_MATCHTITLESCOMMENTS,"Button",BS_AUTORADIOBUTTON,17,399,371,10
     CONTROL         "&Any text field (eg. Allocated To, External ID, etc)",IDC_MATCHANYTEXT,
-                    "Button",BS_AUTORADIOBUTTON,17,400,371,10
-    LTEXT           "Sorting",IDC_SORTGROUP,7,419,381,8
+                    "Button",BS_AUTORADIOBUTTON,17,414,371,10
+    LTEXT           "Sorting",IDC_SORTGROUP,7,433,381,8
     CONTROL         "Al&ways sort completed tasks below other tasks",IDC_SORTDONETASKSATBOTTOM,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,435,381,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,449,381,10
     CONTROL         "A&utomatically resort after editing",IDC_AUTORESORT,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,450,381,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,464,381,10
     CONTROL         "All&ow sorting by clicking on column headers",IDC_ENABLECOLUMNHEADERSORTING,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,465,387,10
-    LTEXT           "Main Toolbar",IDC_TOOLBARGROUP,7,485,381,8
-    LTEXT           "'New Task' &button places task",IDC_STATIC,8,499,380,8
-    COMBOBOX        IDC_NEWTASKPOSITION,7,512,183,121,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "'New Subtas&k' button places subtask",IDC_STATIC,7,529,381,8
-    COMBOBOX        IDC_NEWSUBTASKPOSITION,7,542,183,115,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Task Comments",IDC_COMMENTSGROUP,7,561,381,8
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,479,387,10
+    LTEXT           "Main Toolbar",IDC_TOOLBARGROUP,7,499,381,8
+    LTEXT           "'New Task' &button places task",IDC_STATIC,8,513,380,8
+    COMBOBOX        IDC_NEWTASKPOSITION,7,526,183,121,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "'New Subtas&k' button places subtask",IDC_STATIC,7,543,381,8
+    COMBOBOX        IDC_NEWSUBTASKPOSITION,7,556,183,115,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Task Comments",IDC_COMMENTSGROUP,7,575,381,8
     CONTROL         "S&how comments even when task view is maximised",IDC_SHOWCOMMENTSALWAYS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,577,381,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,591,381,10
     CONTROL         "&Update all tasklists when the comments field is resized",IDC_SHAREDCOMMENTSHEIGHT,
-                    "Button",BS_AUTOCHECKBOX | BS_TOP | WS_TABSTOP,7,592,381,10
+                    "Button",BS_AUTOCHECKBOX | BS_TOP | WS_TABSTOP,7,606,381,10
     CONTROL         "In&clude web link when pasting browser content",IDC_INCLUDEWEBLINKINCOMMENTSPASTE,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,607,387,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,621,387,10
     CONTROL         "&Insert spaces instead of tabs when indenting",IDC_INSERTSPACESFORCOMMENTSTABS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,622,381,10
-    LTEXT           "&Bullet prefixes (one per line)",IDC_STATIC,7,637,381,8
-    EDITTEXT        IDC_COMMENTBULLETPREFIXES,7,649,60,42,ES_MULTILINE | ES_AUTOHSCROLL | ES_WANTRETURN | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Tasklist Tab Bar",IDC_TABBARGROUP,7,701,381,8
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,636,381,10
+    LTEXT           "&Bullet prefixes (one per line)",IDC_STATIC,7,651,381,8
+    EDITTEXT        IDC_COMMENTBULLETPREFIXES,7,663,60,42,ES_MULTILINE | ES_AUTOHSCROLL | ES_WANTRETURN | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Tasklist Tab Bar",IDC_TABBARGROUP,7,715,381,8
     CONTROL         "&Hide tab bar when only one tasklist is open",IDC_AUTOHIDETABBAR,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,715,381,10
-    CONTROL         "&Stack tab bar items",IDC_STACKTABBARITEMS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,731,381,10
-    CONTROL         "Keep tabs or&dered by name",IDC_KEEPTABSORDERED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,746,381,10
-    LTEXT           "Default Task View Visibility",IDC_TASKVIEWSGROUP,7,763,381,8
-    LISTBOX         IDC_TASKVIEWVISIBILITY,7,778,331,51,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | LBS_MULTICOLUMN | WS_VSCROLL | WS_TABSTOP
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,729,381,10
+    CONTROL         "&Stack tab bar items",IDC_STACKTABBARITEMS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,745,381,10
+    CONTROL         "Keep tabs or&dered by name",IDC_KEEPTABSORDERED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,760,381,10
+    LTEXT           "Default Task View Visibility",IDC_TASKVIEWSGROUP,7,777,381,8
+    LISTBOX         IDC_TASKVIEWVISIBILITY,7,792,331,51,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | LBS_MULTICOLUMN | WS_VSCROLL | WS_TABSTOP
     CONTROL         "Right &align attribute labels",IDC_RIGHTALIGNLABELS,
                     "Button",BS_AUTOCHECKBOX | NOT WS_VISIBLE | WS_DISABLED | WS_TABSTOP,363,28,25,17
 END
@@ -4105,7 +4107,8 @@ BEGIN
     IDS_PREFTIP_UI_SHOWEDITMENU "Use this to trim unwanted menu commands off the menu."
     IDS_PREFTIP_UI_FOCUSENTER "Wherever the focus is, this option moves the focus back to the tasklist when the Enter key is pressed. Not enabled on the Comments field because the usual intent there is to create a new line."
     IDS_PREFTIP_UI_THEME     "ToDoList comes with some simple themes. Use one of the predefined themes or write one of your own using one of them as a template."
-    IDS_PREFTIP_UI_DEFAULTICONS "ToDoList comes with 100 built-in icons with which to tag your tasks. Enable this option if you want to supply your own icons instead."
+    IDS_PREFTIP_UI_DEFAULTICONS "ToDoList comes with 100 built-in icons with which to tag your tasks. Disable this option if you want to supply your own icons instead."
+    IDS_PREFTIP_UI_CLICKTASKICON "When enabled, clicking a task icon opens the icon selection dialog. When disabled, task icons behave like the task title: a single click selects the task and a double click folds or unfolds it."
     IDS_PREFTIP_UI_CLOSEBTN  "Places an X button on each tasklist and task view tab to simplify closing the tab. You can also close tabs by middle-clicking. If disabled, a single X button for closing the active tasklist is placed at the far right-end of the menu bar."
     IDS_PREFTIP_UI_SHOWDEFAULTFILTERS "ToDoList comes with a number of default filters made available by the Filter Bar and Filter Tasks Dialog. Use this option to hide the default filters if you only want your own custom filters."
     IDS_PREFTIP_UI_MULTISEL  "Turns on the checkbox selection mode in the filter droplists allowing you to select more than one item to filter on."

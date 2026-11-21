@@ -53,6 +53,7 @@ public:
 	CString GetUITheme() const;
 	PUIP_MATCHTITLE GetTitleFilterOption() const { return m_nTitleFilterOption; }
 	BOOL GetShowDefaultTaskIcons() const { return m_bShowDefaultTaskIcons; }
+	BOOL GetClickTaskIconEditsIcon() const { return m_bClickTaskIconEditsIcon; }
 	BOOL GetShowDefaultFiltersInFilterBar() const { return m_bShowDefaultFilters; }
 	BOOL GetEnableColumnHeaderSorting() const { return m_bEnableColumnHeaderSorting; }
 	int GetDefaultTaskViews(CStringArray& aTypeIDs) const;
@@ -83,6 +84,7 @@ protected:
 	CString	m_sUIThemeFile;
 	BOOL	m_bUseUITheme;
 	BOOL	m_bShowDefaultTaskIcons;
+	BOOL	m_bClickTaskIconEditsIcon;
 	BOOL	m_bShowDefaultFilters;
 	BOOL	m_bAutoResort;
 	BOOL	m_bEnableColumnHeaderSorting;

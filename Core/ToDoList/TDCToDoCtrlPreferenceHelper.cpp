@@ -254,6 +254,7 @@ void CTDCToDoCtrlPreferenceHelper::PopulateStyles(const CPreferencesDlg& prefs, 
 	styles[TDCS_SHOWCOMMENTSINLIST] = prefs.GetShowComments();
 	styles[TDCS_SHOWDATESINISO] = prefs.GetDisplayDatesInISO();
 	styles[TDCS_SHOWDEFAULTTASKICONS] = prefs.GetShowDefaultTaskIcons();
+	styles[TDCS_EDITICONONCLICK] = prefs.GetClickTaskIconEditsIcon();
 	styles[TDCS_SHOWFIRSTCOMMENTLINEINLIST] = prefs.GetDisplayFirstCommentLine();
 	styles[TDCS_SHOWINFOTIPS] = prefs.GetShowInfoTips();
 	styles[TDCS_SHOWIMAGETIPS] = prefs.GetShowImageTips();

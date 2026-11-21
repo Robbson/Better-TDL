@@ -157,6 +157,7 @@ void CTDLTaskViewListBox::SetHiddenViews(const CStringArray& aTypeIDs)
 		ASSERT(GetCount());
 
 		SetAllChecked(TRUE);
+		m_aUnavailableViews.RemoveAll();
 
 		int nExt = aTypeIDs.GetSize();
 
@@ -169,15 +170,20 @@ void CTDLTaskViewListBox::SetHiddenViews(const CStringArray& aTypeIDs)
 			if ((nFind == -1) && (sTypeID == LISTVIEW_TYPEID))
 				nFind = LISTVIEW_INDEX;
 
-			ASSERT(nFind != -1);
-
-			if (nFind != -1)
+			if (nFind == -1)
 			{
-				int nItem = CDialogHelper::FindItemByDataT(*this, nFind);
-				ASSERT(nItem != -1);
-				
-				SetCheck(nItem, FALSE);
+				TRACE(_T("CTDLTaskViewListBox::SetHiddenViews: hidden view '%s' is unavailable\n"), sTypeID);
+
+				if (!Misc::Contains(sTypeID, m_aUnavailableViews, TRUE))
+					m_aUnavailableViews.Add(sTypeID);
+
+				continue;
 			}
+
+			int nItem = CDialogHelper::FindItemByDataT(*this, nFind);
+			ASSERT(nItem != -1);
+			
+			SetCheck(nItem, FALSE);
 		}
 	}
 	else
@@ -224,6 +230,9 @@ int CTDLTaskViewListBox::GetViews(CStringArray& aTypeIDs, BOOL bVisible) const
 					aTypeIDs.Add(m_pMgrUIExt->GetUIExtensionTypeID((int)dwItemData));
 			}
 		}
+
+		if (!bVisible)
+			aTypeIDs.Append(m_aUnavailableViews);
 	}
 	else if (bVisible)
 	{

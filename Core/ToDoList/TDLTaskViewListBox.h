@@ -30,6 +30,7 @@ public:
 protected:
 	const CUIExtensionMgr* m_pMgrUIExt;
 	CStringArray m_aHiddenViews;
+	CStringArray m_aUnavailableViews;
 	CImageList m_ilTaskViews;
 
 // Overrides

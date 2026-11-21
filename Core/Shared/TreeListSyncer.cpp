@@ -211,6 +211,7 @@ CTreeListSyncer::CTreeListSyncer(DWORD dwFlags)
 	m_bResyncEnabled(TRUE),
 	m_bSplittingEnabled(TRUE),
 	m_bNeedInitItemHeight(TRUE),
+	m_bLegacyItemHeight(FALSE),
 	m_hilSize(NULL),
 	m_bSplitting(FALSE),
 	m_nSplitPos(INITIAL_SPLIT_POS),
@@ -1450,6 +1451,20 @@ void CTreeListSyncer::SetSplitBarColor(COLORREF crSplitBar)
 		m_crSplitBar = GetSysColor(COLOR_3DFACE);
 	else 
 		m_crSplitBar = crSplitBar;
+}
+
+void CTreeListSyncer::SetLegacyItemHeight(BOOL bLegacy)
+{
+	if (m_bLegacyItemHeight == bLegacy)
+		return;
+
+	m_bLegacyItemHeight = bLegacy;
+
+	if (PrimaryWnd() && GetHwnd())
+	{
+		RecalcItemHeights();
+		PostResize();
+	}
 }
 
 BOOL CTreeListSyncer::HandleEraseBkgnd(CDC* pDC)

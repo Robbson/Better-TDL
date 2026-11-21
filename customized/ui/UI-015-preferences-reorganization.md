@@ -183,6 +183,10 @@ Suggested target order:
 - (The hidden `IDC_RIGHTALIGNLABELS` control stays out of the visible layout
   unless it is deliberately re-exposed.)
 
+> Update: UI-017 moved the legacy attribute-editor option to the new `General`
+> section at the top of the page, together with the legacy task-row-height option.
+> If the wider reorganisation is implemented, keep both legacy options there.
+
 Rationale:
 
 - Layout is the most tangible part of the page and belongs first.

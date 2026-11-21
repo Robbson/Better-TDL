@@ -86,6 +86,7 @@ public:
 	static void SetDefaultTaskViews(const CStringArray& aTypeIDs);
 	
 	BOOL SetTreeFont(HFONT hFont); // caller responsible for deleting
+	virtual void SetUseLegacyRowHeight(BOOL bLegacy);
 	BOOL SaveTaskViewToImage(const CString& sFilePath);
 	BOOL CanSaveTaskViewToImage() const;
 

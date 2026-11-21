@@ -242,6 +242,8 @@ CTDLTaskCtrlBase::CTDLTaskCtrlBase(const CTDCImageList& ilIcons,
 	m_formatter(data, mgrContent),
 	m_sizer(data, m_mgrContent),
 	m_bAutoFitSplitter(TRUE),
+	m_nColumnsItemHeight(0),
+	m_bUpdatingColumnsHeight(FALSE),
 	m_imageIcons(FALSE),
 	m_mgrContent(mgrContent),
 	m_nHeaderContextMenuItem(-1),
@@ -275,6 +277,7 @@ BEGIN_MESSAGE_MAP(CTDLTaskCtrlBase, CWnd)
 	ON_WM_DESTROY()
 	ON_WM_SIZE()
 	ON_WM_CREATE()
+	ON_WM_MEASUREITEM()
 	ON_WM_SETCURSOR()
 	ON_WM_TIMER()
 	ON_WM_HELPINFO()
@@ -315,13 +318,12 @@ int CTDLTaskCtrlBase::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	// Disable column header sorting to correspond to the 
 	// default state (off) of the TDCS_COLUMNHEADERSORTING style
-	if (!m_lcColumns.Create((WS_CHILD | WS_VISIBLE | WS_TABSTOP | LVS_NOSORTHEADER), rect, this, IDC_TASKTREECOLUMNS))
+	if (!m_lcColumns.Create((WS_CHILD | WS_VISIBLE | WS_TABSTOP | LVS_REPORT | LVS_NOSORTHEADER | LVS_OWNERDRAWFIXED), rect, this, IDC_TASKTREECOLUMNS))
 		return FALSE;
 
 	// extended styles
 	ListView_SetExtendedListViewStyleEx(m_lcColumns, LVS_EX_HEADERDRAGDROP, LVS_EX_HEADERDRAGDROP);
-	ListView_SetImageList(m_lcColumns, m_ilTaskIcons, LVSIL_SMALL);
-	
+
 	// subclass the tree and list
 	if (HasStyle(TDCS_RIGHTSIDECOLUMNS))
 	{
@@ -985,13 +987,110 @@ void CTDLTaskCtrlBase::UpdateAttributePaneVisibility()
 		SetHidden(IsLeft(m_lcColumns) ? TLSH_LEFT : TLSH_RIGHT);
 }
 
+void CTDLTaskCtrlBase::OnMeasureItem(int nIDCtl, LPMEASUREITEMSTRUCT lpMeasureItemStruct)
+{
+	if ((nIDCtl == IDC_TASKTREECOLUMNS) && (m_nColumnsItemHeight > 0))
+	{
+		lpMeasureItemStruct->itemHeight = m_nColumnsItemHeight;
+		return;
+	}
+
+	CWnd::OnMeasureItem(nIDCtl, lpMeasureItemStruct);
+}
+
+void CTDLTaskCtrlBase::InitItemHeights()
+{
+	if (NeedInitItemHeight())
+		UpdateColumnsItemHeight();
+
+	CTreeListSyncer::InitItemHeights();
+}
+
+int CTDLTaskCtrlBase::GetNaturalColumnsItemHeight()
+{
+	int nHeight = 0;
+	CListCtrl lcProbe;
+
+	if (lcProbe.Create(WS_CHILD | LVS_REPORT, CRect(0, 0, 100, 100), this, 0))
+	{
+		HFONT hFont = (HFONT)m_lcColumns.SendMessage(WM_GETFONT);
+
+		if (!hFont)
+			hFont = (HFONT)CWnd::SendMessage(WM_GETFONT);
+
+		if (hFont)
+			lcProbe.SendMessage(WM_SETFONT, (WPARAM)hFont, FALSE);
+
+		lcProbe.InsertColumn(0, EMPTY_STR, LVCFMT_LEFT, 50);
+
+		if (lcProbe.InsertItem(0, _T("X")) != -1)
+		{
+			CRect rItem;
+			lcProbe.GetItemRect(0, &rItem, LVIR_BOUNDS);
+			nHeight = rItem.Height();
+		}
+
+		lcProbe.DestroyWindow();
+	}
+
+	return nHeight;
+}
+
+void CTDLTaskCtrlBase::UpdateColumnsItemHeight()
+{
+	if (m_bUpdatingColumnsHeight || !m_lcColumns.GetSafeHwnd())
+		return;
+
+	int nNaturalHeight = GetNaturalColumnsItemHeight();
+
+	if (nNaturalHeight <= 0)
+		return;
+
+	int nItemHeight = nNaturalHeight;
+
+	// Legacy mode follows the task tree's native font-driven height
+	if (GetLegacyItemHeight() && IsTree(Tasks()))
+	{
+		int nTreeHeight = TreeView_GetItemHeight(Tasks());
+		nItemHeight = (nTreeHeight > 0) ? nTreeHeight : max(1, (nNaturalHeight - 1));
+	}
+
+	// Ensure icons still fit at very small font sizes
+	int nIconHeight = m_ilTaskIcons.GetImageSize();
+
+	if (nIconHeight > 0)
+		nItemHeight = max(nItemHeight, (nIconHeight + 1));
+
+	if (nItemHeight == m_nColumnsItemHeight)
+		return;
+
+	BOOL bWasUpdating = m_bUpdatingColumnsHeight;
+	m_bUpdatingColumnsHeight = TRUE;
+	m_nColumnsItemHeight = nItemHeight;
+
+	// Owner-draw list views cache their item height, so nudge the
+	// window size to force a fresh WM_MEASUREITEM
+	CRect rColumns;
+	m_lcColumns.GetWindowRect(rColumns);
+
+	m_lcColumns.SendMessage(WM_SETREDRAW, FALSE, 0);
+	m_lcColumns.SetWindowPos(NULL, 0, 0, rColumns.Width(), (rColumns.Height() + 1),
+							 SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+	m_lcColumns.SetWindowPos(NULL, 0, 0, rColumns.Width(), rColumns.Height(),
+							 SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+	m_lcColumns.SendMessage(WM_SETREDRAW, TRUE, 0);
+	m_lcColumns.Invalidate();
+
+	m_bUpdatingColumnsHeight = bWasUpdating;
+}
+
 void CTDLTaskCtrlBase::OnImageListChange()
 {
 	if (Tasks())
 	{
-		// Always force the task icon imagelist on the columns to ensure
-		// the item height doesn't change when hiding label icons on the Tasks
-		ListView_SetImageList(m_lcColumns, m_ilTaskIcons, LVSIL_SMALL);
+		// The columns list is owner-drawn and its height is controlled
+		// explicitly, so it must not carry a task icon image list
+		ListView_SetImageList(m_lcColumns, NULL, LVSIL_SMALL);
 
 		SetTasksImageList(m_ilTaskIcons, FALSE, !IsColumnShowing(TDCC_ICON));
 		SetTasksImageList(m_ilCheckboxes, TRUE, (!IsColumnShowing(TDCC_DONE) && HasStyle(TDCS_ALLOWTREEITEMCHECKBOX)));

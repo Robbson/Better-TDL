@@ -140,6 +140,9 @@ public:
 	void SetSplitBarWidth(int nWidth);
 	void SetSplitterHitPadding(int nPadding);
 	void SetSplitBarColor(COLORREF crSplitBar);
+	void SetLegacyItemHeight(BOOL bLegacy);
+	BOOL GetLegacyItemHeight() const { return m_bLegacyItemHeight; }
+	BOOL NeedInitItemHeight() const { return m_bNeedInitItemHeight; }
 
 	BOOL SetHidden(TLS_HIDE nHide);
 	TLS_HIDE GetHidden() const { return m_nHidden; }
@@ -185,6 +188,7 @@ private:
 	int m_nSplitPos, m_nSplitBarWidth;
 	int m_nSplitterHitPadding;
 	BOOL m_bNeedInitItemHeight;
+	BOOL m_bLegacyItemHeight;
 	BOOL m_bResyncing, m_bResyncPending, m_bResizePending;
 	BOOL m_bResyncEnabled;
 	TLS_HIDE m_nHidden;
@@ -289,7 +293,7 @@ protected:
 	void FixupLeftVScrollbar(BOOL bRightHadVScroll = -1, BOOL bRefreshSize = TRUE);
 	void FixupLeftVScrollbar(HWND hwndLeft, BOOL bRightHadVScroll, BOOL bRefreshSize);
 	BOOL HasFlag(DWORD dwFlag) const { return ((m_dwFlags & dwFlag) == dwFlag); }
-	void InitItemHeights();
+	virtual void InitItemHeights();
 	void RecalcItemHeights();
 	DWORD GetRequiredLinkData(HWND hwndList, HWND hwndTree, HTREEITEM hti);
 	DWORD GetRequiredLinkData(HWND hwndList1, HWND hwndList2, int nItem);

@@ -678,6 +678,11 @@ BOOL CToDoCtrl::SetTreeFont(HFONT hFont)
 	return FALSE;
 }
 
+void CToDoCtrl::SetUseLegacyRowHeight(BOOL bLegacy)
+{
+	m_taskTree.SetLegacyItemHeight(bLegacy);
+}
+
 BOOL CToDoCtrl::SetCommentsFont(HFONT hFont)
 {
 	ASSERT(hFont);

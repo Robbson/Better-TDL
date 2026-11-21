@@ -117,6 +117,7 @@ void CTDCToDoCtrlPreferenceHelper::UpdateToDoCtrlPrefs(CFilteredToDoCtrl& tdc, c
 	tdc.SetLayoutPositions((TDC_UILOCATION)prefs.GetControlsPos(), 
 							(TDC_UILOCATION)prefs.GetCommentsPos());
 	tdc.SetAttributeEditorMode(prefs.GetUseLegacyAttributeEditor() ? TDCAEM_LEGACY : TDCAEM_GRID);
+	tdc.SetUseLegacyRowHeight(prefs.GetUseLegacyRowHeight());
 
 	log.LogTimeElapsed(_T("UpdateToDoCtrlPrefs(Layout/AttributeEditor)"));
 

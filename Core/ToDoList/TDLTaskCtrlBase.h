@@ -202,6 +202,7 @@ public:
 	void SetAlternateLineColor(COLORREF crAltLine);
 	void SetGridlineColor(COLORREF crGridLine);
 	void SetSplitBarColor(COLORREF crSplitBar) { CTreeListSyncer::SetSplitBarColor(crSplitBar); }
+	void SetLegacyItemHeight(BOOL bLegacy) { CTreeListSyncer::SetLegacyItemHeight(bLegacy); }
 
 	BOOL SetPriorityColors(const CDWordArray& aColors); // must have 12 elements
 	void GetPriorityColors(CDWordArray& aColors) const { aColors.Copy(m_aPriorityColors); }
@@ -290,6 +291,8 @@ protected:
 private:
 	BOOL m_bBoundSelecting;
 	BOOL m_bAutoFitSplitter;
+	int m_nColumnsItemHeight;
+	BOOL m_bUpdatingColumnsHeight;
 
 	IDLETASKS m_idleTasks;
 	
@@ -302,6 +305,7 @@ protected:
 	afx_msg void OnTimer(UINT nIDEvent);
 	afx_msg BOOL OnHelpInfo(HELPINFO* lpHelpInfo);
 	afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
+	afx_msg void OnMeasureItem(int nIDCtl, LPMEASUREITEMSTRUCT lpMeasureItemStruct);
 	afx_msg LRESULT OnSetFont(WPARAM wp, LPARAM lp);
 
 	DECLARE_MESSAGE_MAP()
@@ -338,6 +342,7 @@ protected:
 	};
 	virtual void NotifyParentSelChange(SELCHANGE_ACTION nAction) = 0;
 	virtual BOOL CreateTasksWnd(CWnd* pParentWnd, const CRect& rect, BOOL bVisible) = 0;
+	virtual void InitItemHeights();
 	virtual BOOL BuildColumns() = 0;
 	virtual void Release() = 0;
 	virtual DWORD GetColumnItemTaskID(int nItem) const = 0;
@@ -356,6 +361,8 @@ protected:
 	virtual DWORD GetNextSelectedTaskID(POSITION& pos) const;
 
 	BOOL IsAlternateColumnLine(int nItem) const;
+	void UpdateColumnsItemHeight();
+	int GetNaturalColumnsItemHeight();
 	void SetColor(COLORREF& color, COLORREF crNew);
 	BOOL HasStyle(TDC_STYLE nStyle) const { return m_styles.IsStyleEnabled(nStyle); }
 	BOOL IsShowingColumnsOnRight() const;

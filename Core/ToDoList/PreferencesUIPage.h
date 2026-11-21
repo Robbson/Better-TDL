@@ -43,6 +43,7 @@ public:
 	BOOL SetCommentsPos(PUIP_LOCATION nPos);
 	PUIP_LOCATION GetControlsPos() const { return m_nCtrlsPos; }
 	BOOL GetUseLegacyAttributeEditor() const { return m_bUseLegacyAttributeEditor; }
+	BOOL GetUseLegacyRowHeight() const { return m_bUseLegacyRowHeight; }
 	BOOL GetMultiSelFilters() const { return m_bMultiSelFilters; }
 	BOOL GetRestoreTasklistFilters() const { return m_bRestoreTasklistFilters; }
 	BOOL GetReFilterOnModify() const { return m_bAutoRefilter; }
@@ -91,6 +92,7 @@ protected:
 	CString	m_sCommentBulletPrefixes;
 	BOOL	m_bSortDoneTasksAtBottom;
 	BOOL	m_bUseLegacyAttributeEditor;
+	BOOL	m_bUseLegacyRowHeight;
 
 	PUIP_NEWTASKPOS	m_nNewTaskPos;
 	PUIP_NEWTASKPOS	m_nNewSubtaskPos;

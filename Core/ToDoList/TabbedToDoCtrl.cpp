@@ -4677,6 +4677,12 @@ int CTabbedToDoCtrl::CacheListSelection(TDCSELECTIONCACHE& cache, BOOL bIncBread
 	return m_taskList.CacheSelection(cache, bIncBreadcrumbs);
 }
 
+void CTabbedToDoCtrl::SetUseLegacyRowHeight(BOOL bLegacy)
+{
+	CToDoCtrl::SetUseLegacyRowHeight(bLegacy);
+	m_taskList.SetLegacyItemHeight(bLegacy);
+}
+
 BOOL CTabbedToDoCtrl::SetTreeFont(HFONT hFont)
 {
 	if (CToDoCtrl::SetTreeFont(hFont))

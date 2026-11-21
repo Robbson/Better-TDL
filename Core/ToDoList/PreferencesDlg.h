@@ -244,6 +244,7 @@ public:
 	BOOL SetCommentsPos(PUIP_LOCATION nPos);
 	PUIP_LOCATION GetControlsPos() const { return m_pageUI.GetControlsPos(); }
 	BOOL GetUseLegacyAttributeEditor() const { return m_pageUI.GetUseLegacyAttributeEditor(); }
+	BOOL GetUseLegacyRowHeight() const { return m_pageUI.GetUseLegacyRowHeight(); }
 	BOOL GetMultiSelFilters() const { return m_pageUI.GetMultiSelFilters(); }
 	BOOL GetRestoreTasklistFilters() const { return m_pageUI.GetRestoreTasklistFilters(); }
 	BOOL GetReFilterOnModify() const { return m_pageUI.GetReFilterOnModify(); }

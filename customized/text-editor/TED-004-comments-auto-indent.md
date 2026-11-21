@@ -92,6 +92,16 @@ Files: `Core/ToDoList/TDLSimpleTextContentCtrl.cpp` and
    monospaced font, calls the editing-key handler with explicit modifiers, runs the
    paragraph pass synchronously and asserts text, caret and wrapped-line positions. No
    UIA or interactive desktop is required.
+10. Bulk content changes are painted only once, from their final state. `Paste()` (both
+    the Ctrl+V/menu path and `WM_PASTE`), `SetTextContent()`, `InsertTextContent()`,
+    `FindReplaceAll()`, `Undo()`/`Redo()`, `WM_SETTEXT`, `WM_SETFONT`, `WM_DROPFILES` and
+    OLE drops now hold `WM_SETREDRAW` via `CHoldRedraw` across both the text change and
+    the following `ApplyAutoIndent()` pass. `ApplyAutoIndentRange()` detects an active
+    hold (`CHoldRedraw::IsHeld()`) and does not re-enable redraw in the middle of the
+    operation. The full pass now invalidates with `Invalidate(TRUE)` so the background is
+    erased before repainting. Previously a multi-line paste was painted while RichEdit
+    scrolled the existing lines down (leaving copies of them on screen) and then again
+    after auto-indent, which made the intermediate frames visible.
 
 ## Tab-indented wrapped lines: options
 
@@ -235,7 +245,9 @@ The range pass neither toggles redraw nor invalidates the whole control, and it 
 moving the selection when the caret is already in the paragraph being formatted. This
 prevents unrelated/far-away text from repainting or the view from scrolling on every
 keystroke. The full pass still uses redraw suppression and one final invalidate for bulk
-changes.
+changes, and the bulk entry points listed above hold redraw across the text change as well
+so no intermediate layout is painted (see item 10 in “What changed”). The final
+invalidation erases the background because a full pass can move existing lines.
 
 This removes the delayed hanging indent that produced the visible “basic state → wrapped
 state” flash when setting/loading comments, because `WM_SETTEXT` is formatted before the
@@ -331,11 +343,12 @@ states after every call (auto-repeat).
   `Shift+Tab`, so that approach was reverted.
 - The full pass hides the caret and invalidates the control once; the single-paragraph
   range pass does neither, and it does not move the selection when the caret is already
-  in the paragraph. This avoids the far-away repaint/scroll side effects on typing.
+  in the paragraph. This avoids the far-away repaint/scroll side effects on typing. Bulk
+  operations release their `CHoldRedraw` after the full pass, so the first paint already
+  shows the final text and paragraph formats; `Invalidate(TRUE)` clears the pixels of
+  lines that moved down.
 - No 50 ms auto-indent timer remains in the editor. The other application timers
-  (find-highlight, mouse-cursor hiding, etc.) are unrelated. If a delayed duplicate line
-  is still observed, verify that the `ToDoList.exe` binary was rebuilt after these
-  changes.
+  (find-highlight, mouse-cursor hiding, etc.) are unrelated.
 - The test control uses RichEdit's CR-only character positions internally; its
   `GetWindowText` returns CRLF, so the tests read text via `GetTextRange()` for positions.
   `Return` insertion now inserts `\r` and restores the caret after the inserted indent
@@ -343,8 +356,10 @@ states after every call (auto-repeat).
 - Manual verification pending on an interactive desktop: hold Space in a long comments
   field and check that unrelated text no longer flickers; check Tab/Shift+Tab latency on a
   long document; press Enter at a line start and check that no duplicate of the moved line
-  remains; hold Tab/Shift+Tab and check that each auto-repeat state is visible. The pure
-  text/caret/formatting-scope cases are covered by `TDLTest`.
+  remains; paste several lines between existing lines and check that the existing lines
+  never appear duplicated before the final repaint; hold Tab/Shift+Tab and check that each
+  auto-repeat state is visible. The pure text/caret/formatting-scope cases are covered by
+  `TDLTest`.
 
 ## Automated coverage
 

@@ -314,6 +314,8 @@ int CTDLSimpleTextContentCtrl::GetTextContent(LPTSTR szContent, int nLength) con
 
 bool CTDLSimpleTextContentCtrl::SetTextContent(LPCTSTR szContent, bool bResetSelection) 
 { 
+	CHoldRedraw hr(GetSafeHwnd(), NCR_PAINT | NCR_ERASEBKGND);
+
 	CReSaveCaret resc(bResetSelection ? NULL : GetSafeHwnd());
 
 	SendMessage(WM_SETTEXT, 0, (LPARAM)szContent);
@@ -328,6 +330,8 @@ bool CTDLSimpleTextContentCtrl::SetTextContent(LPCTSTR szContent, bool bResetSel
 bool CTDLSimpleTextContentCtrl::InsertTextContent(LPCWSTR szContent, bool bAtEnd)
 {
 	AFX_MANAGE_STATE(AfxGetStaticModuleState());
+
+	CHoldRedraw hr(GetSafeHwnd(), NCR_PAINT | NCR_ERASEBKGND);
 
 	if (!InsertSimpleText(szContent, (bAtEnd ? TRUE : FALSE)))
 		return false;
@@ -710,6 +714,8 @@ ISpellCheck* CTDLSimpleTextContentCtrl::GetSpellCheckInterface()
 
 bool CTDLSimpleTextContentCtrl::Undo() 
 { 
+	CHoldRedraw hr(GetSafeHwnd(), NCR_PAINT | NCR_ERASEBKGND);
+
 	if (!CUrlRichEditCtrl::Undo())
 		return false;
 
@@ -719,6 +725,8 @@ bool CTDLSimpleTextContentCtrl::Undo()
 
 bool CTDLSimpleTextContentCtrl::Redo() 
 { 
+	CHoldRedraw hr(GetSafeHwnd(), NCR_PAINT | NCR_ERASEBKGND);
+
 	if (!CUrlRichEditCtrl::Redo())
 		return false;
 
@@ -754,6 +762,8 @@ void CTDLSimpleTextContentCtrl::LoadPreferences(const IPreferences* pPrefs, LPCW
 
 bool CTDLSimpleTextContentCtrl::FindReplaceAll(LPCTSTR szFind, LPCTSTR szReplace, bool bCaseSensitive, bool bWholeWord)
 {
+	CHoldRedraw hr(GetSafeHwnd(), NCR_PAINT | NCR_ERASEBKGND);
+
 	if (CUrlRichEditCtrl::ReplaceAll(szFind, szReplace, bCaseSensitive, bWholeWord) <= 0)
 		return false;
 
@@ -821,6 +831,8 @@ BOOL CTDLSimpleTextContentCtrl::OnKillFocus()
 
 LRESULT CTDLSimpleTextContentCtrl::OnSetFont(WPARAM wp, LPARAM lp) 
 {
+	CHoldRedraw hr(GetSafeHwnd(), NCR_PAINT | NCR_ERASEBKGND);
+
 	LRESULT lr = CUrlRichEditCtrl::OnSetFont(wp, lp);
 
 	// A programmatic font change can reformat links, so do not leave
@@ -835,6 +847,8 @@ LRESULT CTDLSimpleTextContentCtrl::OnSetFont(WPARAM wp, LPARAM lp)
 
 LRESULT CTDLSimpleTextContentCtrl::OnSetText(WPARAM wp, LPARAM lp) 
 {
+	CHoldRedraw hr(GetSafeHwnd(), NCR_PAINT | NCR_ERASEBKGND);
+
 	LRESULT lr = CUrlRichEditCtrl::OnSetText(wp, lp);
 
 	// Only an actual content change invalidates the undo buffer
@@ -849,6 +863,8 @@ LRESULT CTDLSimpleTextContentCtrl::OnSetText(WPARAM wp, LPARAM lp)
 
 LRESULT CTDLSimpleTextContentCtrl::OnDropFiles(WPARAM wp, LPARAM lp)
 {
+	CHoldRedraw hr(GetSafeHwnd(), NCR_PAINT | NCR_ERASEBKGND);
+
 	LRESULT lr = CUrlRichEditCtrl::OnDropFiles(wp, lp);
 
 	ApplyAutoIndent();
@@ -857,6 +873,9 @@ LRESULT CTDLSimpleTextContentCtrl::OnDropFiles(WPARAM wp, LPARAM lp)
 
 LRESULT CTDLSimpleTextContentCtrl::OnPaste(WPARAM /*wp*/, LPARAM /*lp*/)
 {
+	// See Paste(): hold painting across the paste and the indent pass
+	CHoldRedraw hr(GetSafeHwnd(), NCR_PAINT | NCR_ERASEBKGND);
+
 	LRESULT lr = Default(); // let the rich edit paste
 
 	ApplyAutoIndent();
@@ -866,9 +885,14 @@ LRESULT CTDLSimpleTextContentCtrl::OnPaste(WPARAM /*wp*/, LPARAM /*lp*/)
 HRESULT CTDLSimpleTextContentCtrl::QueryAcceptData(LPDATAOBJECT lpdataobj, CLIPFORMAT FAR* lpcfFormat, 
 													DWORD reco, BOOL fReally, HGLOBAL hMetaPict)
 {
+	if (!fReally)
+		return CUrlRichEditCtrl::QueryAcceptData(lpdataobj, lpcfFormat, reco, fReally, hMetaPict);
+
+	CHoldRedraw hrHold(GetSafeHwnd(), NCR_PAINT | NCR_ERASEBKGND);
+
 	HRESULT hr = CUrlRichEditCtrl::QueryAcceptData(lpdataobj, lpcfFormat, reco, fReally, hMetaPict);
 
-	if (fReally && SUCCEEDED(hr))
+	if (SUCCEEDED(hr))
 		ApplyAutoIndent();
 
 	return hr;
@@ -911,13 +935,17 @@ void CTDLSimpleTextContentCtrl::ApplyAutoIndentRange(int nFrom, int nTo, BOOL bF
 	const BOOL bVisible = IsWindowVisible();
 	const BOOL bCaret = (bFullPass && (GetFocus() == this));
 
+	// Bulk edits already suppress redraw so we must not re-enable it
+	// before they have finished modifying the control
+	const BOOL bHoldRedraw = CHoldRedraw::IsHeld(GetSafeHwnd());
+
 	if (bCaret)
 		HideCaret();
 
 	CRePauseUndo rep(*this);
 	DWORD dwEventMask = SetEventMask(0);
 
-	if (bFullPass && bVisible)
+	if (bFullPass && bVisible && !bHoldRedraw)
 		SetRedraw(FALSE);
 
 	CClientDC dc(this);
@@ -952,13 +980,14 @@ void CTDLSimpleTextContentCtrl::ApplyAutoIndentRange(int nFrom, int nTo, BOOL bF
 
 	if (bFullPass)
 	{
-		if (bVisible)
-		{
+		if (bVisible && !bHoldRedraw)
 			SetRedraw(TRUE);
 
-			// Replacing the content can leave the old text visible beyond the
-			// new text, so always repaint the whole control after a full pass
-			Invalidate(FALSE);
+		if (bVisible)
+		{
+			// Bulk operations can leave stale text behind where existing
+			// lines were moved, so erase and repaint the whole control
+			Invalidate(TRUE);
 		}
 
 		if (bCaret)
@@ -1338,6 +1367,11 @@ BOOL CTDLSimpleTextContentCtrl::Paste()
 	if (!CanEdit())
 		return FALSE;
 	
+	// Suppress painting until the pasted text and its auto-indentation
+	// have both been applied, otherwise existing lines are briefly shown
+	// duplicated while RichEdit scrolls them down
+	CHoldRedraw hr(GetSafeHwnd(), NCR_PAINT | NCR_ERASEBKGND);
+
 	CStringArray aFiles;
 	int nNumFiles = CClipboard().GetDropFilePaths(aFiles);
 	BOOL bPasted = FALSE;

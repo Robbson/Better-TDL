@@ -72,6 +72,18 @@ Core\TDLTest\Unicode_Debug\TDLTest.exe -ui -uifix      :: fixtures only, no GUI
 Core\TDLTest\Unicode_Debug\TDLTest.exe -ui -nodrag     :: locate windows, no input
 ```
 
+Before any `-ui` command that moves the mouse, play the alert and wait for the
+countdown so the user can stop using the machine:
+
+```powershell
+pwsh -File .\tools\ui-test-alert.ps1 -Seconds 5
+```
+
+The script uses only built-in Windows playback (`System.Media.SoundPlayer` for a
+standard alarm WAV and `[console]::Beep` as fallback); no external audio CLI is
+needed. Do not start a mouse-moving test while the user has not acknowledged the
+alert.
+
 Code coverage (builds `TDLTest`, runs it under the x86 OpenCppCoverage fork, renders
 `coverage-report\`); see [docs/TESTING.md](docs/TESTING.md) §4.1 for flags and limits:
 

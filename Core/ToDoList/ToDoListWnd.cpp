@@ -706,6 +706,7 @@ BEGIN_MESSAGE_MAP(CToDoListWnd, CFrameWnd)
 	ON_MESSAGE(WM_HOTKEY, OnHotkey)
 	ON_MESSAGE(WM_POSTONCREATE, OnPostOnCreate)
 	ON_MESSAGE(WM_REFRESHUDTSINTOOLBAR, OnRefreshUDTsInToolbar)
+	ON_MESSAGE(WM_TDL_ASSERTREPORTED, OnAssertReported)
 	ON_MESSAGE(WM_THEMECHANGED, OnThemeChanged)
 
 	ON_NOTIFY(NM_CLICK, IDC_TRAYICON, OnTrayIconClick)
@@ -960,6 +961,7 @@ BEGIN_MESSAGE_MAP(CToDoListWnd, CFrameWnd)
 	ON_WM_COPYDATA()
 	ON_WM_CREATE()
 	ON_WM_DESTROY()
+	ON_WM_DRAWITEM()
 	ON_WM_ENABLE()
 	ON_WM_ENDSESSION()
 	ON_WM_ERASEBKGND()
@@ -967,6 +969,7 @@ BEGIN_MESSAGE_MAP(CToDoListWnd, CFrameWnd)
 	ON_WM_INITMENUPOPUP()
 	ON_WM_LBUTTONDOWN()
 	ON_WM_LBUTTONUP()
+	ON_WM_MEASUREITEM()
 	ON_WM_MOUSEMOVE()
 	ON_WM_NCLBUTTONDBLCLK()
 	ON_WM_NCDESTROY()
@@ -6516,11 +6519,29 @@ BOOL CToDoListWnd::InitMenubar()
 	m_hMenuDefault = m_menubar;
 	m_nWindowMenuCount = -1;
 
+	UpdateAssertMenu();
+
 	m_idleTasks.UpdateMenubarTabCloseBtnVisibility();
 
 	UpdateWindowMenuTitle();
 
 	return TRUE;
+}
+
+void CToDoListWnd::UpdateAssertMenu()
+{
+	CStringArray aSummary;
+
+	CToDoListApp::GetAssertSummary(aSummary);
+	m_menubar.UpdateAssertMenu(CToDoListApp::GetAssertCount(), aSummary);
+}
+
+LRESULT CToDoListWnd::OnAssertReported(WPARAM /*wp*/, LPARAM /*lp*/)
+{
+	CToDoListApp::ResetAssertMenuNotification();
+	UpdateAssertMenu();
+
+	return 0L;
 }
 
 void CToDoListWnd::UpdateGlobalHotkey()
@@ -9099,6 +9120,84 @@ void CToDoListWnd::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu
 
 	// This sets the enabled or selection state
 	CFrameWnd::OnInitMenuPopup(pPopupMenu, nIndex, bSysMenu);
+}
+
+void CToDoListWnd::OnMeasureItem(int nIDCtl, LPMEASUREITEMSTRUCT lpmis)
+{
+	if (lpmis && (lpmis->CtlType == ODT_MENU) && m_menubar.IsAssertMenuItemData(lpmis->itemData))
+	{
+		CDC* pDC = GetDC();
+
+		if (pDC)
+		{
+			NONCLIENTMETRICS ncm = { sizeof(NONCLIENTMETRICS) };
+			CFont font, *pOldFont = NULL;
+
+			if (::SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(ncm), &ncm, 0))
+			{
+				font.CreateFontIndirect(&ncm.lfMenuFont);
+				pOldFont = pDC->SelectObject(&font);
+			}
+
+			const CSize szText = pDC->GetTextExtent(m_menubar.GetAssertMenuText());
+			const int nPadding = GraphicsMisc::ScaleByDPIFactor(10);
+
+			lpmis->itemWidth = (szText.cx + (2 * nPadding));
+			lpmis->itemHeight = max(szText.cy, ::GetSystemMetrics(SM_CYMENU));
+
+			if (pOldFont)
+				pDC->SelectObject(pOldFont);
+
+			ReleaseDC(pDC);
+		}
+
+		return;
+	}
+
+	CFrameWnd::OnMeasureItem(nIDCtl, lpmis);
+}
+
+void CToDoListWnd::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpdis)
+{
+	if (lpdis && (lpdis->CtlType == ODT_MENU) && m_menubar.IsAssertMenuItemData(lpdis->itemData))
+	{
+		CDC* pDC = CDC::FromHandle(lpdis->hDC);
+
+		if (pDC)
+		{
+			const CRect rItem(lpdis->rcItem);
+			const BOOL bSelected = ((lpdis->itemState & ODS_SELECTED) != 0);
+
+			pDC->FillSolidRect(rItem, ::GetSysColor(bSelected ? COLOR_HIGHLIGHT : COLOR_MENUBAR));
+
+			NONCLIENTMETRICS ncm = { sizeof(NONCLIENTMETRICS) };
+			CFont font, *pOldFont = NULL;
+
+			if (::SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(ncm), &ncm, 0))
+			{
+				font.CreateFontIndirect(&ncm.lfMenuFont);
+				pOldFont = pDC->SelectObject(&font);
+			}
+
+			pDC->SetBkMode(TRANSPARENT);
+			pDC->SetTextColor(bSelected ? ::GetSysColor(COLOR_HIGHLIGHTTEXT) : RGB(200, 0, 0));
+
+			CRect rText(rItem);
+			const int nPadding = GraphicsMisc::ScaleByDPIFactor(5);
+			rText.left += nPadding;
+			rText.right -= nPadding;
+
+			pDC->DrawText(m_menubar.GetAssertMenuText(), rText,
+						  (DT_SINGLELINE | DT_VCENTER | DT_LEFT | DT_NOPREFIX));
+
+			if (pOldFont)
+				pDC->SelectObject(pOldFont);
+		}
+
+		return;
+	}
+
+	CFrameWnd::OnDrawItem(nIDCtl, lpdis);
 }
 
 LRESULT CToDoListWnd::OnPostTranslateMenu(WPARAM /*wp*/, LPARAM lp)

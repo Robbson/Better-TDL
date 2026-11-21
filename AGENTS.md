@@ -108,9 +108,9 @@ Notes:
 
 ## Debug assertions
 
-Debug builds append every CRT/MFC assertion to a log file before any dialog is shown.
-The default path is `%TEMP%\ToDoList_asserts.log`; override it with the environment
-variable:
+Debug builds record every CRT/MFC assertion and suppress the assertion dialog so a
+repeated assertion cannot block the application. The default log path is
+`%TEMP%\ToDoList_asserts.log`; override it with the environment variable:
 
 ```bat
 set TDL_ASSERT_LOG=D:\temp\ToDoList_asserts.log
@@ -119,11 +119,14 @@ Core\ToDoList\Unicode_Debug\ToDoList.exe
 
 - Logging is always on in Debug builds. The log includes a timestamp, process id, the
   assertion message and a stack trace resolved with `dbghelp`/PDB when available.
-- The normal assertion dialog still appears by default.
-- Setting `TDL_ASSERT_LOG` to `1` or a path also suppresses the dialog and continues
-  execution, for unattended runs.
-- `TDL_ASSERT_LOG=0` restores stock behaviour: dialog only, no log.
-- Release builds ignore the variable.
+- Assertion dialogs are suppressed by default. The first assertion adds a red
+  `Asserts (N)` menu immediately to the left of the `Debug` menu. Its submenu lists the
+  distinct assertion sources with counts, most frequent first, for example
+  `ToDoCtrlDataUtils.cpp(261) [20x]`. Selecting an entry opens the assertion log.
+- `TDL_ASSERT_LOG=1` or a path is still accepted; it only selects the log file.
+- `TDL_ASSERT_LOG=0` restores stock behaviour: dialog only, no log and no Asserts menu.
+- Release builds ignore the variable and have no Asserts menu.
+- `Customized` note: [UI-022](customized/ui/UI-022-assert-menu.md).
 
 ## Windows tooling
 

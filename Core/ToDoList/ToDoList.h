@@ -36,6 +36,11 @@ public:
 
 	// Returns the assertion log path used by Debug builds
 	static BOOL GetAssertLogPath(CString& sPath);
+
+	// Assertion summary used by the Debug-only Asserts menu
+	static int GetAssertCount();
+	static void GetAssertSummary(CStringArray& aSummary);
+	static void ResetAssertMenuNotification();
 	
 protected:
 	virtual BOOL InitInstance();

@@ -83,7 +83,7 @@ Rules of thumb:
 | GEN-003 | Functional UI automation framework (UIA/FlaUI proposal) | Proposed | [GEN-003-ui-automation-framework.md](general/GEN-003-ui-automation-framework.md) |
 | GEN-004 | Web-technology extensions: WebView2 for task views and text editors | Proposed (feasibility study; no implementation) | [GEN-004-webview-based-ui-extensions.md](general/GEN-004-webview-based-ui-extensions.md) |
 | GEN-005 | Home Folder view over a filesystem tree | Done (built; TDLTest passes; basic flow manually verified) | [GEN-005-home-folder-view.md](general/GEN-005-home-folder-view.md) |
-| GEN-006 | Default assertion logging in Debug builds | In progress (implemented; TDLTest passes; app link pending) | [GEN-006-assert-logging.md](general/GEN-006-assert-logging.md) |
+| GEN-006 | Default assertion logging in Debug builds | Done (built; TDLTest passes; dialogs now suppressed — see UI-022) | [GEN-006-assert-logging.md](general/GEN-006-assert-logging.md) |
 | GEN-007 | TDL set files (`*.tdlset.txt`) in the Home view | In progress (implemented/built; TDLTest passes; interactive check pending) | [GEN-007-tdl-set-files.md](general/GEN-007-tdl-set-files.md) |
 | GEN-008 | Portable build and packaging scripts | In progress (implemented; plugin Release build verified; end-to-end zip pending) | [GEN-008-build-script-portability.md](general/GEN-008-build-script-portability.md) |
 | GEN-009 | Plugin Manager view over plugin DLLs in the app folder | Proposed (design only) | [GEN-009-plugin-manager-view.md](general/GEN-009-plugin-manager-view.md) |
@@ -141,3 +141,4 @@ Rules of thumb:
 | UI-019 | Configurable task icon click behaviour (open icon dialog vs title-like selection) | Done (built; TDLTest passes; interactive check pending) | [UI-019-task-icon-click-behaviour.md](ui/UI-019-task-icon-click-behaviour.md) |
 | UI-020 | File Link column defaults to last in the task list | Done (built; TDLTest passes) | [UI-020-filelink-column-default-last.md](ui/UI-020-filelink-column-default-last.md) |
 | UI-021 | Tasklist tab tooltip lists due-status reasons; zero header date no longer marks delay-loaded tabs overdue | Done (built; TDLTest passes) | [UI-021-tab-tooltip-due-reasons.md](ui/UI-021-tab-tooltip-due-reasons.md) |
+| UI-022 | Assertion summary menu instead of assertion dialogs | Done (built Debug/Release; runtime-verified with temporary asserts) | [UI-022-assert-menu.md](ui/UI-022-assert-menu.md) |

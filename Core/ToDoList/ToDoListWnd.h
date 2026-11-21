@@ -60,6 +60,7 @@ const UINT WM_TDL_SHOWWINDOW		= ::RegisterWindowMessage(_T("WM_TDL_SHOWWINDOW"))
 const UINT WM_TDL_ISCLOSING			= ::RegisterWindowMessage(_T("WM_TDL_ISCLOSING"));
 const UINT WM_TDL_REFRESHPREFS		= ::RegisterWindowMessage(_T("WM_TDL_REFRESHPREFS"));
 const UINT WM_TDL_PASSWORDRESTORE	= ::RegisterWindowMessage(_T("WM_TDL_PASSWORDRESTORE"));
+const UINT WM_TDL_ASSERTREPORTED	= (WM_APP + 0x100);
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -248,10 +249,12 @@ protected:
 	afx_msg void OnCaptureChanged(CWnd* pWnd);
 	afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
 	afx_msg void OnDestroy();
+	afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
 	afx_msg void OnEndSession(BOOL bEnding);
 	afx_msg void OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu);
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+	afx_msg void OnMeasureItem(int nIDCtl, LPMEASUREITEMSTRUCT lpMeasureItemStruct);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnNcDestroy();
 	afx_msg void OnNcLButtonDblClk(UINT nHitTest, CPoint point);
@@ -262,6 +265,7 @@ protected:
 	afx_msg void OnWindowPosChanging(WINDOWPOS* lpwndpos);
 
 	afx_msg LRESULT OnAppRestoreFocus(WPARAM wp, LPARAM lp);
+	afx_msg LRESULT OnAssertReported(WPARAM wp, LPARAM lp);
 	afx_msg LRESULT OnDoInitialDueTaskNotify(WPARAM wp, LPARAM lp);
 	afx_msg LRESULT OnGetFont(WPARAM wp, LPARAM lp);
 	afx_msg LRESULT OnGetIcon(WPARAM bLargeIcon, LPARAM lp);
@@ -757,6 +761,7 @@ protected:
 	void InitMenuIconManager();
 	void InitUIFont();
 	BOOL InitMenubar();
+	void UpdateAssertMenu();
 	BOOL InitTrayIcon();
 	BOOL InitMainToolbar();
 	BOOL InitCustomToolbar();

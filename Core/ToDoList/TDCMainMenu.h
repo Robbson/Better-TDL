@@ -39,6 +39,10 @@ public:
 
 	BOOL LoadMenu();
 	BOOL ShowTabCloseButton(BOOL bShow = TRUE);
+	BOOL UpdateAssertMenu(int nCount, const CStringArray& aSummary);
+
+	BOOL IsAssertMenuItemData(ULONG_PTR dwItemData) const;
+	LPCTSTR GetAssertMenuText() const { return m_szAssertMenuText; }
 
 	BOOL HandlePostTranslateMenu(HMENU hMenu) const;
 	BOOL HandleInitMenuPopup(CMenu* pPopupMenu, 
@@ -79,6 +83,10 @@ protected:
 	UITHEME m_theme;
 	CEnBitmap m_bmUILang, m_bmTabClose;
 	BOOL m_bShowingTabCloseBtn;
+
+	HMENU m_hAssertMenu;
+	int m_nAssertMenuPos;
+	TCHAR m_szAssertMenuText[64];
 
 protected:
 	void TranslateDynamicMenuItems();

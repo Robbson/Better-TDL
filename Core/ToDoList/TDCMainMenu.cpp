@@ -43,9 +43,13 @@ static char THIS_FILE[]=__FILE__;
 
 //////////////////////////////////////////////////////////////////////
 
-CTDCMainMenu::CTDCMainMenu() : m_bShowingTabCloseBtn(FALSE)
+CTDCMainMenu::CTDCMainMenu()
+	:
+	m_bShowingTabCloseBtn(FALSE),
+	m_hAssertMenu(NULL),
+	m_nAssertMenuPos(-1)
 {
-
+	m_szAssertMenuText[0] = 0;
 }
 
 CTDCMainMenu::~CTDCMainMenu()
@@ -61,6 +65,11 @@ BOOL CTDCMainMenu::LoadMenu()
 		ASSERT(0);
 		return FALSE;
 	}
+
+	// The previous menu owns and destroys the assertion submenu
+	m_hAssertMenu = NULL;
+	m_nAssertMenuPos = -1;
+	m_szAssertMenuText[0] = 0;
 
 	if (!CEnMenu::LoadMenu(IDR_MAINFRAME, *pMainWnd, TRUE, FALSE))
 		return FALSE;
@@ -96,6 +105,76 @@ BOOL CTDCMainMenu::LoadMenu()
 #endif
 
 	return TRUE;
+}
+
+BOOL CTDCMainMenu::IsAssertMenuItemData(ULONG_PTR dwItemData) const
+{
+	return (dwItemData == (ULONG_PTR)(LPCTSTR)m_szAssertMenuText);
+}
+
+BOOL CTDCMainMenu::UpdateAssertMenu(int nCount, const CStringArray& aSummary)
+{
+#ifdef _DEBUG
+	if (!GetSafeHmenu())
+		return FALSE;
+
+	if (nCount <= 0)
+		return TRUE; // nothing to show
+
+	_stprintf_s(m_szAssertMenuText, _countof(m_szAssertMenuText), _T("Asserts (%d)"), nCount);
+
+	if (!m_hAssertMenu)
+	{
+		m_hAssertMenu = ::CreatePopupMenu();
+
+		if (!m_hAssertMenu)
+			return FALSE;
+
+		m_nAssertMenuPos = AM_DEBUG;
+
+		if (!InsertMenu(m_nAssertMenuPos,
+						(MF_BYPOSITION | MF_POPUP | MF_OWNERDRAW | MFT_RIGHTJUSTIFY),
+						(UINT_PTR)m_hAssertMenu,
+						(LPCTSTR)m_szAssertMenuText))
+		{
+			::DestroyMenu(m_hAssertMenu);
+			m_hAssertMenu = NULL;
+			m_nAssertMenuPos = -1;
+			return FALSE;
+		}
+
+		// Assertion locations are runtime data and must not be translated
+		CLocalizer::EnableTranslation(m_hAssertMenu, FALSE);
+	}
+	else
+	{
+		m_nAssertMenuPos = CEnMenu::FindMenuItem(GetSafeHmenu(), m_hAssertMenu);
+		ASSERT(m_nAssertMenuPos != -1);
+
+		ModifyMenu(m_nAssertMenuPos,
+				   (MF_BYPOSITION | MF_POPUP | MF_OWNERDRAW | MFT_RIGHTJUSTIFY),
+				   (UINT_PTR)m_hAssertMenu,
+				   (LPCTSTR)m_szAssertMenuText);
+	}
+
+	while (::GetMenuItemCount(m_hAssertMenu) > 0)
+		::DeleteMenu(m_hAssertMenu, 0, MF_BYPOSITION);
+
+	for (int nItem = 0; nItem < aSummary.GetSize(); nItem++)
+	{
+		::AppendMenu(m_hAssertMenu, MF_STRING, ID_TOOLS_VIEWASSERTLOG, aSummary[nItem]);
+	}
+
+	if (AfxGetMainWnd())
+		AfxGetMainWnd()->DrawMenuBar();
+
+	return TRUE;
+#else
+	UNUSED_ALWAYS(nCount);
+	UNUSED_ALWAYS(aSummary);
+
+	return TRUE;
+#endif
 }
 
 BOOL CTDCMainMenu::OSSupportsBitmapButtons()

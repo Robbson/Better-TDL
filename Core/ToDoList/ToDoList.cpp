@@ -73,6 +73,193 @@ static char THIS_FILE[] = __FILE__;
 static CString s_sAssertLogPath;
 static BOOL s_bSuppressAssertDialog = FALSE;
 
+struct TDLASSERTSOURCE
+{
+	CString sLocation;
+	int nCount;
+};
+
+static CRITICAL_SECTION s_csAssertSources;
+static BOOL s_bAssertSourcesInitialized = FALSE;
+static CArray<TDLASSERTSOURCE, TDLASSERTSOURCE&> s_aAssertSources;
+static int s_nAssertTotal = 0;
+static LONG s_nAssertMenuNotifyPending = 0;
+
+static void NotifyAssertMenuChanged()
+{
+	if (::InterlockedExchange(&s_nAssertMenuNotifyPending, 1) != 0)
+		return; // an update is already queued
+
+	CWnd* pMainWnd = AfxGetMainWnd();
+
+	if (pMainWnd && pMainWnd->GetSafeHwnd())
+	{
+		if (!pMainWnd->PostMessage(WM_TDL_ASSERTREPORTED))
+			::InterlockedExchange(&s_nAssertMenuNotifyPending, 0); // retry on next assertion
+	}
+	else
+	{
+		::InterlockedExchange(&s_nAssertMenuNotifyPending, 0); // retry on next assertion
+	}
+}
+
+static int FindAssertMessageEol(const CString& sMessage, int nStart)
+{
+	const int nCr = sMessage.Find(_T('\r'), nStart);
+	const int nLf = sMessage.Find(_T('\n'), nStart);
+
+	if (nCr < 0)
+		return nLf;
+
+	if (nLf < 0)
+		return nCr;
+
+	return min(nCr, nLf);
+}
+
+static CString GetAssertSourceFileName(const CString& sPath)
+{
+	int nSlash = sPath.ReverseFind(_T('\\'));
+
+	if (nSlash < 0)
+		nSlash = sPath.ReverseFind(_T('/'));
+
+	return ((nSlash >= 0) ? sPath.Mid(nSlash + 1) : sPath);
+}
+
+static BOOL ParseAssertSourceFirstLine(const CString& sMessage, CString& sLocation)
+{
+	const int nEol = FindAssertMessageEol(sMessage, 0);
+
+	CString sFirstLine = ((nEol >= 0) ? sMessage.Left(nEol) : sMessage);
+	sFirstLine.Trim();
+
+	// MFC assert messages start with: <path>(<line>) : Assertion failed!
+	const int nOpen = sFirstLine.ReverseFind(_T('('));
+
+	if (nOpen <= 0)
+		return FALSE;
+
+	const int nClose = sFirstLine.Find(_T(')'), (nOpen + 1));
+
+	if (nClose <= (nOpen + 1))
+		return FALSE;
+
+	CString sLine = sFirstLine.Mid((nOpen + 1), (nClose - nOpen - 1));
+	sLine.Trim();
+
+	if (sLine.IsEmpty() || (sLine.SpanIncluding(_T("0123456789")) != sLine))
+		return FALSE;
+
+	const CString sFile = GetAssertSourceFileName(sFirstLine.Left(nOpen));
+
+	if (sFile.IsEmpty())
+		return FALSE;
+
+	sLocation.Format(_T("%s(%s)"), (LPCTSTR)sFile, (LPCTSTR)sLine);
+	return TRUE;
+}
+
+static CString GetAssertSourceLocation(LPCSTR szMessage)
+{
+	CString sMessage;
+	sMessage = (szMessage ? szMessage : "");
+	CString sLocation;
+
+	const int nFileName = sMessage.Find(_T("File: "));
+
+	if (nFileName >= 0)
+	{
+		const int nFileStart = (nFileName + 6);
+		const int nEol = FindAssertMessageEol(sMessage, nFileStart);
+
+		CString sPath = ((nEol >= 0) ? sMessage.Mid(nFileStart, nEol - nFileStart) : sMessage.Mid(nFileStart));
+		sPath.Trim();
+
+		const CString sFile = GetAssertSourceFileName(sPath);
+
+		const int nLineName = ((nEol >= 0) ? sMessage.Find(_T("Line: "), nEol) : -1);
+
+		if (nLineName >= 0)
+		{
+			const int nLineStart = (nLineName + 6);
+			const int nLineEnd = FindAssertMessageEol(sMessage, nLineStart);
+
+			CString sLine = ((nLineEnd >= 0) ? sMessage.Mid(nLineStart, nLineEnd - nLineStart) : sMessage.Mid(nLineStart));
+			sLine.Trim();
+
+			if (sLine.IsEmpty())
+				sLocation = sFile;
+			else
+				sLocation.Format(_T("%s(%s)"), (LPCTSTR)sFile, (LPCTSTR)sLine);
+		}
+		else
+		{
+			sLocation = sFile;
+		}
+	}
+
+	if (sLocation.IsEmpty())
+		ParseAssertSourceFirstLine(sMessage, sLocation);
+
+	if (sLocation.IsEmpty())
+	{
+		const int nEol = FindAssertMessageEol(sMessage, 0);
+
+		sLocation = ((nEol > 0) ? sMessage.Left(nEol) : sMessage);
+		sLocation.Trim();
+
+		if (sLocation.IsEmpty())
+			sLocation = _T("(unknown)");
+	}
+
+	return sLocation;
+}
+
+static void RecordAssertSource(LPCSTR szMessage)
+{
+	const CString sLocation = GetAssertSourceLocation(szMessage);
+
+	::EnterCriticalSection(&s_csAssertSources);
+
+	BOOL bFound = FALSE;
+
+	for (int nSource = 0; nSource < s_aAssertSources.GetSize(); nSource++)
+	{
+		TDLASSERTSOURCE& source = s_aAssertSources[nSource];
+
+		if (source.sLocation == sLocation)
+		{
+			source.nCount++;
+			bFound = TRUE;
+			break;
+		}
+	}
+
+	if (!bFound)
+	{
+		TDLASSERTSOURCE source;
+		source.sLocation = sLocation;
+		source.nCount = 1;
+
+		s_aAssertSources.Add(source);
+	}
+
+	s_nAssertTotal++;
+
+	::LeaveCriticalSection(&s_csAssertSources);
+
+	NotifyAssertMenuChanged();
+}
+
+static int CompareAssertSources(const TDLASSERTSOURCE& source1, const TDLASSERTSOURCE& source2)
+{
+	if (source1.nCount != source2.nCount)
+		return (source2.nCount - source1.nCount); // descending
+
+	return source1.sLocation.CompareNoCase(source2.sLocation);
+}
+
 static void GetAssertLogPath(CString& sPath)
 {
 	TCHAR szEnv[MAX_PATH * 2] = { 0 };
@@ -94,72 +281,74 @@ static int __cdecl TDLAssertReportHook(int nReportType, char* szMessage, int* pn
 	if ((nReportType != _CRT_ASSERT) && (nReportType != _CRT_ERROR))
 		return FALSE;
 
+	RecordAssertSource(szMessage);
+
 	if (s_sAssertLogPath.IsEmpty())
 		GetAssertLogPath(s_sAssertLogPath);
 
 	FILE* pFile = NULL;
 
-	if ((_tfopen_s(&pFile, s_sAssertLogPath, _T("a")) != 0) || !pFile)
-		return FALSE; // fall back to default handling
-
-	SYSTEMTIME st = { 0 };
-	::GetLocalTime(&st);
-
-	fprintf(pFile,
-			"[%04d-%02d-%02d %02d:%02d:%02d] [pid %lu] %s\n",
-			st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond,
-			::GetCurrentProcessId(), (szMessage ? szMessage : "(null)"));
-
-	static BOOL bSymInitialized = FALSE;
-
-	if (!bSymInitialized)
+	if ((_tfopen_s(&pFile, s_sAssertLogPath, _T("a")) == 0) && pFile)
 	{
-		SymSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES);
-		bSymInitialized = SymInitialize(::GetCurrentProcess(), NULL, TRUE);
-	}
+		SYSTEMTIME st = { 0 };
+		::GetLocalTime(&st);
 
-	if (bSymInitialized)
-	{
-		void* frames[32] = { 0 };
-		USHORT nFrames = CaptureStackBackTrace(1, _countof(frames), frames, NULL);
+		fprintf(pFile,
+				"[%04d-%02d-%02d %02d:%02d:%02d] [pid %lu] %s\n",
+				st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond,
+				::GetCurrentProcessId(), (szMessage ? szMessage : "(null)"));
 
-		for (USHORT nFrame = 0; nFrame < nFrames; nFrame++)
+		static BOOL bSymInitialized = FALSE;
+
+		if (!bSymInitialized)
 		{
-			char szBuffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME] = { 0 };
-			SYMBOL_INFO* pSym = (SYMBOL_INFO*)szBuffer;
-			pSym->SizeOfStruct = sizeof(SYMBOL_INFO);
-			pSym->MaxNameLen = MAX_SYM_NAME;
+			SymSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES);
+			bSymInitialized = SymInitialize(::GetCurrentProcess(), NULL, TRUE);
+		}
 
-			DWORD64 dwDisplacement = 0;
+		if (bSymInitialized)
+		{
+			void* frames[32] = { 0 };
+			USHORT nFrames = CaptureStackBackTrace(1, _countof(frames), frames, NULL);
 
-			if (SymFromAddr(::GetCurrentProcess(), (DWORD64)frames[nFrame], &dwDisplacement, pSym))
+			for (USHORT nFrame = 0; nFrame < nFrames; nFrame++)
 			{
-				IMAGEHLP_LINE64 line = { 0 };
-				line.SizeOfStruct = sizeof(line);
+				char szBuffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME] = { 0 };
+				SYMBOL_INFO* pSym = (SYMBOL_INFO*)szBuffer;
+				pSym->SizeOfStruct = sizeof(SYMBOL_INFO);
+				pSym->MaxNameLen = MAX_SYM_NAME;
 
-				DWORD dwLineDisp = 0;
+				DWORD64 dwDisplacement = 0;
 
-				if (SymGetLineFromAddr64(::GetCurrentProcess(), (DWORD64)frames[nFrame], &dwLineDisp, &line))
+				if (SymFromAddr(::GetCurrentProcess(), (DWORD64)frames[nFrame], &dwDisplacement, pSym))
 				{
-					fprintf(pFile, "    %s(%lu): %s + 0x%llx\n",
-							line.FileName, line.LineNumber, pSym->Name,
-							(unsigned long long)dwDisplacement);
+					IMAGEHLP_LINE64 line = { 0 };
+					line.SizeOfStruct = sizeof(line);
+
+					DWORD dwLineDisp = 0;
+
+					if (SymGetLineFromAddr64(::GetCurrentProcess(), (DWORD64)frames[nFrame], &dwLineDisp, &line))
+					{
+						fprintf(pFile, "    %s(%lu): %s + 0x%llx\n",
+								line.FileName, line.LineNumber, pSym->Name,
+								(unsigned long long)dwDisplacement);
+					}
+					else
+					{
+						fprintf(pFile, "    %s + 0x%llx\n", pSym->Name,
+								(unsigned long long)dwDisplacement);
+					}
 				}
 				else
 				{
-					fprintf(pFile, "    %s + 0x%llx\n", pSym->Name,
-							(unsigned long long)dwDisplacement);
+					fprintf(pFile, "    0x%p\n", frames[nFrame]);
 				}
 			}
-			else
-			{
-				fprintf(pFile, "    0x%p\n", frames[nFrame]);
-			}
 		}
-	}
 
-	fflush(pFile);
-	fclose(pFile);
+		fflush(pFile);
+		fclose(pFile);
+	}
 
 	if (szMessage)
 		::OutputDebugStringA(szMessage);
@@ -177,6 +366,9 @@ static int __cdecl TDLAssertReportHook(int nReportType, char* szMessage, int* pn
 
 static void InitAssertLogging()
 {
+	::InitializeCriticalSection(&s_csAssertSources);
+	s_bAssertSourcesInitialized = TRUE;
+
 	TCHAR szEnv[MAX_PATH * 2] = { 0 };
 	DWORD dwLen = ::GetEnvironmentVariable(_T("TDL_ASSERT_LOG"), szEnv, _countof(szEnv));
 
@@ -184,9 +376,9 @@ static void InitAssertLogging()
 	if ((dwLen > 0) && (dwLen < _countof(szEnv)) && (lstrcmpi(szEnv, _T("0")) == 0))
 		return;
 
-	// Logging is on by default. An explicit value ('1' or a path) additionally
-	// suppresses the dialog so unattended runs cannot block.
-	s_bSuppressAssertDialog = ((dwLen > 0) && (dwLen < _countof(szEnv)));
+	// Logging is on by default. Dialogs are suppressed so repeated assertions
+	// cannot block the application; they are summarised in the Asserts menu.
+	s_bSuppressAssertDialog = TRUE;
 
 	_CrtSetReportHook2(_CRT_RPTHOOK_INSTALL, TDLAssertReportHook);
 }
@@ -204,6 +396,73 @@ BOOL CToDoListApp::GetAssertLogPath(CString& sPath)
 #endif
 
 	return !sPath.IsEmpty();
+}
+
+int CToDoListApp::GetAssertCount()
+{
+#ifdef _DEBUG
+	if (!s_bAssertSourcesInitialized)
+		return 0;
+
+	::EnterCriticalSection(&s_csAssertSources);
+	const int nCount = s_nAssertTotal;
+	::LeaveCriticalSection(&s_csAssertSources);
+
+	return nCount;
+#else
+	return 0;
+#endif
+}
+
+void CToDoListApp::GetAssertSummary(CStringArray& aSummary)
+{
+	aSummary.RemoveAll();
+
+#ifdef _DEBUG
+	if (!s_bAssertSourcesInitialized)
+		return;
+
+	CArray<TDLASSERTSOURCE, TDLASSERTSOURCE&> aSorted;
+
+	::EnterCriticalSection(&s_csAssertSources);
+	aSorted.Copy(s_aAssertSources);
+	::LeaveCriticalSection(&s_csAssertSources);
+
+	const int nSources = aSorted.GetSize();
+
+	if (nSources == 0)
+		return;
+
+	// Insertion sort: descending count, then location
+	for (int nItem = 1; nItem < nSources; nItem++)
+	{
+		const TDLASSERTSOURCE source = aSorted[nItem];
+		int nInsert = nItem;
+
+		while ((nInsert > 0) && (CompareAssertSources(source, aSorted[nInsert - 1]) < 0))
+		{
+			aSorted[nInsert] = aSorted[nInsert - 1];
+			nInsert--;
+		}
+
+		aSorted[nInsert] = source;
+	}
+
+	aSummary.SetSize(nSources);
+
+	for (int nSource = 0; nSource < nSources; nSource++)
+	{
+		const TDLASSERTSOURCE& source = aSorted[nSource];
+		aSummary[nSource].Format(_T("%s [%dx]"), (LPCTSTR)source.sLocation, source.nCount);
+	}
+#endif
+}
+
+void CToDoListApp::ResetAssertMenuNotification()
+{
+#ifdef _DEBUG
+	::InterlockedExchange(&s_nAssertMenuNotifyPending, 0);
+#endif
 }
 
 /////////////////////////////////////////////////////////////////////////////

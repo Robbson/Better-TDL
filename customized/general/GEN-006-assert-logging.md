@@ -1,13 +1,12 @@
 # GEN-006: Default assertion logging
 
-Status: **In progress** (implemented; TDLTest passes; app link pending because a Debug
-instance is running)
+Status: **Done** (built; TDLTest passes). Assertion dialogs are now suppressed by
+default; the visible summary is documented in [UI-022](../ui/UI-022-assert-menu.md).
 
 ## Goal
 
 Make every CRT/MFC assertion in a Debug build leave a durable record without requiring
-environment setup, while keeping the stock assertion dialog so interactive runs still
-notice a failure.
+environment setup, and keep repeated assertions from blocking interactive runs.
 
 ## Upstream starting point
 
@@ -29,9 +28,9 @@ Files: `Core/ToDoList/ToDoList.cpp`.
    redirects it.
 3. `TDLAssertReportHook()` appends timestamp, process id, the assertion message and a
    `dbghelp`-resolved stack trace on every assertion.
-4. After logging, the hook returns `FALSE` so the normal assertion dialog/debug break
-   proceeds. When `TDL_ASSERT_LOG` is set to `1` or a path, the previous
-   log-and-suppress behaviour is kept for unattended runs.
+4. After logging, the hook returns `TRUE` with a zero return value so the dialog and
+   debug break are suppressed. Assertions are surfaced by the red `Asserts (N)` menu
+   (see [UI-022](../ui/UI-022-assert-menu.md)).
 
 `TDLTest` already logs by default to `%TEMP%\TDLTest_asserts.log` and is unchanged.
 
@@ -48,21 +47,19 @@ file exists; Release builds leave the menu entry greyed out.
 - Every assertion now writes to `%TEMP%`; repeated assertions grow the log until it is
   deleted. The file is plain text and only written in Debug builds.
 - The first assertion initialises `dbghelp` symbols, adding a small one-off delay.
-- If the log file cannot be opened, the hook falls back to the dialog, so no assertion
-  is silently lost.
+- If the log file cannot be opened, the assertion is still recorded in the `Asserts`
+  menu but has no stack trace on disk.
+- Suppressing dialogs means a Debug developer must watch the `Asserts` menu instead of
+  being interrupted. `TDL_ASSERT_LOG=0` restores the stock dialog.
 - Release builds are unaffected.
 
 ## Verification
 
-- `Unicode Debug` compilation of `Core/ToDoList/ToDoList.cpp` succeeds.
-- `ToDoListLib` (including `ToDoListWnd.cpp` and the new menu handler) compiles.
-- `TDLTest` builds and all 310,419 tests pass.
-- The full solution link could not finish because
-  `Core/ToDoList/Unicode_Debug/ToDoList.exe` is currently running from an interactive
-  session; the linker reported `LNK1168`. That instance was not started by the agent and
-  was left running. Re-run the build after closing it.
-- Manual checks still to do:
+- `Unicode Debug` solution builds (`ToDoList.exe` and `TDLTest.exe` link).
+- `TDLTest` builds and all 310,436 tests pass.
+- The Debug post-build step runs the unit test suite with no failures.
+- Manual checks:
   - Launch a Debug build with `TDL_ASSERT_LOG` unset, trigger an assertion and confirm
-    the dialog still appears and `%TEMP%\ToDoList_asserts.log` contains the entry.
-  - Repeat with `TDL_ASSERT_LOG=1` and confirm the dialog is suppressed.
-  - Set `TDL_ASSERT_LOG=0` and confirm no log entry is written.
+    no dialog appears, the red `Asserts` menu appears before `Debug`, and the log file
+    contains the entry.
+  - Set `TDL_ASSERT_LOG=0` and confirm the dialog returns and no menu appears.

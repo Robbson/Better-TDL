@@ -139,3 +139,4 @@ Rules of thumb:
 | UI-017 | Legacy tasklist display options (row height, icon spacing, header font, comment brackets) | Done (built; TDLTest passes; List View row-height limitation documented) | [UI-017-legacy-task-row-height.md](ui/UI-017-legacy-task-row-height.md) |
 | UI-018 | Ignore and preserve hidden task views whose extension is not loaded | Done (built; interactive preferences check pending) | [UI-018-unavailable-hidden-views.md](ui/UI-018-unavailable-hidden-views.md) |
 | UI-019 | Configurable task icon click behaviour (open icon dialog vs title-like selection) | Done (built; TDLTest passes; interactive check pending) | [UI-019-task-icon-click-behaviour.md](ui/UI-019-task-icon-click-behaviour.md) |
+| UI-020 | File Link column defaults to last in the task list | Done (built; TDLTest passes) | [UI-020-filelink-column-default-last.md](ui/UI-020-filelink-column-default-last.md) |

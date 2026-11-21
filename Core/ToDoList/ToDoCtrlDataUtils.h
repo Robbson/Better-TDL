@@ -55,6 +55,7 @@ public:
 	BOOL HasOverdueTasks() const;
 	BOOL HasDueTodayTasks() const;
 	BOOL HasLockedTasks() const;
+	int GetDueTaskIDs(BOOL bOverdue, CDWordArray& aTaskIDs, int nMaxCount = -1) const;
 	COleDateTime GetEarliestDueDate() const;
 
 	BOOL IsTaskRecentlyModified(DWORD dwTaskID) const;
@@ -132,6 +133,7 @@ protected:
 	BOOL IsTaskRecentlyModified(const TODOITEM* pTDI, const TODOSTRUCTURE* pTDS, CDWordSet& mapProcessedIDs) const;
 	BOOL HasDueTodayTasks(const TODOSTRUCTURE* pTDS, CDWordSet& mapProcessedIDs) const;
 	BOOL HasLockedTasks(const TODOSTRUCTURE* pTDS, CDWordSet& mapProcessedIDs) const;
+	void GetDueTaskIDs(const TODOSTRUCTURE* pTDS, BOOL bOverdue, const COleDateTime& dtNow, CDWordArray& aTaskIDs, int nMaxCount, CDWordSet& mapProcessedIDs) const;
 	BOOL GetTaskSubtaskTotals(const TODOITEM* pTDI, const TODOSTRUCTURE* pTDS, int& nSubtasksTotal, int& nSubtasksDone, CDWordSet& mapProcessedIDs) const;
 	BOOL GetTaskCustomAttributeData(const TODOITEM* pTDI, const TODOSTRUCTURE* pTDS, const TDCCUSTOMATTRIBUTEDEFINITION& attribDef, double& dValue, TDC_UNITS nUnits, CDWordSet& mapProcessedIDs) const;
 

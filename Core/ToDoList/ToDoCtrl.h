@@ -439,6 +439,7 @@ public:
 	BOOL HasOverdueTasks() const;
 	BOOL HasDueTodayTasks() const;
 	BOOL HasLockedTasks() const;
+	int GetDueTaskIDs(BOOL bOverdue, CDWordArray& aTaskIDs, int nMaxCount = -1) const { return m_calculator.GetDueTaskIDs(bOverdue, aTaskIDs, nMaxCount); }
 
 	// undo/redo
 	BOOL UndoLastAction(BOOL bUndo);
@@ -458,6 +459,7 @@ public:
 	void UpdateAttributesPaneSize();
 	void SetCompletionStatus(const CString& sStatus);
 	COleDateTime GetEarliestDueDate() const { return m_calculator.GetEarliestDueDate(); } // entire tasklist
+	COleDateTime GetTaskDueDate(DWORD dwTaskID) const { return m_calculator.GetTaskDueDate(dwTaskID); }
 
 	CString FormatTaskLink(DWORD dwTaskID, BOOL bFull) const;
 	CString FormatTaskDependency(DWORD dwTaskID, BOOL bFull) const;

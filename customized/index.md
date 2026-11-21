@@ -140,3 +140,4 @@ Rules of thumb:
 | UI-018 | Ignore and preserve hidden task views whose extension is not loaded | Done (built; interactive preferences check pending) | [UI-018-unavailable-hidden-views.md](ui/UI-018-unavailable-hidden-views.md) |
 | UI-019 | Configurable task icon click behaviour (open icon dialog vs title-like selection) | Done (built; TDLTest passes; interactive check pending) | [UI-019-task-icon-click-behaviour.md](ui/UI-019-task-icon-click-behaviour.md) |
 | UI-020 | File Link column defaults to last in the task list | Done (built; TDLTest passes) | [UI-020-filelink-column-default-last.md](ui/UI-020-filelink-column-default-last.md) |
+| UI-021 | Tasklist tab tooltip lists due-status reasons; zero header date no longer marks delay-loaded tabs overdue | Done (built; TDLTest passes) | [UI-021-tab-tooltip-due-reasons.md](ui/UI-021-tab-tooltip-due-reasons.md) |

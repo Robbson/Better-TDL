@@ -97,7 +97,7 @@ public:
 	void UpdateToDoCtrlReadOnlyUIState(CFilteredToDoCtrl& tdc);
 	void CheckNotifyReadonly(int nIndex) const;
 
-	void SetDueItemStatus(int nIndex, TDCM_DUESTATUS nStatus);
+	void SetDueItemStatus(int nIndex, TDCM_DUESTATUS nStatus, const COleDateTime& dtEarliestDue);
 	TDCM_DUESTATUS GetDueItemStatus(int nIndex) const;
 	BOOL ShowDueTaskNotification(int nIndex, LPCTSTR szFilePath, BOOL bBrowser);
 	BOOL RefreshDueItemStatus(); // true if changed
@@ -126,7 +126,7 @@ public:
 
 	CString UpdateTabItemText(int nIndex);
 	CString GetTabItemText(int nIndex) const;
-	CString GetTabItemTooltip(int nIndex) const;
+	CString GetTabItemTooltip(int nIndex, BOOL bIncDueReasons = TRUE) const;
 	COLORREF GetTabColor(int nIndex) const;
 	BOOL SetTabColor(int nIndex, COLORREF crTab);
 	int SortToDoCtrlsByName();
@@ -173,6 +173,7 @@ protected:
 		BOOL bLastCheckoutSuccess;
 		TDCM_PATHTYPE nPathType;
 		TDCM_DUESTATUS nDueStatus;
+		COleDateTime dtEarliestDue;
 		BOOL bNeedPrefUpdate;
 		int nUntitledIndex; // creation index regardless of actual position
 		BOOL bLoaded;
@@ -197,6 +198,7 @@ protected:
 	BOOL AreToDoCtrlsSortedByName() const;
 
 	int UpdateTabItemImage(int nIndex) const;
+	void AppendDueTaskReason(int nIndex, CString& sTooltip) const;
 	int GetAllCustomAttributeDefinitions(CTDCCustomAttribDefinitionArray& aAttribDefs, BOOL bIncDelayLoaded) const;
 	void GetAllAutoListData(TDC_ATTRIBUTE nAttribID, BOOL bIncDelayLoaded, TDCAUTOLISTDATA& tld) const;
 

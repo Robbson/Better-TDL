@@ -79,6 +79,7 @@
 #include "..\shared\serverdlg.h"
 #include "..\shared\soundedit.h"
 #include "..\shared\themed.h"
+#include "..\shared\ToolTipCtrlEx.h"
 #include "..\shared\wclassdefines.h"
 #include "..\shared\webmisc.h"
 #include "..\shared\winclasses.h"
@@ -1290,6 +1291,7 @@ BOOL CToDoListWnd::InitTabCtrl()
 
 	m_tabCtrl.SetBackgroundColor(m_theme.crAppBackDark);
 	m_tabCtrl.GetToolTips()->ModifyStyle(0, (TTS_ALWAYSTIP | TTS_NOPREFIX));
+	CToolTipCtrlEx::EnableMultilineTips(m_tabCtrl.GetToolTips()->GetSafeHwnd());
 
 	CLocalizer::EnableTranslation(m_tabCtrl, FALSE);
 		
@@ -4770,7 +4772,7 @@ void CToDoListWnd::UpdateCaption()
 	const CFilteredToDoCtrl& tdc = GetToDoCtrl();
 	
 	CString sCaption, sCopyright = GetAppCopyright();
-	CString sStatus = m_mgrToDoCtrls.GetTabItemTooltip(nSel);
+	CString sStatus = m_mgrToDoCtrls.GetTabItemTooltip(nSel, FALSE);
 	
 	// add current focus text as required
 	if (!sStatus.IsEmpty())
@@ -5494,7 +5496,7 @@ TDC_FILE CToDoListWnd::DelayOpenTaskList(LPCTSTR szFilePath)
 	///////////////////////////////////////////////////////////////////
 
 	// update due item status
-	if (CDateHelper::IsDateSet(dtEarliest))
+	if (CDateHelper::IsDateSet(dtEarliest) && (dtEarliest.m_dt > 0.0))
 	{
 		TDCM_DUESTATUS nStatus = TDCM_FUTURE;
 		COleDateTime dtToday = COleDateTime::GetCurrentTime();
@@ -5508,7 +5510,7 @@ TDC_FILE CToDoListWnd::DelayOpenTaskList(LPCTSTR szFilePath)
 			nStatus = TDCM_TODAY;
 		}
 
-		m_mgrToDoCtrls.SetDueItemStatus(nCtrl, nStatus);
+		m_mgrToDoCtrls.SetDueItemStatus(nCtrl, nStatus, dtEarliest);
 	}
 		
 	return TDCF_SUCCESS;

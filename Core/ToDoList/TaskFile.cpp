@@ -1471,6 +1471,14 @@ BOOL CTaskFile::GetEarliestTaskDueDate(COleDateTime& date) const
 		return FALSE;
 
 	date = pXItem->GetValueF();
+
+	// Older files can contain a zero date meaning 'no due date'
+	if (!CDateHelper::IsDateSet(date) || (date.m_dt <= 0.0))
+	{
+		date = CDateHelper::NullDate();
+		return FALSE;
+	}
+
 	return TRUE;
 }
 

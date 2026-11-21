@@ -4798,11 +4798,14 @@ BOOL CToDoCtrl::DelayLoad(const CString& sFilePath, COleDateTime& dtEarliestDue)
 	if (!HasFilePath())
 	{
 		CTaskFile temp;
-	
-		if (temp.LoadHeader(sFilePath) && (temp.IsArchive() || temp.GetEarliestTaskDueDate(dtEarliestDue)))
+
+		if (temp.LoadHeader(sFilePath))
 		{
 			SetProjectName(temp.GetProjectName());
 			temp.GetCustomAttributeDefs(m_aCustomAttribDefs);
+
+			if (!temp.IsArchive())
+				temp.GetEarliestTaskDueDate(dtEarliestDue); // may be unset
 		}
 
 		SetFilePath(sFilePath);

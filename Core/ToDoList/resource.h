@@ -2925,6 +2925,11 @@
 #define IDS_HOMEFOLDER_VIEWUNSUPPORTED  51952
 #define IDS_SPLITTER_TIP_AUTOFIT        51953
 #define IDS_SPLITTER_TIP_FIXED          51954
+#define IDS_TABTIP_DUEOVERDUE           51962
+#define IDS_TABTIP_DUETODAY             51963
+#define IDS_TABTIP_DUEMORE              51964
+#define IDS_TABTIP_DUEEARLIEST          51965
+#define IDS_TABTIP_DUENOTLOADED         51966
 
 // Next default values for new objects
 // 

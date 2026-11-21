@@ -2922,6 +2922,94 @@ BOOL CTDCTaskCalculator::HasDueTodayTasks(const TODOSTRUCTURE* pTDS, CDWordSet& 
 
 // ---------------------------------------------------------------------
 
+int CTDCTaskCalculator::GetDueTaskIDs(BOOL bOverdue, CDWordArray& aTaskIDs, int nMaxCount) const
+{
+	aTaskIDs.RemoveAll();
+
+	if (m_data.GetTaskCount() == 0)
+		return 0;
+
+	const TODOSTRUCTURE* pTDSTop = m_data.GetStructure();
+	ASSERT(pTDSTop);
+
+	COleDateTime dtNow = COleDateTime::GetCurrentTime();
+	CDWordSet mapProcessedIDs;
+
+	for (int nSubtask = 0; nSubtask < pTDSTop->GetSubTaskCount(); nSubtask++)
+	{
+		const TODOSTRUCTURE* pTDSChild = NULL;
+		const TODOITEM* pTDIChild = NULL;
+
+		if (GET_SUBTASK(pTDSTop, nSubtask, pTDIChild, pTDSChild))
+			GetDueTaskIDs(pTDSChild, bOverdue, dtNow, aTaskIDs, nMaxCount, mapProcessedIDs);
+
+		if ((nMaxCount >= 0) && (aTaskIDs.GetSize() >= nMaxCount))
+			break;
+	}
+
+	return aTaskIDs.GetSize();
+}
+
+void CTDCTaskCalculator::GetDueTaskIDs(const TODOSTRUCTURE* pTDS, BOOL bOverdue, const COleDateTime& dtNow,
+									   CDWordArray& aTaskIDs, int nMaxCount, CDWordSet& mapProcessedIDs) const
+{
+	if (!pTDS || ((nMaxCount >= 0) && (aTaskIDs.GetSize() >= nMaxCount)))
+		return;
+
+	if (CheckSetAlreadyProcessed(m_data.GetTrueTaskID(pTDS->GetTaskID()), mapProcessedIDs))
+		return;
+
+	DWORD dwTaskID = pTDS->GetTaskID();
+
+	if (dwTaskID)
+	{
+		const TODOITEM* pTDI = m_data.GetTask(dwTaskID);
+
+		if (pTDI)
+		{
+			COleDateTime dtDue = GetTaskDueDate(pTDI, pTDS);
+			BOOL bMatch = FALSE;
+
+			if (CDateHelper::IsDateSet(dtDue))
+			{
+				if (bOverdue)
+				{
+					if (!CDateHelper::DateHasTime(dtDue))
+						dtDue = CDateHelper::GetEndOfDay(dtDue);
+
+					bMatch = (dtDue < dtNow);
+				}
+				else
+				{
+					bMatch = CDateHelper::IsToday(dtDue);
+				}
+			}
+
+			if (bMatch)
+			{
+				aTaskIDs.Add(dwTaskID);
+
+				if ((nMaxCount >= 0) && (aTaskIDs.GetSize() >= nMaxCount))
+					return;
+			}
+		}
+	}
+
+	for (int nSubtask = 0; nSubtask < pTDS->GetSubTaskCount(); nSubtask++)
+	{
+		const TODOSTRUCTURE* pTDSChild = NULL;
+		const TODOITEM* pTDIChild = NULL;
+
+		if (GET_SUBTASK(pTDS, nSubtask, pTDIChild, pTDSChild))
+			GetDueTaskIDs(pTDSChild, bOverdue, dtNow, aTaskIDs, nMaxCount, mapProcessedIDs);
+
+		if ((nMaxCount >= 0) && (aTaskIDs.GetSize() >= nMaxCount))
+			break;
+	}
+}
+
+// ---------------------------------------------------------------------
+
 BOOL CTDCTaskCalculator::HasLockedTasks() const
 {
 	if (m_data.GetTaskCount() == 0)
@@ -3091,6 +3179,10 @@ COleDateTime CTDCTaskCalculator::GetStartDueDate(const TODOITEM* pTDI, const TOD
 				dtBest = dtDue;
 		}
 	}
+
+	// zero dates are OLE epoch (30 Dec 1899) not real due/start dates
+	if (CDateHelper::IsDateSet(dtBest) && (dtBest.m_dt <= 0.0))
+		dtBest = CDateHelper::NullDate();
 
 	return dtBest;
 }

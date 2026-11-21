@@ -12,6 +12,7 @@
 #include "..\shared\holdredraw.h"
 #include "..\shared\enstring.h"
 #include "..\shared\filemisc.h"
+#include "..\shared\datehelper.h"
 #include "..\shared\ShortcutManager.h"
 
 #include "..\Interfaces\Preferences.h"
@@ -77,6 +78,7 @@ CToDoCtrlMgr::TDCITEM::TDCITEM()
 	bLastCheckoutSuccess = -1;
 	nPathType = TDCM_UNDEF;
 	nDueStatus = TDCM_NONE;
+	dtEarliestDue = COleDateTime();
 	bNeedPrefUpdate = TRUE;
 	nUntitledIndex = -1;
 	bLoaded = TRUE;
@@ -91,6 +93,7 @@ CToDoCtrlMgr::TDCITEM::TDCITEM(CFilteredToDoCtrl* pCtrl, const TSM_TASKLISTINFO*
 	tLastMod = 0;
 	bLastCheckoutSuccess = -1;
 	nDueStatus = TDCM_NONE;
+	dtEarliestDue = COleDateTime();
 	bNeedPrefUpdate = TRUE;
 	nUntitledIndex = -1;
 	crTab = CLR_NONE;
@@ -623,11 +626,13 @@ BOOL CToDoCtrlMgr::GetReadOnlyStatus(int nIndex) const
 	return GetTDCItem(nIndex).bLastStatusReadOnly;
 }
 
-void CToDoCtrlMgr::SetDueItemStatus(int nIndex, TDCM_DUESTATUS nStatus)
+void CToDoCtrlMgr::SetDueItemStatus(int nIndex, TDCM_DUESTATUS nStatus, const COleDateTime& dtEarliestDue)
 {
 	CHECKVALIDINDEX(nIndex);
 
-	GetTDCItem(nIndex).nDueStatus = nStatus;
+	TDCITEM& tdci = GetTDCItem(nIndex);
+	tdci.nDueStatus = nStatus;
+	tdci.dtEarliestDue = dtEarliestDue;
 }
 
 BOOL CToDoCtrlMgr::RefreshDueItemStatus()
@@ -660,7 +665,7 @@ BOOL CToDoCtrlMgr::RefreshDueItemStatus(int nIndex)
 
 		if (nStatus != GetDueItemStatus(nIndex))
 		{
-			SetDueItemStatus(nIndex, nStatus);
+			SetDueItemStatus(nIndex, nStatus, ((nStatus == TDCM_NONE) ? COleDateTime() : tdc.GetEarliestDueDate()));
 			return TRUE;
 		}
 	}
@@ -1356,7 +1361,7 @@ BOOL CToDoCtrlMgr::SetTabColor(int nIndex, COLORREF crTab)
 	return TRUE;
 }
 
-CString CToDoCtrlMgr::GetTabItemTooltip(int nIndex) const
+CString CToDoCtrlMgr::GetTabItemTooltip(int nIndex, BOOL bIncDueReasons) const
 {
 	CHECKVALIDINDEXRET(nIndex, _T(""));
 
@@ -1398,7 +1403,87 @@ CString CToDoCtrlMgr::GetTabItemTooltip(int nIndex) const
 		break;
 	}
 
+	if (bIncDueReasons)
+		AppendDueTaskReason(nIndex, sTooltip);
+
 	return sTooltip;
+}
+
+void CToDoCtrlMgr::AppendDueTaskReason(int nIndex, CString& sTooltip) const
+{
+	TDCM_DUESTATUS nDueStatus = GetDueItemStatus(nIndex);
+
+	if (nDueStatus != TDCM_PAST && nDueStatus != TDCM_TODAY)
+		return;
+
+	const int MAX_LISTED = 10;
+	BOOL bOverdue = (nDueStatus == TDCM_PAST);
+	BOOL bLoaded = IsLoaded(nIndex);
+
+	CDWordArray aTaskIDs;
+	const CFilteredToDoCtrl& tdc = GetToDoCtrl(nIndex);
+	int nNumTasks = (bLoaded ? tdc.GetDueTaskIDs(bOverdue, aTaskIDs) : 0);
+
+	CString sReason;
+
+	if (nNumTasks)
+	{
+		CEnString sHeader;
+		sHeader.Format((bOverdue ? IDS_TABTIP_DUEOVERDUE : IDS_TABTIP_DUETODAY), nNumTasks);
+
+		sReason = sHeader;
+
+		for (int n = 0; n < min(nNumTasks, MAX_LISTED); n++)
+		{
+			DWORD dwTaskID = aTaskIDs[n];
+			CString sTitle = tdc.GetTaskTitle(dwTaskID);
+			COleDateTime dtDue = tdc.GetTaskDueDate(dwTaskID);
+			CString sLine;
+
+			if (CDateHelper::IsDateSet(dtDue))
+				sLine.Format(_T("\n  - %s (%s)"), sTitle, CDateHelper::FormatDate(dtDue).GetString());
+			else
+				sLine.Format(_T("\n  - %s"), sTitle);
+
+			sReason += sLine;
+		}
+
+		if (nNumTasks > MAX_LISTED)
+		{
+			CEnString sMore;
+			sMore.Format(IDS_TABTIP_DUEMORE, (nNumTasks - MAX_LISTED));
+			sReason += _T("\n");
+			sReason += sMore;
+		}
+	}
+	else
+	{
+		// Delay-loaded tasklists have no task data to enumerate, so fall back
+		// to the earliest due date cached in the file header.
+		COleDateTime dtEarliest = GetTDCItem(nIndex).dtEarliestDue;
+
+		if (!CDateHelper::IsDateSet(dtEarliest) || (dtEarliest.m_dt <= 0.0))
+			dtEarliest = tdc.GetEarliestDueDate();
+
+		// Ignore zero dates which are OLE epoch (30 Dec 1899)
+		if (!CDateHelper::IsDateSet(dtEarliest) || (dtEarliest.m_dt <= 0.0))
+			return;
+
+		CEnString sEarliest;
+		sEarliest.Format(IDS_TABTIP_DUEEARLIEST, CDateHelper::FormatDate(dtEarliest).GetString());
+		sReason = sEarliest;
+
+		if (!bLoaded)
+		{
+			sReason += _T("\n");
+			sReason += CEnString(IDS_TABTIP_DUENOTLOADED);
+		}
+	}
+
+	if (!sTooltip.IsEmpty())
+		sTooltip += _T("\n\n");
+
+	sTooltip += sReason;
 }
 
 BOOL CToDoCtrlMgr::IsCheckedOut(int nIndex) const

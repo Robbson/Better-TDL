@@ -4847,6 +4847,11 @@ BEGIN
     IDS_TABTIP_CHECKEDIN    "Checked in (read-only)"
     IDS_TABTIP_CHECKEDOUT   "Checked out"
     IDS_TABTIP_NOTLOADED    "Not yet loaded (%s)"
+    IDS_TABTIP_DUEOVERDUE   "Overdue tasks (%d):"
+    IDS_TABTIP_DUETODAY     "Due today (%d):"
+    IDS_TABTIP_DUEMORE      "  (+%d more)"
+    IDS_TABTIP_DUEEARLIEST  "Earliest due date: %s"
+    IDS_TABTIP_DUENOTLOADED "Tasklist not yet loaded; open it to list the overdue tasks"
 END
 
 STRINGTABLE

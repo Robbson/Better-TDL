@@ -71,7 +71,12 @@ Clearing a filter now restores the expansion state you had before it was applied
 
 The menu, toolbar and their tooltips name the action that will be undone or redone, and the modified marker clears when you return to the saved state.
 
-### 10. Several other fixes, improvements and legacy options
+### 10. Legacy task list rendering options
+
+- Annoyed of accidentally opening the icon change dialog when selecting a task? Just switch it off!
+- Also lets have the task lists get the old row height back, the better icon-to-title spacing and the same small header font (the latter also saves some space horizontally on empty columns).
+
+### 11. Several other fixes and improvements
 
 Too many to list, and none of them need a paragraph.
 

@@ -72,7 +72,7 @@ changing when label icons are hidden. It did not create the difference.
   is controlled by the separate Tasklist Attributes option.
 - The flat **List View** tab is not affected by the row-height option: it is a report
   list with no tree metric to follow, so its rows remain at the current height in both
-  modes.
+  modes. See the List View section below for the technical reason and options.
 
 ## Preferences layout
 
@@ -101,7 +101,7 @@ the General group so that it is highlighted when selected.
 - `Core/ToDoList/PreferencesDlg.h` — forwarding getters.
 - `Core/ToDoList/TDCToDoCtrlPreferenceHelper.cpp` — apply the preferences to tasklists.
 - `Core/ToDoList/ToDoList.rc`, `Core/ToDoList/resource.h` — General/Legacy groups, the
-  three legacy options, the comment-brackets option and tooltips.
+  four legacy options, the comment-brackets option and tooltips.
 
 ## Verification
 
@@ -112,7 +112,7 @@ the General group so that it is highlighted when selected.
   - `LegacyRowHeight=0` → task tree item height 20 px and attribute columns 20 px.
   - `LegacyRowHeight=1` → task tree item height 19 px and attribute columns 19 px,
     matching the live 6.8.10 instance.
-- Clicking the new checkbox in **User Interface > General** and pressing OK changed the
+- Clicking the new checkbox in **User Interface > Legacy** and pressing OK changed the
   open tasklist from 20/20 to 19/19 px and persisted `LegacyRowHeight=1`; clicking it off
   restored 20/20 px and `LegacyRowHeight=0`.
 - A screenshot check in legacy mode confirmed that the title text, attribute text, icons,
@@ -128,6 +128,56 @@ the General group so that it is highlighted when selected.
   **Filtering** appear in that vertical order, with the same inter-group spacing as the
   other sections. The Tasklist Attributes page shows the brackets option directly below
   *Display comments after a task's title* and disables it with the parent option.
+- The final header-alignment and General-highlight changes were compiled only (both
+  configurations); runtime verification is left to the user.
+
+## List View row height — limitation and recommendation
+
+The legacy row-height option currently applies to the **tree view only**. The List View
+title pane is a native report `CListCtrl` created by
+`CTDLTaskListCtrl::CreateTasksWnd()` (`TDLTaskListCtrl.cpp:126`–`134`) and relies on
+Windows to draw:
+
+- the 16 px task icon from `LVSIL_SMALL` (`SetTasksImageList()`, `TDLTaskListCtrl.cpp:145`–`155`)
+- the checkbox from `LVSIL_STATE` plus the `LVIS_STATEIMAGEMASK` callback mask
+
+A report list has no `TreeView_SetItemHeight()` equivalent. Its row height is the native
+report-list metric (20 px at `Arial -13`) and the image/state lists can only *increase*
+it. The attribute columns are owner-drawn, so they could be forced to 19 px, but the
+title pane would remain at 20 px and the rows would misalign across the splitter. That
+is why the whole List View was left unchanged rather than changing only half of it.
+
+The header font and left-alignment options do apply to both views because they only
+reconfigure the header controls.
+
+A native experiment with an owner-draw-fixed report list confirmed that the task icon
+and checkbox are **not** drawn once `LVS_OWNERDRAWFIXED` is used; the application would
+have to paint them itself.
+
+### Options if exact List View parity is needed
+
+1. **Owner-drawn title list (recommended if parity is required)**
+   - Create `m_lcTasks` with `LVS_OWNERDRAWFIXED` and return the target height from
+     `WM_MEASUREITEM` (19 legacy / 20 normal), as the attribute columns now do.
+   - Owner-draw drops the native icon/checkbox, so draw them in custom draw using
+     `m_ilTaskIcons.Draw()`, `m_ilCheckboxes.Draw()`/`DrawColumnCheckBox()` and the
+     existing `OnPostPaintTaskTitle()` text/comment logic.
+   - Must validate: checkbox hit-testing and state notifications, icon placement,
+     selection band, comments, font zoom/DPI, and columns-left/columns-right layouts.
+   - Risk: medium-high; the normal List View drawing path changes unless the
+     owner-draw mode is creation-time and can be kept legacy-only.
+2. **One-pixel smaller title-list font (not recommended)**
+   - May lower the native row to 19 px but also makes List View task titles smaller
+     than tree titles, and the result is font/DPI dependent.
+3. **Smaller task-icon image list (not recommended)**
+   - Would clip or scale the 16 px task icons.
+4. **Status quo**
+   - List View remains 20 px in both modes; the tree remains 19/20 px.
+
+Recommendation: defer the List View change. If it is implemented, make it a separate
+customization item (for example UI-018) and validate it independently. 6.8.10 had no
+List View, so this is a new-view consistency issue rather than a regression against the
+old application.
 
 ## Related
 

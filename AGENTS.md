@@ -131,6 +131,34 @@ The shell tool runs **PowerShell 7 (`pwsh`)** on Windows, not a POSIX shell.
 - Use the background-process tool for long-running servers/watchers rather than shell
   backgrounding operators.
 
+### Do not use POSIX text-tool idioms in pwsh
+
+The shell is PowerShell, but many agents paste POSIX pipelines. These fail on this
+machine and waste a turn. Preferred forms:
+
+- **Never pipe a native command into `head`, `tail`, `more` or `less`.** PowerShell
+  closes the pipe when the pager exits, so `git`/`rg` abort with
+  `Die Pipe wird gerade geschlossen`. Limit at the source instead:
+  - `git log --oneline -20` (or `-n 20`), not `git log --oneline | head -20`
+  - `rg -m 30 <pattern> <path>`, not `rg ... | head -30`
+  - Or use the dedicated Read/Grep/Glob tools, which take an explicit `limit`.
+  - If a real POSIX pipeline is unavoidable, wrap the whole thing:
+    `cmd /c "git log --oneline | head -20"`.
+- **Windows does not expand `*.cpp` globs for native commands.** `rg pattern A/*.cpp`
+  fails with `os error 123` (`...Syntax für den Dateinamen...`). Pass a directory and
+  filter with `-g`, or list globs via `-g`:
+  - `rg -n "pattern" Core/ToDoList Core/Shared -g "*.cpp" -g "*.h"`
+  - `rg -n "pattern" Core/ToDoList` (directory recursion is implicit)
+  - Or use the Grep tool with its `include` parameter.
+- **Prefer the dedicated tools over shell text commands.** Use Read (with
+  `offset`/`limit`) instead of `sed -n`, Grep instead of `rg` in a shell pipe, Glob
+  instead of `fd`/`Get-ChildItem`. Each avoids quoting, piping and glob pitfalls.
+- **Do not chain independent commands with `;`.** Run them as separate parallel tool
+  calls in one message. If they must be sequential, use `&&`. `;` runs even after a
+  failure and obscures which command broke.
+- `Select-Object -First N` can also break a native pipe; prefer the commands' own
+  `-n`/`-m` limits shown above.
+
 ## Running processes on this machine
 
 - The user normally keeps an **older ToDoList 6.8.10** instance running for notes and
